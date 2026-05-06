@@ -4,9 +4,9 @@ import { DisclaimerBox } from "@/components/DisclaimerBox";
 import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
-  title: "Join the Beta",
+  title: "General Beta Waitlist",
   description:
-    "Join the SteadyPlan Health beta list for ShiftPlan, KinPlan, SuppPlan, or all product lines.",
+    "General SteadyPlan beta waitlist preserved while ShiftPlan launches first.",
 };
 
 export default function BetaPage() {
@@ -15,9 +15,9 @@ export default function BetaPage() {
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-10">
         <div>
           <SectionHeading
-            eyebrow="Beta"
-            title="Tell us what would make planning feel lighter."
-            description="Submissions are saved to the Supabase waitlist when the project environment variables are configured. No authentication, payments, email service, or AI API is connected yet."
+            eyebrow="General beta"
+            title="The focused ShiftPlan intake is the main launch flow."
+            description="This general waitlist is preserved for internal continuity, but the current public launch focus is the Free 3x12 Shift Worker Reset Plan at /beta/shiftplan."
           />
           <div className="mt-8">
             <DisclaimerBox />

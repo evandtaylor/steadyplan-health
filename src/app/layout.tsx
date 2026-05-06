@@ -5,11 +5,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "SteadyPlan Health",
-    template: "%s | SteadyPlan Health",
+    default: "ShiftPlan",
+    template: "%s | ShiftPlan",
   },
   description:
-    "Simple plans for complicated health-life seasons. SteadyPlan Health helps users organize routines, responsibilities, and questions for qualified professionals.",
+    "Turn your shift schedule into a simple weekly life plan. ShiftPlan helps nurses and shift workers organize routines around irregular schedules.",
 };
 
 export default function RootLayout({

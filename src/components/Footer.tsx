@@ -7,7 +7,11 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-start">
         <div>
           <p className="text-lg font-semibold text-slate-950">
-            SteadyPlan Health
+            ShiftPlan
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            A ShiftPlan-first MVP from SteadyPlan Health, built for lifestyle
+            organization around irregular work schedules.
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
             {siteDisclaimer}
@@ -31,24 +35,6 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/privacy"
-              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              Terms
-            </Link>
-            <Link
-              href="/templates"
-              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            >
-              Templates
-            </Link>
           </div>
         </div>
       </div>

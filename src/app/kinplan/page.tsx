@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { ProductPage } from "@/components/ProductPage";
+import { ParkedRouteNotice } from "@/components/ParkedRouteNotice";
 
 export const metadata: Metadata = {
-  title: "KinPlan",
+  title: "KinPlan Parked Future Concept",
   description:
-    "Organize family care tasks, appointments, discharge instructions, provider notes, and questions for the care team.",
+    "KinPlan is parked while ShiftPlan launches as the first deployable product.",
 };
 
 export default function KinPlanPage() {
-  return <ProductPage product="kinplan" />;
+  return (
+    <ParkedRouteNotice
+      title="KinPlan is parked while ShiftPlan launches first."
+      description="KinPlan remains a future SteadyPlan Health concept for family care organization, but the current MVP is focused on ShiftPlan for nurses and shift workers."
+    />
+  );
 }

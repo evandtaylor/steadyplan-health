@@ -177,7 +177,7 @@ export function ShiftPlanIntakeForm() {
       setLastSubmittedFingerprint(currentFingerprint);
       setFormMessage(
         result.message ||
-          "Thanks. Your ShiftPlan intake was saved for manual review.",
+          "Thanks. Your Free 3x12 Shift Worker Reset Plan request was saved for manual review.",
       );
       setErrors({});
     } catch {
@@ -202,9 +202,9 @@ export function ShiftPlanIntakeForm() {
             {formMessage}
           </p>
           <p className="mt-3 text-sm leading-6 text-teal-900">
-            We will use this to understand practical planning needs around
-            shifts, sleep, meals, workouts, and recovery. It is not used for
-            diagnosis, treatment, or medical advice.
+            We will use this to understand practical planning needs around your
+            shift schedule, meals, workouts, errands, and recovery blocks. It is
+            not used for diagnosis, treatment, or medical advice.
           </p>
         </div>
       ) : null}
@@ -394,7 +394,8 @@ export function ShiftPlanIntakeForm() {
 
         <fieldset>
           <legend className="mb-2 block text-sm font-semibold text-slate-800">
-            Would you pay for this if it worked?
+            Would you be interested in a $9 custom 7-day ShiftPlan if the free
+            reset plan is useful?
           </legend>
           <div className="grid gap-3 sm:grid-cols-3">
             {willingnessOptions.map((option) => (
@@ -433,7 +434,7 @@ export function ShiftPlanIntakeForm() {
             ? "Saving..."
             : isDuplicateSubmittedState
               ? "Saved"
-              : "Save ShiftPlan intake"}
+              : "Get My Free Reset Plan"}
         </button>
       </form>
     </div>

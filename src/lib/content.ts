@@ -1,11 +1,13 @@
 export const siteDisclaimer =
-  "SteadyPlan Health provides organizational and educational support only. It does not diagnose, treat, prescribe, or replace medical advice from a licensed healthcare professional. Always follow instructions from your healthcare team. For emergency symptoms, call 911 or seek emergency care.";
+  "ShiftPlan is a lifestyle organization and routine planning tool. It does not provide medical advice, diagnosis, or treatment. It does not treat fatigue, burnout, sleep disorders, anxiety, or any medical condition.";
 
 export const navLinks = [
-  { href: "/shiftplan", label: "ShiftPlan" },
-  { href: "/kinplan", label: "KinPlan" },
-  { href: "/suppplan", label: "SuppPlan" },
-  { href: "/beta", label: "Beta" },
+  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/beta/shiftplan", label: "Free Reset Plan" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/#faq", label: "FAQ" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
 export const productCards = [
@@ -39,30 +41,30 @@ export const productPages = {
   shiftplan: {
     name: "ShiftPlan",
     label: "For shift workers",
-    headline: "Your schedule is weird. Your daily routine should know that.",
+    headline: "Turn your shift schedule into a simple weekly life plan.",
     description:
-      "ShiftPlan helps nurses, healthcare workers, first responders, and other shift workers organize daily routines around long shifts, nights, rotations, and recovery.",
-    previewTitle: "Shift day checklist",
+      "ShiftPlan helps nurses and shift workers organize sleep, meals, workouts, errands, appointments, recovery blocks, family responsibilities, and personal tasks around long, irregular, or demanding schedules.",
+    previewTitle: "Weekly life plan preview",
     previewItems: [
-      "Review shift window",
-      "Set sleep and meal reminders",
-      "Save recovery notes",
+      "Map three 12-hour shifts",
+      "Place sleep, meals, errands, and training blocks",
+      "Keep a realistic reset plan for off days",
     ],
     features: [
       {
-        title: "Shift-aware routines",
+        title: "Shift-aware weekly planning",
         description:
-          "Organize sleep, hydration, meals, caffeine timing, workouts, and recovery around the schedule you actually work.",
+          "Organize sleep, meals, workouts, errands, appointments, recovery blocks, family responsibilities, and personal tasks around the schedule you actually work.",
       },
       {
-        title: "Simple day plans",
+        title: "Simple reset templates",
         description:
-          "Turn messy calendars into practical checklists for work days, off days, night shifts, and transition days.",
+          "Turn a demanding work stretch into a practical routine template for before-shift, after-shift, and off-day planning.",
       },
       {
-        title: "Built for real life",
+        title: "Lifestyle planning only",
         description:
-          "Keep the plan direct, realistic, and easy to adjust when call schedules or rotations change.",
+          "ShiftPlan helps organize routines and responsibilities. It does not provide medical advice, diagnosis, or treatment.",
       },
     ],
     nutritionGuidance: {
@@ -77,7 +79,7 @@ export const productPages = {
       ],
       note: "This feature is planned for later beta testing.",
     },
-    cta: "Join the ShiftPlan beta",
+    cta: "Get My Free Reset Plan",
   },
   kinplan: {
     name: "KinPlan",

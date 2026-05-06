@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { siteDisclaimer } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Manual Beta Plan Templates",
+  title: "Internal Manual Beta Plan Templates",
   description:
-    "Internal SteadyPlan Health templates for manually creating early beta plans.",
+    "Internal-only SteadyPlan Health templates for manually creating early beta plans.",
 };
 
 const templates = [
@@ -264,9 +264,11 @@ export default function TemplatesPage() {
             Manual beta plan templates
           </h1>
           <p className="mt-5 text-lg leading-8 text-slate-600">
-            Use these templates to manually create early beta plans. Keep every
-            plan focused on organization, education, routines, checklists, and
-            questions to ask qualified professionals.
+            This page is internal-only and is not linked from public
+            navigation. Use these templates to manually create early beta plans.
+            Keep every plan focused on organization, education, routines,
+            checklists, and questions to ask qualified professionals. ShiftPlan
+            is the current launch focus.
           </p>
           <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
             Do not add diagnoses, treatment instructions, medication changes,

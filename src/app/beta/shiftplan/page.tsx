@@ -3,9 +3,9 @@ import { ShiftPlanIntakeForm } from "@/components/ShiftPlanIntakeForm";
 import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
-  title: "ShiftPlan Beta Intake",
+  title: "Free 3x12 Shift Worker Reset Plan",
   description:
-    "Share shift-work planning details for a manual ShiftPlan beta review.",
+    "Request a practical ShiftPlan routine template for three 12-hour shifts.",
 };
 
 export default function ShiftPlanBetaIntakePage() {
@@ -15,24 +15,27 @@ export default function ShiftPlanBetaIntakePage() {
         <div>
           <SectionHeading
             eyebrow="ShiftPlan beta"
-            title="Tell us what your week actually looks like."
-            description="This intake collects practical schedule and routine details so a ShiftPlan draft can be created manually later. Please keep it focused on planning needs and avoid diagnoses, prescriptions, lab values, detailed medical history, date of birth, Social Security number, or protected health information."
+            title="Free 3x12 Shift Worker Reset Plan"
+            description="Get a practical routine template for sleep, meals, workouts, errands, and recovery around three 12-hour shifts. Please keep this focused on lifestyle planning needs and avoid diagnoses, prescriptions, lab values, detailed medical history, date of birth, Social Security number, or protected health information."
           />
 
           <aside className="mt-8 rounded-lg border border-teal-200 bg-teal-50 p-5 text-sm leading-6 text-slate-700 shadow-sm">
             <p className="font-semibold text-teal-950">ShiftPlan safety note</p>
             <p className="mt-2">
-              ShiftPlan provides organizational and educational support only. It
-              does not diagnose, treat, prescribe, or replace medical advice.
+              ShiftPlan is a lifestyle organization and routine planning tool.
+              It does not provide medical advice, diagnosis, or treatment. It
+              does not treat fatigue, burnout, sleep disorders, anxiety, or any
+              medical condition.
             </p>
           </aside>
 
           <div className="mt-5 rounded-lg border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-600 shadow-sm">
-            <p className="font-semibold text-slate-950">Storage choice</p>
+            <p className="font-semibold text-slate-950">
+              Optional $9 custom plan interest
+            </p>
             <p className="mt-2">
-              This intake uses a separate <code>shiftplan_intakes</code> table
-              because these fields are specific to shift-work planning and need
-              to stay structured for manual review.
+              The form includes a simple paid-interest question using the
+              existing intake fields. No payment is collected on this page.
             </p>
           </div>
         </div>

@@ -1,30 +1,33 @@
-# SteadyPlan Health
+# ShiftPlan
 
-SteadyPlan Health is an organizational and educational planning platform for complicated health-life seasons. It helps users turn messy schedules, routines, responsibilities, and wellness details into clear daily plans.
+ShiftPlan is the first deployable product from SteadyPlan Health. It is a routine and life planning product for shift workers, with an initial focus on nurses and healthcare shift workers.
 
-SteadyPlan Health is not a medical device, not a telehealth platform, and not a replacement for medical advice. It does not diagnose, treat, prescribe, recommend medications, or replace licensed professionals.
+ShiftPlan helps users organize sleep, meals, workouts, recovery blocks, errands, appointments, family responsibilities, training schedules, and personal tasks around irregular, long, or demanding work schedules.
 
-Tagline: Simple plans for complicated health-life seasons.
+ShiftPlan is not a medical product, sleep disorder product, fatigue treatment product, or healthcare advice tool. It is a lifestyle organization and routine planning tool. It does not provide medical advice, diagnosis, or treatment.
+
+Main launch message:
+
+> Turn your shift schedule into a simple weekly life plan.
 
 ## What the product does
 
-SteadyPlan Health helps users organize practical life details around health-adjacent situations:
+ShiftPlan helps nurses and shift workers:
 
-- Build simple daily routines and checklists.
-- Organize shift schedules, sleep windows, meals, hydration, caffeine timing, workouts, and recovery.
-- Organize family care tasks, appointments, discharge instructions, provider notes, medication lists, family updates, and questions for the care team.
-- Organize supplement timing, inventory, duplicate ingredient review placeholders, consistency routines, and questions to ask a qualified professional.
-- Collect beta intake information so early plans can be created manually.
-- Provide internal templates for founder-created beta plans.
+- Turn irregular shift schedules into practical weekly routines.
+- Organize sleep windows, meals, workouts, errands, appointments, recovery blocks, family responsibilities, training schedules, and personal tasks.
+- Request the Free 3x12 Shift Worker Reset Plan.
+- Express interest in the planned `$9 Custom 7-Day ShiftPlan` beta offer.
+- Submit structured intake details for manual founder review.
 
-The product frames output as organization, planning, education, reminders, checklists, and questions to ask qualified professionals.
+The product frames output as organization, routine planning, reminders, checklists, and realistic weekly planning. It should not drift into healthcare guidance.
 
 ## What the product does not do
 
-SteadyPlan Health does not:
+ShiftPlan does not:
 
 - Diagnose disease or medical conditions.
-- Treat disease.
+- Treat fatigue, burnout, sleep disorders, anxiety, or any medical condition.
 - Prescribe medications, supplements, peptides, research chemicals, diets, or dosages.
 - Recommend starting, stopping, or changing medications.
 - Recommend peptides or research chemicals for human use.
@@ -34,15 +37,15 @@ SteadyPlan Health does not:
 - Replace a physician, nurse practitioner, dietitian, pharmacist, therapist, or any licensed professional.
 - Ask for unnecessary sensitive health data in the MVP.
 
-Required sitewide disclaimer:
+Required ShiftPlan disclaimer:
 
-> SteadyPlan Health provides organizational and educational support only. It does not diagnose, treat, prescribe, or replace medical advice from a licensed healthcare professional. Always follow instructions from your healthcare team. For emergency symptoms, call 911 or seek emergency care.
+> ShiftPlan is a lifestyle organization and routine planning tool. It does not provide medical advice, diagnosis, or treatment. It does not treat fatigue, burnout, sleep disorders, anxiety, or any medical condition.
 
-## Product lines
+## Product focus
 
 ### ShiftPlan
 
-ShiftPlan is for nurses, healthcare workers, first responders, students, and other shift workers.
+ShiftPlan is the active launch product for nurses, healthcare workers, first responders, students, and other shift workers.
 
 It helps users organize around:
 
@@ -56,9 +59,9 @@ ShiftPlan should feel practical, direct, and built for real shift workers.
 
 ### KinPlan
 
-KinPlan is for family caregivers managing aging parents, sick loved ones, or complicated family care situations.
+KinPlan is parked as a future SteadyPlan Health concept. It is not promoted in public navigation for the first launch.
 
-It helps users organize:
+Future KinPlan work may help users organize:
 
 - Appointments and follow-up tasks.
 - Discharge instructions and provider notes.
@@ -71,9 +74,9 @@ KinPlan should feel warm, calm, family-friendly, and trustworthy.
 
 ### SuppPlan
 
-SuppPlan is for supplement organization and education.
+SuppPlan is parked as a future SteadyPlan Health concept. It is not promoted in public navigation for the first launch.
 
-It helps users organize:
+Future SuppPlan work may help users organize:
 
 - Supplement routines and timing.
 - Inventory and reorder reminders.
@@ -87,15 +90,17 @@ SuppPlan must not recommend supplements, peptides, research chemicals, medicatio
 
 Current MVP includes:
 
-- Public landing page for SteadyPlan Health.
-- Product pages for ShiftPlan, KinPlan, and SuppPlan.
-- General beta signup form.
-- Product-specific beta intake forms for ShiftPlan, KinPlan, and SuppPlan.
+- ShiftPlan-first public homepage at `/`.
+- Free 3x12 Shift Worker Reset Plan intake at `/beta/shiftplan`.
+- Planned `$9 Custom 7-Day ShiftPlan` interest captured through the existing ShiftPlan intake question.
+- Parked future-concept pages for KinPlan and SuppPlan.
+- Parked future-concept pages for inactive KinPlan and SuppPlan intake routes.
+- General beta signup form preserved at `/beta`.
 - Supabase-backed form submission routes.
 - Internal founder/admin beta dashboard at `/admin`.
-- Internal manual beta plan templates at `/templates`.
-- Plain-English privacy and terms placeholders.
-- Sitewide safety disclaimer.
+- Internal manual beta plan templates at `/templates`, not linked from public navigation.
+- Plain-English privacy and terms pages.
+- ShiftPlan safety disclaimer.
 
 Not included yet:
 
@@ -126,15 +131,16 @@ Planned later:
 
 ## Safety and compliance positioning
 
-SteadyPlan Health is positioned as health-adjacent planning support, not healthcare delivery.
+ShiftPlan is positioned as lifestyle organization and routine planning support, not healthcare delivery.
 
 Core safety rules:
 
-- Use organization, education, routines, checklists, reminders, and provider-question language.
+- Use organization, routines, checklists, reminders, and practical weekly planning language.
 - Include clear disclaimers.
 - For emergency symptoms, tell users to call 911 or seek emergency care.
 - Avoid collecting diagnoses, prescription medication lists, lab values, uploaded medical documents, insurance numbers, medical record numbers, dates of birth, or other protected health information in the MVP.
 - Do not make clinical validation claims unless there is real evidence and review.
+- Do not claim to treat fatigue, burnout, sleep disorders, anxiety, or any medical condition.
 - Do not use hype language such as "biohack your body," "doctor in your pocket," or "AI medical provider."
 
 This repository should be treated as an early MVP, not a production healthcare compliance system.
@@ -144,7 +150,7 @@ This repository should be treated as an early MVP, not a production healthcare c
 Install dependencies:
 
 ```bash
-npm install
+npm ci
 ```
 
 Run the development server:
@@ -178,7 +184,7 @@ This app is designed for Vercel, but do not deploy until environment variables a
 Recommended Vercel settings:
 
 - Framework preset: Next.js
-- Install command: `npm install`
+- Install command: `npm ci`
 - Build command: `npm run build`
 - Output directory: leave default
 - Node version: Vercel default is acceptable for this MVP
@@ -195,8 +201,8 @@ Before deployment:
 After deployment:
 
 1. Open the production URL.
-2. Submit one safe test beta signup from `/beta`.
-3. Submit one safe product-specific test intake if those forms will be public.
+2. Submit one safe ShiftPlan intake from `/beta/shiftplan`.
+3. Optionally submit one safe general beta signup from `/beta` if that route remains available.
 4. Confirm rows appear in Supabase.
 5. Test `/admin` with the Vercel `ADMIN_PASSWORD`.
 6. Confirm the footer disclaimer, privacy page, and terms page are visible.
@@ -257,8 +263,8 @@ Tables:
 
 - `beta_signups`: general beta interest form.
 - `shiftplan_intakes`: product-specific ShiftPlan beta intake.
-- `kinplan_intakes`: product-specific KinPlan beta intake.
-- `suppplan_intakes`: product-specific SuppPlan beta intake.
+- `kinplan_intakes`: preserved for parked future KinPlan intake work.
+- `suppplan_intakes`: preserved for parked future SuppPlan intake work.
 
 Current RLS approach:
 
@@ -271,21 +277,21 @@ This is acceptable for an internal MVP but should be replaced with proper authen
 
 Public pages:
 
-- `/`: SteadyPlan Health landing page.
-- `/shiftplan`: ShiftPlan product page.
-- `/kinplan`: KinPlan product page.
-- `/suppplan`: SuppPlan product page.
-- `/beta`: General beta signup.
-- `/beta/shiftplan`: ShiftPlan product-specific intake.
-- `/beta/kinplan`: KinPlan product-specific intake.
-- `/beta/suppplan`: SuppPlan product-specific intake.
-- `/privacy`: Plain-English privacy placeholder.
-- `/terms`: Plain-English terms placeholder.
+- `/`: ShiftPlan-first landing page.
+- `/shiftplan`: ShiftPlan product page preserved for direct visits.
+- `/beta/shiftplan`: Free 3x12 Shift Worker Reset Plan intake.
+- `/beta`: General beta signup, preserved but not promoted for the first launch.
+- `/kinplan`: Parked future-concept page.
+- `/suppplan`: Parked future-concept page.
+- `/beta/kinplan`: Parked future-concept intake route.
+- `/beta/suppplan`: Parked future-concept intake route.
+- `/privacy`: Plain-English privacy page.
+- `/terms`: Plain-English terms page.
 
 Internal MVP pages:
 
 - `/admin`: Simple founder/admin beta dashboard protected by `ADMIN_PASSWORD`.
-- `/templates`: Manual beta plan templates for founder-created plans.
+- `/templates`: Internal manual beta plan templates for founder-created plans, not linked from public navigation.
 
 API routes:
 
@@ -299,10 +305,10 @@ API routes:
 
 Near-term:
 
-- Repair and standardize the local development setup.
+- Keep ShiftPlan as the first deployable product.
 - Add proper admin authentication.
 - Add safer dashboard views for product-specific intakes.
-- Add export tools for manual beta plan creation.
+- Add export tools for manual ShiftPlan beta plan creation.
 - Improve print/PDF workflow for manual templates.
 - Add beta confirmation emails with Resend.
 
@@ -310,25 +316,25 @@ Mid-term:
 
 - Add Supabase authentication and role-based access.
 - Add Stripe for paid beta or founder subscriptions.
-- Build structured plan objects for ShiftPlan, KinPlan, and SuppPlan.
+- Build structured plan objects for ShiftPlan.
 - Add privacy-conscious analytics.
 - Add clearer consent and data deletion workflows.
 
 Later:
 
-- Add AI-assisted plan drafts only after safety guardrails and data handling rules are designed.
-- Add meal and macro guidance as a feature inside ShiftPlan and SuppPlan, not as a separate brand.
+- Add AI-assisted ShiftPlan drafts only after safety guardrails and data handling rules are designed.
+- Add meal and macro guidance as a ShiftPlan feature only after safe boundaries are designed.
 - Consider secure handling for more sensitive data only if the product, infrastructure, legal review, and compliance posture support it.
 
 ## Founder notes
 
-SteadyPlan Health should feel calm, useful, practical, and human. It should not feel like a hospital EMR, supplement hype site, crypto/startup landing page, or fake AI clinician.
+ShiftPlan should feel calm, useful, practical, and human. It should not feel like a hospital EMR, supplement hype site, crypto/startup landing page, or fake AI clinician.
 
 When adding features, protect the positioning:
 
 - The user should leave with a clearer plan, not medical advice.
-- The product should reduce overwhelm without pretending to be a licensed professional.
+- The product should reduce schedule overwhelm without pretending to be a licensed professional or healthcare tool.
 - The MVP should avoid unnecessary sensitive health data.
 - Product copy should favor "organize," "simplify," "daily routine," "clear plan," "questions to ask your provider," and "built for real life."
 
-Best next technical step: add proper admin authentication and extend the admin dashboard to review ShiftPlan, KinPlan, and SuppPlan intake tables separately.
+Best next technical step: manually QA the ShiftPlan-first flow, then decide whether to add the paid-plan request path or proper admin authentication next.

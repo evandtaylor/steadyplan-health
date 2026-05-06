@@ -14,10 +14,10 @@ export function Header() {
           </span>
           <span>
             <span className="block text-base font-semibold text-slate-950">
-              SteadyPlan Health
+              ShiftPlan
             </span>
             <span className="block text-sm text-slate-500">
-              Simple plans for real life
+              Weekly planning for shift workers
             </span>
           </span>
         </Link>

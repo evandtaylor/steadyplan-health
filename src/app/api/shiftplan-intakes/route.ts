@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       message:
-        "Thanks. Your ShiftPlan intake was saved for manual review.",
+        "Thanks. Your Free 3x12 Shift Worker Reset Plan request was saved for manual review.",
     });
   } catch {
     return NextResponse.json(

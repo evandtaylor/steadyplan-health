@@ -24,9 +24,9 @@ const howItWorksSteps = [
   },
   {
     step: "Step 3",
-    title: "Choose whether you want a custom plan",
+    title: "Choose one-time or ongoing support",
     description:
-      "If the free plan is useful, you can tell us whether a $9 custom 7-day ShiftPlan would be worth testing.",
+      "If the free plan is useful, you can choose one custom 7-day plan or Founding Pro weekly planning support.",
   },
 ];
 
@@ -75,9 +75,9 @@ const faqItems = [
       "It is a practical routine template for three 12-hour shifts, focused on sleep windows, meals, workouts, errands, recovery blocks, and life admin.",
   },
   {
-    question: "What is the $9 custom plan?",
+    question: "What paid options are planned?",
     answer:
-      "It is a planned paid beta offer for a realistic custom 7-day routine built around your actual shifts, responsibilities, and goals.",
+      "ShiftPlan Founding Pro is $9/month for ongoing weekly planning support. A Custom 7-Day ShiftPlan is $9 one-time for one upcoming week.",
   },
 ];
 
@@ -115,7 +115,8 @@ export default function Home() {
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-500">
               Start with the Free 3x12 Shift Worker Reset Plan. If it is useful,
-              tell us whether you would want a $9 Custom 7-Day ShiftPlan.
+              tell us whether ongoing Founding Pro support or one custom
+              7-day plan would fit your schedule.
             </p>
           </div>
 
@@ -254,48 +255,152 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <SectionHeading
             eyebrow="Beta offers"
-            title="Start free. Upgrade only if a custom week would help."
-            description="The launch path is simple: collect free reset-plan requests first, then validate whether the $9 custom plan should become the first paid offer."
+            title="Choose the ShiftPlan that fits your schedule."
+            description="Start with a free 3x12 reset template, get one custom weekly plan, or join Founding Pro for ongoing weekly planning support when your schedule keeps changing."
           />
-          <div className="mt-10 grid gap-5 md:grid-cols-2">
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
             <article className="rounded-lg border border-teal-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase text-teal-700">
-                Free offer
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-sm font-semibold uppercase text-teal-700">
+                  Free starter
+                </p>
+                <p className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                  $0
+                </p>
+              </div>
               <h3 className="mt-3 text-2xl font-semibold text-slate-950">
-                Free 3x12 Shift Worker Reset Plan
+                3x12 Shift Worker Reset Plan
               </h3>
               <p className="mt-3 leading-7 text-slate-600">
-                Get a practical routine template for sleep, meals, workouts,
-                errands, and recovery around three 12-hour shifts.
+                A simple weekly routine template for nurses and shift workers
+                working three 12-hour shifts.
               </p>
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-700">
+                {[
+                  "Example 3x12 weekly structure",
+                  "Workday routine template",
+                  "Post-shift reset template",
+                  "Off-day reset template",
+                  "Meal prep and workout placement ideas",
+                  "Weekly reset checklist",
+                ].map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
               <Link
                 href="/beta/shiftplan"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
-                Get My Free Reset Plan
+                Get the Free Reset Plan
               </Link>
             </article>
 
-            <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase text-blue-700">
-                Paid beta offer
+            <article className="relative rounded-lg border-2 border-teal-600 bg-white p-6 shadow-lg ring-1 ring-teal-100">
+              <div className="absolute right-5 top-5 rounded-lg bg-teal-800 px-3 py-1 text-sm font-semibold text-white">
+                Best Value
+              </div>
+              <p className="pr-28 text-sm font-semibold uppercase text-teal-700">
+                Founding Pro
               </p>
               <h3 className="mt-3 text-2xl font-semibold text-slate-950">
-                Get a custom 7-day ShiftPlan for $9.
+                ShiftPlan Founding Pro
               </h3>
-              <p className="mt-3 leading-7 text-slate-600">
-                A realistic weekly routine built around your actual shifts,
-                responsibilities, and goals.
+              <p className="mt-4 text-4xl font-semibold text-slate-950">
+                $9<span className="text-lg font-medium text-slate-500">/month</span>
               </p>
+              <p className="mt-3 leading-7 text-slate-600">
+                Ongoing weekly planning support for shift workers with changing
+                schedules.
+              </p>
+              <p className="mt-3 rounded-lg bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900">
+                Your schedule changes. Your plan should too.
+              </p>
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-700">
+                {[
+                  "Up to 4 custom weekly ShiftPlans per month",
+                  "Submit your schedule each week",
+                  "Plans built around shifts, meals, workouts, errands, recovery blocks, appointments, and personal tasks",
+                  "Monthly routine tune-up",
+                  "Copy/paste checklist version",
+                  "Founding member pricing while subscribed",
+                  "Early access to future app features",
+                ].map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-teal-600" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
               <Link
                 href="/beta/shiftplan"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
-                Share custom plan interest
+                Join Founding Pro
+              </Link>
+              <p className="mt-5 text-xs leading-5 text-slate-500">
+                Founding Pro includes up to 4 custom weekly ShiftPlans per
+                monthly billing period. One plan covers one 7-day schedule.
+                Unused weekly plans do not roll over. Minor corrections are
+                included, but major schedule changes may count as a new weekly
+                plan. During early access, plans may be manually reviewed before
+                delivery.
+              </p>
+            </article>
+
+            <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-sm font-semibold uppercase text-blue-700">
+                  One-time
+                </p>
+                <p className="rounded-lg bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">
+                  $9
+                </p>
+              </div>
+              <h3 className="mt-3 text-2xl font-semibold text-slate-950">
+                Custom 7-Day ShiftPlan
+              </h3>
+              <p className="mt-3 text-lg font-semibold text-slate-800">
+                $9 one-time
+              </p>
+              <p className="mt-3 leading-7 text-slate-600">
+                Send your upcoming week and get one custom routine plan built
+                around your actual schedule.
+              </p>
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-700">
+                {[
+                  "One custom 7-day plan",
+                  "Workday and off-day structure",
+                  "Meal prep blocks",
+                  "Workout placement",
+                  "Errand and appointment batching",
+                  "Recovery/reset blocks",
+                  "Copy/paste checklist version",
+                ].map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/beta/shiftplan"
+                className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              >
+                Get My 7-Day Plan
               </Link>
             </article>
           </div>
+          <aside className="mt-6 rounded-lg border border-blue-200 bg-white/80 p-4 text-sm leading-6 text-slate-700 shadow-sm">
+            <p className="font-semibold text-slate-950">Safety note</p>
+            <p className="mt-2">
+              ShiftPlan is for routine and lifestyle organization only. It does
+              not provide medical advice, diagnosis, treatment, or healthcare
+              guidance.
+            </p>
+          </aside>
         </div>
       </section>
 

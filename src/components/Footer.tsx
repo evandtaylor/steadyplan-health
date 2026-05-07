@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { navLinks, siteDisclaimer } from "@/lib/content";
+import { ShiftPlanLogo } from "@/components/ShiftPlanLogo";
 
 export function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-start">
         <div>
-          <p className="text-lg font-semibold text-slate-950">
-            ShiftPlan
-          </p>
+          <ShiftPlanLogo variant="light" />
           <p className="mt-2 text-sm leading-6 text-slate-600">
             A ShiftPlan-first MVP from SteadyPlan Health, built for lifestyle
             organization around irregular work schedules.

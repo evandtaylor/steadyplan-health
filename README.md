@@ -222,6 +222,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_PASSWORD=
+OPENAI_API_KEY=
+OPENAI_MODEL=
 ```
 
 Notes:
@@ -230,6 +232,8 @@ Notes:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the public anon key used for client-safe and server route inserts.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and used by the admin read route. Never prefix it with `NEXT_PUBLIC_`, never put it in client components, and never commit `.env.local`.
 - `ADMIN_PASSWORD` protects the simple internal admin page. This is not full authentication.
+- `OPENAI_API_KEY` is server-only and used only by the admin draft generation route. Never prefix it with `NEXT_PUBLIC_`.
+- `OPENAI_MODEL` is optional. If blank, admin draft generation uses the app default model.
 
 Restart the dev server after changing environment variables.
 
@@ -240,14 +244,18 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ADMIN_PASSWORD
+OPENAI_API_KEY
+OPENAI_MODEL
 ```
 
 Secret handling rules:
 
 - Do not commit `.env.local`.
 - Do not commit service role keys.
+- Do not commit OpenAI API keys.
 - Do not paste service role keys into client components.
 - Do not expose `SUPABASE_SERVICE_ROLE_KEY` with a `NEXT_PUBLIC_` prefix.
+- Do not expose `OPENAI_API_KEY` with a `NEXT_PUBLIC_` prefix.
 - Rotate keys immediately if a secret is accidentally shared.
 
 ## Supabase setup

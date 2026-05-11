@@ -816,6 +816,8 @@ function PaidIntakeCard({
   );
   const [planMessage, setPlanMessage] = useState("");
   const [isSavingPlan, setIsSavingPlan] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
   const numericPlanNumber = planNumber ? Number(planNumber) : null;
   const numericPlanLimit = Number(planLimit) || 4;
   const hasReachedPlanLimit =
@@ -1048,6 +1050,54 @@ function PaidIntakeCard({
   async function markPlanDelivered() {
     setPlanDeliveryStatus("Delivered");
     await savePlan("Delivered", true);
+  }
+
+  async function generateDraftPlan() {
+    setIsGeneratingDraft(true);
+    setDraftMessage("");
+
+    try {
+      const response = await fetch("/api/admin/generate-draft-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          paid_intake_id: intake.id,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        plan?: ShiftPlanDeliveredPlan;
+        intake?: PaidIntakeStatusUpdate | null;
+      };
+
+      if (!response.ok || !result.plan) {
+        setDraftMessage(result.message || "Could not generate a draft.");
+        return;
+      }
+
+      setPlanTitle(result.plan.plan_title || "");
+      setPlanBody(result.plan.plan_body);
+      setPlanStartDate(result.plan.plan_start_date || "");
+      setPlanEndDate(result.plan.plan_end_date || "");
+      setPlanDeliveryStatus(result.plan.delivery_status);
+      setPlanAdminNotes(result.plan.admin_notes || "");
+      onPlanSaved(result.plan);
+
+      if (result.intake) {
+        setFulfillmentStatus(result.intake.fulfillment_status);
+        onStatusSaved(result.intake);
+      }
+
+      setDraftMessage(result.message || "Draft saved.");
+      setPlanMessage("Draft saved. Review and edit before delivery.");
+    } catch {
+      setDraftMessage("Could not reach the draft generation route right now.");
+    } finally {
+      setIsGeneratingDraft(false);
+    }
   }
 
   return (
@@ -1545,8 +1595,16 @@ function PaidIntakeCard({
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <button
             type="button"
+            onClick={() => void generateDraftPlan()}
+            disabled={isGeneratingDraft || isSavingPlan}
+            className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+          >
+            {isGeneratingDraft ? "Generating..." : "Generate Draft Plan"}
+          </button>
+          <button
+            type="button"
             onClick={() => void savePlan()}
-            disabled={isSavingPlan}
+            disabled={isSavingPlan || isGeneratingDraft}
             className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
           >
             {isSavingPlan ? "Saving..." : "Save Plan"}
@@ -1554,7 +1612,7 @@ function PaidIntakeCard({
           <button
             type="button"
             onClick={() => void markPlanDelivered()}
-            disabled={isSavingPlan}
+            disabled={isSavingPlan || isGeneratingDraft}
             className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-fit"
           >
             Mark Delivered
@@ -1574,6 +1632,11 @@ function PaidIntakeCard({
           {planMessage ? (
             <p className="text-sm font-medium text-slate-600" role="status">
               {planMessage}
+            </p>
+          ) : null}
+          {draftMessage ? (
+            <p className="text-sm font-medium text-slate-600" role="status">
+              {draftMessage}
             </p>
           ) : null}
         </div>

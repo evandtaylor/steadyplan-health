@@ -124,11 +124,32 @@ type FoundingProUsageUpdate = {
   updated_at: string;
 };
 
+type ShiftPlanSubscriberPreference = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  subscriber_email: string;
+  first_name: string | null;
+  job_role: string | null;
+  typical_shift_pattern: string | null;
+  typical_commute_time: string | null;
+  preferred_plan_style: string | null;
+  meal_prep_preferences: string | null;
+  workout_training_preferences: string | null;
+  recurring_responsibilities: string | null;
+  avoid_after_work: string | null;
+  monthly_focus: string | null;
+  plan_style_notes: string | null;
+  last_tuneup_date: string | null;
+  admin_notes: string | null;
+};
+
 type AdminResponse = {
   message?: string;
   signups?: BetaSignup[];
   shiftPlanIntakes?: ShiftPlanIntake[];
   shiftPlanPaidIntakes?: ShiftPlanPaidIntake[];
+  shiftPlanSubscriberPreferences?: ShiftPlanSubscriberPreference[];
 };
 
 const groups: { id: AdminGroup; label: string }[] = [
@@ -167,6 +188,9 @@ export function AdminDashboard() {
   const [shiftPlanPaidIntakes, setShiftPlanPaidIntakes] = useState<
     ShiftPlanPaidIntake[]
   >([]);
+  const [subscriberPreferences, setSubscriberPreferences] = useState<
+    ShiftPlanSubscriberPreference[]
+  >([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup>("free");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -184,6 +208,16 @@ export function AdminDashboard() {
       ),
     };
   }, [shiftPlanPaidIntakes]);
+
+  const preferencesByEmail = useMemo(() => {
+    return subscriberPreferences.reduce<Record<string, ShiftPlanSubscriberPreference>>(
+      (preferences, preference) => {
+        preferences[preference.subscriber_email.toLowerCase()] = preference;
+        return preferences;
+      },
+      {},
+    );
+  }, [subscriberPreferences]);
 
   const groupCounts = {
     free: signups.length + shiftPlanIntakes.length,
@@ -210,7 +244,8 @@ export function AdminDashboard() {
         !response.ok ||
         !result.signups ||
         !result.shiftPlanIntakes ||
-        !result.shiftPlanPaidIntakes
+        !result.shiftPlanPaidIntakes ||
+        !result.shiftPlanSubscriberPreferences
       ) {
         setMessage(result.message || "Unable to load admin submissions.");
         setIsUnlocked(false);
@@ -220,6 +255,7 @@ export function AdminDashboard() {
       setSignups(result.signups);
       setShiftPlanIntakes(result.shiftPlanIntakes);
       setShiftPlanPaidIntakes(result.shiftPlanPaidIntakes);
+      setSubscriberPreferences(result.shiftPlanSubscriberPreferences);
       setIsUnlocked(true);
     } catch {
       setMessage("Unable to reach the admin data route right now.");
@@ -272,6 +308,28 @@ export function AdminDashboard() {
           : intake,
       ),
     );
+  }
+
+  function handleSubscriberPreferenceUpdate(update: ShiftPlanSubscriberPreference) {
+    setSubscriberPreferences((currentPreferences) => {
+      const nextPreference = {
+        ...update,
+        subscriber_email: update.subscriber_email.toLowerCase(),
+      };
+      const existingIndex = currentPreferences.findIndex(
+        (preference) =>
+          preference.subscriber_email.toLowerCase() ===
+          nextPreference.subscriber_email,
+      );
+
+      if (existingIndex === -1) {
+        return [nextPreference, ...currentPreferences];
+      }
+
+      return currentPreferences.map((preference, index) =>
+        index === existingIndex ? nextPreference : preference,
+      );
+    });
   }
 
   if (!isUnlocked) {
@@ -392,6 +450,8 @@ export function AdminDashboard() {
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
               onUsageSaved={handleFoundingProUsageUpdate}
+              preferencesByEmail={preferencesByEmail}
+              onPreferenceSaved={handleSubscriberPreferenceUpdate}
             />
           ) : null}
           {selectedGroup === "founding" ? (
@@ -401,6 +461,8 @@ export function AdminDashboard() {
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
               onUsageSaved={handleFoundingProUsageUpdate}
+              preferencesByEmail={preferencesByEmail}
+              onPreferenceSaved={handleSubscriberPreferenceUpdate}
             />
           ) : null}
           {selectedGroup === "weekly" ? (
@@ -410,6 +472,8 @@ export function AdminDashboard() {
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
               onUsageSaved={handleFoundingProUsageUpdate}
+              preferencesByEmail={preferencesByEmail}
+              onPreferenceSaved={handleSubscriberPreferenceUpdate}
             />
           ) : null}
         </div>
@@ -542,12 +606,16 @@ function PaidSubmissionGroup({
   password,
   onStatusSaved,
   onUsageSaved,
+  preferencesByEmail,
+  onPreferenceSaved,
 }: {
   title: string;
   intakes: ShiftPlanPaidIntake[];
   password: string;
   onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
   onUsageSaved: (update: FoundingProUsageUpdate) => void;
+  preferencesByEmail: Record<string, ShiftPlanSubscriberPreference>;
+  onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -563,6 +631,8 @@ function PaidSubmissionGroup({
               password={password}
               onStatusSaved={onStatusSaved}
               onUsageSaved={onUsageSaved}
+              savedPreference={preferencesByEmail[intake.email.toLowerCase()] || null}
+              onPreferenceSaved={onPreferenceSaved}
             />
           ))}
         </div>
@@ -576,11 +646,15 @@ function PaidIntakeCard({
   password,
   onStatusSaved,
   onUsageSaved,
+  savedPreference,
+  onPreferenceSaved,
 }: {
   intake: ShiftPlanPaidIntake;
   password: string;
   onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
   onUsageSaved: (update: FoundingProUsageUpdate) => void;
+  savedPreference: ShiftPlanSubscriberPreference | null;
+  onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
 }) {
   const [copiedKey, setCopiedKey] = useState("");
   const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(
@@ -607,6 +681,45 @@ function PaidIntakeCard({
   const [usageNotes, setUsageNotes] = useState(intake.usage_notes || "");
   const [usageMessage, setUsageMessage] = useState("");
   const [isSavingUsage, setIsSavingUsage] = useState(false);
+  const [preferenceTypicalShiftPattern, setPreferenceTypicalShiftPattern] =
+    useState(savedPreference?.typical_shift_pattern || intake.typical_shift_pattern || "");
+  const [preferenceTypicalCommuteTime, setPreferenceTypicalCommuteTime] = useState(
+    savedPreference?.typical_commute_time || intake.typical_commute_time || "",
+  );
+  const [preferencePreferredPlanStyle, setPreferencePreferredPlanStyle] = useState(
+    savedPreference?.preferred_plan_style || intake.preferred_plan_style || "",
+  );
+  const [preferenceMealPrep, setPreferenceMealPrep] = useState(
+    savedPreference?.meal_prep_preferences || intake.meal_prep_preferences || "",
+  );
+  const [preferenceWorkoutTraining, setPreferenceWorkoutTraining] = useState(
+    savedPreference?.workout_training_preferences ||
+      intake.workout_training_preferences ||
+      "",
+  );
+  const [preferenceRecurringResponsibilities, setPreferenceRecurringResponsibilities] =
+    useState(
+      savedPreference?.recurring_responsibilities ||
+        intake.recurring_responsibilities ||
+        "",
+    );
+  const [preferenceAvoidAfterWork, setPreferenceAvoidAfterWork] = useState(
+    savedPreference?.avoid_after_work || intake.avoid_after_work || "",
+  );
+  const [preferenceMonthlyFocus, setPreferenceMonthlyFocus] = useState(
+    savedPreference?.monthly_focus || intake.monthly_goal || "",
+  );
+  const [preferencePlanStyleNotes, setPreferencePlanStyleNotes] = useState(
+    savedPreference?.plan_style_notes || "",
+  );
+  const [preferenceLastTuneupDate, setPreferenceLastTuneupDate] = useState(
+    savedPreference?.last_tuneup_date || "",
+  );
+  const [preferenceAdminNotes, setPreferenceAdminNotes] = useState(
+    savedPreference?.admin_notes || "",
+  );
+  const [preferenceMessage, setPreferenceMessage] = useState("");
+  const [isSavingPreference, setIsSavingPreference] = useState(false);
   const numericPlanNumber = planNumber ? Number(planNumber) : null;
   const numericPlanLimit = Number(planLimit) || 4;
   const hasReachedPlanLimit =
@@ -713,6 +826,69 @@ function PaidIntakeCard({
       setUsageMessage("Could not reach the usage update route right now.");
     } finally {
       setIsSavingUsage(false);
+    }
+  }
+
+  async function savePreferences() {
+    setIsSavingPreference(true);
+    setPreferenceMessage("");
+
+    try {
+      const response = await fetch("/api/admin/subscriber-preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          action: "upsert",
+          subscriber_email: intake.email,
+          first_name: intake.first_name,
+          job_role: intake.job_role,
+          typical_shift_pattern: preferenceTypicalShiftPattern,
+          typical_commute_time: preferenceTypicalCommuteTime,
+          preferred_plan_style: preferencePreferredPlanStyle,
+          meal_prep_preferences: preferenceMealPrep,
+          workout_training_preferences: preferenceWorkoutTraining,
+          recurring_responsibilities: preferenceRecurringResponsibilities,
+          avoid_after_work: preferenceAvoidAfterWork,
+          monthly_focus: preferenceMonthlyFocus,
+          plan_style_notes: preferencePlanStyleNotes,
+          last_tuneup_date: preferenceLastTuneupDate || null,
+          admin_notes: preferenceAdminNotes,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        preference?: ShiftPlanSubscriberPreference;
+      };
+
+      if (!response.ok || !result.preference) {
+        setPreferenceMessage(result.message || "Could not save preferences.");
+        return;
+      }
+
+      setPreferenceTypicalShiftPattern(result.preference.typical_shift_pattern || "");
+      setPreferenceTypicalCommuteTime(result.preference.typical_commute_time || "");
+      setPreferencePreferredPlanStyle(result.preference.preferred_plan_style || "");
+      setPreferenceMealPrep(result.preference.meal_prep_preferences || "");
+      setPreferenceWorkoutTraining(
+        result.preference.workout_training_preferences || "",
+      );
+      setPreferenceRecurringResponsibilities(
+        result.preference.recurring_responsibilities || "",
+      );
+      setPreferenceAvoidAfterWork(result.preference.avoid_after_work || "");
+      setPreferenceMonthlyFocus(result.preference.monthly_focus || "");
+      setPreferencePlanStyleNotes(result.preference.plan_style_notes || "");
+      setPreferenceLastTuneupDate(result.preference.last_tuneup_date || "");
+      setPreferenceAdminNotes(result.preference.admin_notes || "");
+      onPreferenceSaved(result.preference);
+      setPreferenceMessage(result.message || "Subscriber preferences saved.");
+    } catch {
+      setPreferenceMessage("Could not reach the saved preferences route right now.");
+    } finally {
+      setIsSavingPreference(false);
     }
   }
 
@@ -965,12 +1141,165 @@ function PaidIntakeCard({
         </div>
       ) : null}
 
+      {isFoundingPro ? (
+        <div className="mt-5 rounded-lg border border-teal-100 bg-white p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950">
+                Saved Preferences
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {savedPreference
+                  ? "Preferences exist for this subscriber email and will be included in copied AI prompts."
+                  : "No saved preferences yet for this subscriber email."}
+              </p>
+            </div>
+            <span
+              className={`w-fit rounded-lg px-3 py-1 text-xs font-semibold ring-1 ${
+                savedPreference
+                  ? "bg-teal-50 text-teal-800 ring-teal-100"
+                  : "bg-slate-50 text-slate-700 ring-slate-200"
+              }`}
+            >
+              {savedPreference ? "Saved" : "Not saved yet"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Typical shift pattern
+              <textarea
+                value={preferenceTypicalShiftPattern}
+                onChange={(event) =>
+                  setPreferenceTypicalShiftPattern(event.target.value)
+                }
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Typical commute time
+              <input
+                type="text"
+                value={preferenceTypicalCommuteTime}
+                onChange={(event) =>
+                  setPreferenceTypicalCommuteTime(event.target.value)
+                }
+                className="field-control"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Preferred plan style
+              <textarea
+                value={preferencePreferredPlanStyle}
+                onChange={(event) =>
+                  setPreferencePreferredPlanStyle(event.target.value)
+                }
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Meal prep preferences
+              <textarea
+                value={preferenceMealPrep}
+                onChange={(event) => setPreferenceMealPrep(event.target.value)}
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Workout/training preferences
+              <textarea
+                value={preferenceWorkoutTraining}
+                onChange={(event) =>
+                  setPreferenceWorkoutTraining(event.target.value)
+                }
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Recurring responsibilities
+              <textarea
+                value={preferenceRecurringResponsibilities}
+                onChange={(event) =>
+                  setPreferenceRecurringResponsibilities(event.target.value)
+                }
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Avoid after work
+              <textarea
+                value={preferenceAvoidAfterWork}
+                onChange={(event) => setPreferenceAvoidAfterWork(event.target.value)}
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Monthly focus
+              <textarea
+                value={preferenceMonthlyFocus}
+                onChange={(event) => setPreferenceMonthlyFocus(event.target.value)}
+                className="field-control min-h-20"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Last tune-up date
+              <input
+                type="date"
+                value={preferenceLastTuneupDate}
+                onChange={(event) => setPreferenceLastTuneupDate(event.target.value)}
+                className="field-control"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Plan style notes
+              <textarea
+                value={preferencePlanStyleNotes}
+                onChange={(event) => setPreferencePlanStyleNotes(event.target.value)}
+                className="field-control min-h-24"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Preference admin notes
+              <textarea
+                value={preferenceAdminNotes}
+                onChange={(event) => setPreferenceAdminNotes(event.target.value)}
+                className="field-control min-h-24"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={() => void savePreferences()}
+              disabled={isSavingPreference}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            >
+              {isSavingPreference ? "Saving..." : "Save Preferences"}
+            </button>
+            {preferenceMessage ? (
+              <p className="text-sm font-medium text-slate-600" role="status">
+                {preferenceMessage}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <CopyButton
           copied={copiedKey === `prompt-${intake.id}`}
           failed={copiedKey === `prompt-${intake.id}-failed`}
           label="Copy AI Prompt"
-          onClick={() => void copyText(`prompt-${intake.id}`, buildAiPrompt(intake))}
+          onClick={() =>
+            void copyText(
+              `prompt-${intake.id}`,
+              buildAiPrompt(intake, savedPreference),
+            )
+          }
         />
         <CopyButton
           copied={copiedKey === `email-${intake.id}`}
@@ -1152,7 +1481,10 @@ function formatBillingPeriod(intake: ShiftPlanPaidIntake) {
   return formatPlainDate(start || end || "");
 }
 
-function buildAiPrompt(intake: ShiftPlanPaidIntake) {
+function buildAiPrompt(
+  intake: ShiftPlanPaidIntake,
+  savedPreference: ShiftPlanSubscriberPreference | null,
+) {
   const isCustomPlan = intake.intake_type === "custom_plan";
   const header = isCustomPlan
     ? "CUSTOM 7-DAY SHIFTPLAN"
@@ -1222,6 +1554,10 @@ function buildAiPrompt(intake: ShiftPlanPaidIntake) {
       ["Specific request this week", intake.specific_request_this_week],
     ]),
     "",
+    !isCustomPlan && savedPreference
+      ? formatSavedPreferences(savedPreference)
+      : "Saved preferences: Not saved yet.",
+    "",
     "Output rules:",
     "1. Create a realistic 7-day plan.",
     "2. Keep workdays simple.",
@@ -1241,6 +1577,22 @@ function buildAiPrompt(intake: ShiftPlanPaidIntake) {
     "",
     "Important disclaimer text to include in the prompt output:",
     "ShiftPlan is for lifestyle and routine organization only. This plan helps organize your week around work, meals, workouts, errands, appointments, recovery blocks, and personal responsibilities. It does not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, or healthcare advice.",
+  ].join("\n");
+}
+
+function formatSavedPreferences(preference: ShiftPlanSubscriberPreference) {
+  return [
+    "Saved preferences used:",
+    formatPromptFields([
+      ["Commute", preference.typical_commute_time],
+      ["Preferred plan style", preference.preferred_plan_style],
+      ["Meal prep preferences", preference.meal_prep_preferences],
+      ["Workout/training preferences", preference.workout_training_preferences],
+      ["Recurring responsibilities", preference.recurring_responsibilities],
+      ["Avoid after work", preference.avoid_after_work],
+      ["Monthly focus", preference.monthly_focus],
+      ["Plan style notes", preference.plan_style_notes],
+    ]),
   ].join("\n");
 }
 

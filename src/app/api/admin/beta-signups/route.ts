@@ -87,6 +87,26 @@ type ShiftPlanPaidIntake = {
   updated_at: string | null;
 };
 
+type ShiftPlanSubscriberPreference = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  subscriber_email: string;
+  first_name: string | null;
+  job_role: string | null;
+  typical_shift_pattern: string | null;
+  typical_commute_time: string | null;
+  preferred_plan_style: string | null;
+  meal_prep_preferences: string | null;
+  workout_training_preferences: string | null;
+  recurring_responsibilities: string | null;
+  avoid_after_work: string | null;
+  monthly_focus: string | null;
+  plan_style_notes: string | null;
+  last_tuneup_date: string | null;
+  admin_notes: string | null;
+};
+
 const betaSignupColumns = [
   "created_at",
   "name",
@@ -169,6 +189,26 @@ const shiftPlanPaidIntakeColumns = [
   "updated_at",
 ].join(",");
 
+const shiftPlanSubscriberPreferenceColumns = [
+  "id",
+  "created_at",
+  "updated_at",
+  "subscriber_email",
+  "first_name",
+  "job_role",
+  "typical_shift_pattern",
+  "typical_commute_time",
+  "preferred_plan_style",
+  "meal_prep_preferences",
+  "workout_training_preferences",
+  "recurring_responsibilities",
+  "avoid_after_work",
+  "monthly_focus",
+  "plan_style_notes",
+  "last_tuneup_date",
+  "admin_notes",
+].join(",");
+
 export async function POST(request: Request) {
   let payload: AdminRequest;
 
@@ -220,6 +260,10 @@ export async function POST(request: Request) {
     select: shiftPlanPaidIntakeColumns,
     order: "created_at.desc",
   });
+  const shiftPlanSubscriberPreferenceQuery = new URLSearchParams({
+    select: shiftPlanSubscriberPreferenceColumns,
+    order: "updated_at.desc",
+  });
 
   try {
     const headers = {
@@ -227,8 +271,12 @@ export async function POST(request: Request) {
       Authorization: `Bearer ${supabaseServiceRoleKey}`,
     };
 
-    const [betaSignupResponse, shiftPlanIntakeResponse, shiftPlanPaidIntakeResponse] =
-      await Promise.all([
+    const [
+      betaSignupResponse,
+      shiftPlanIntakeResponse,
+      shiftPlanPaidIntakeResponse,
+      shiftPlanSubscriberPreferenceResponse,
+    ] = await Promise.all([
         fetch(`${supabaseRestUrl}/beta_signups?${betaSignupQuery}`, {
           headers,
           cache: "no-store",
@@ -244,12 +292,20 @@ export async function POST(request: Request) {
             cache: "no-store",
           },
         ),
+        fetch(
+          `${supabaseRestUrl}/shiftplan_subscriber_preferences?${shiftPlanSubscriberPreferenceQuery}`,
+          {
+            headers,
+            cache: "no-store",
+          },
+        ),
       ]);
 
     if (
       !betaSignupResponse.ok ||
       !shiftPlanIntakeResponse.ok ||
-      !shiftPlanPaidIntakeResponse.ok
+      !shiftPlanPaidIntakeResponse.ok ||
+      !shiftPlanSubscriberPreferenceResponse.ok
     ) {
       return NextResponse.json(
         {
@@ -260,14 +316,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const [signups, shiftPlanIntakes, shiftPlanPaidIntakes] = (await Promise.all([
+    const [
+      signups,
+      shiftPlanIntakes,
+      shiftPlanPaidIntakes,
+      shiftPlanSubscriberPreferences,
+    ] = (await Promise.all([
       betaSignupResponse.json(),
       shiftPlanIntakeResponse.json(),
       shiftPlanPaidIntakeResponse.json(),
-    ])) as [BetaSignup[], ShiftPlanIntake[], ShiftPlanPaidIntake[]];
+      shiftPlanSubscriberPreferenceResponse.json(),
+    ])) as [
+      BetaSignup[],
+      ShiftPlanIntake[],
+      ShiftPlanPaidIntake[],
+      ShiftPlanSubscriberPreference[],
+    ];
 
     return NextResponse.json(
-      { signups, shiftPlanIntakes, shiftPlanPaidIntakes },
+      {
+        signups,
+        shiftPlanIntakes,
+        shiftPlanPaidIntakes,
+        shiftPlanSubscriberPreferences,
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

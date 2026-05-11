@@ -81,6 +81,9 @@ const faqItems = [
   },
 ];
 
+const foundingProPaymentLink = "https://buy.stripe.com/dRmcN53lz6qvej7g5r0RG00";
+const customPlanPaymentLink = "https://buy.stripe.com/14AaEXcW9g155MBcTf0RG01";
+
 export default function Home() {
   return (
     <>
@@ -335,11 +338,15 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/intake/founding-pro"
+                href={foundingProPaymentLink}
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Join Founding Pro
               </Link>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                After checkout, you&apos;ll be sent to the intake form. Please
+                use the same email at checkout and intake.
+              </p>
               <p className="mt-5 text-xs leading-5 text-slate-500">
                 Founding Pro includes up to 4 custom weekly ShiftPlans per
                 monthly billing period. One plan covers one 7-day schedule.
@@ -386,11 +393,15 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/intake/custom-plan"
+                href={customPlanPaymentLink}
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Get My 7-Day Plan
               </Link>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                After checkout, you&apos;ll be sent to the intake form. Please
+                use the same email at checkout and intake.
+              </p>
             </article>
           </div>
           <aside className="mt-6 rounded-lg border border-blue-200 bg-white/80 p-4 text-sm leading-6 text-slate-700 shadow-sm">

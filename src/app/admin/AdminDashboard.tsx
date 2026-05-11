@@ -5,6 +5,16 @@ import { type FormEvent, useMemo, useState } from "react";
 type AdminGroup = "free" | "custom" | "founding" | "weekly";
 type ProductFilter = "All" | "ShiftPlan" | "KinPlan" | "SuppPlan";
 type PaidIntakeType = "custom_plan" | "founding_pro" | "founding_pro_weekly";
+type FulfillmentStatus =
+  | "New"
+  | "In Progress"
+  | "Prompt Copied"
+  | "Generated"
+  | "Reviewed"
+  | "Delivered"
+  | "Needs Info"
+  | "Canceled"
+  | "Refunded";
 
 type BetaSignup = {
   created_at: string;
@@ -35,6 +45,7 @@ type ShiftPlanIntake = {
 };
 
 type ShiftPlanPaidIntake = {
+  id: string;
   created_at: string;
   intake_type: PaidIntakeType;
   first_name: string;
@@ -75,6 +86,18 @@ type ShiftPlanPaidIntake = {
   unrealistic_from_last_plan: string | null;
   specific_request_this_week: string | null;
   safety_acknowledged: boolean;
+  fulfillment_status: FulfillmentStatus | null;
+  admin_notes: string | null;
+  delivered_at: string | null;
+  updated_at: string | null;
+};
+
+type PaidIntakeStatusUpdate = {
+  id: string;
+  fulfillment_status: FulfillmentStatus;
+  admin_notes: string | null;
+  delivered_at: string | null;
+  updated_at: string;
 };
 
 type AdminResponse = {
@@ -89,6 +112,18 @@ const groups: { id: AdminGroup; label: string }[] = [
   { id: "custom", label: "Custom Plan" },
   { id: "founding", label: "Founding Pro" },
   { id: "weekly", label: "Weekly Schedule" },
+];
+
+const fulfillmentStatuses: FulfillmentStatus[] = [
+  "New",
+  "In Progress",
+  "Prompt Copied",
+  "Generated",
+  "Reviewed",
+  "Delivered",
+  "Needs Info",
+  "Canceled",
+  "Refunded",
 ];
 
 export function AdminDashboard() {
@@ -169,6 +204,22 @@ export function AdminDashboard() {
     }
 
     await loadSignups(password);
+  }
+
+  function handlePaidIntakeStatusUpdate(update: PaidIntakeStatusUpdate) {
+    setShiftPlanPaidIntakes((currentIntakes) =>
+      currentIntakes.map((intake) =>
+        intake.id === update.id
+          ? {
+              ...intake,
+              fulfillment_status: update.fulfillment_status,
+              admin_notes: update.admin_notes,
+              delivered_at: update.delivered_at,
+              updated_at: update.updated_at,
+            }
+          : intake,
+      ),
+    );
   }
 
   if (!isUnlocked) {
@@ -286,18 +337,24 @@ export function AdminDashboard() {
             <PaidSubmissionGroup
               title="Custom 7-Day ShiftPlan submissions"
               intakes={paidGroups.custom}
+              password={password}
+              onStatusSaved={handlePaidIntakeStatusUpdate}
             />
           ) : null}
           {selectedGroup === "founding" ? (
             <PaidSubmissionGroup
               title="Founding Pro onboarding submissions"
               intakes={paidGroups.founding}
+              password={password}
+              onStatusSaved={handlePaidIntakeStatusUpdate}
             />
           ) : null}
           {selectedGroup === "weekly" ? (
             <PaidSubmissionGroup
               title="Founding Pro weekly schedule submissions"
               intakes={paidGroups.weekly}
+              password={password}
+              onStatusSaved={handlePaidIntakeStatusUpdate}
             />
           ) : null}
         </div>
@@ -427,11 +484,51 @@ function FreeSubmissionGroup({
 function PaidSubmissionGroup({
   title,
   intakes,
+  password,
+  onStatusSaved,
 }: {
   title: string;
   intakes: ShiftPlanPaidIntake[];
+  password: string;
+  onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <GroupHeader title={title} count={intakes.length} />
+      {intakes.length === 0 ? (
+        <EmptyState message="No submissions in this group yet." />
+      ) : (
+        <div className="grid gap-4 p-4">
+          {intakes.map((intake) => (
+            <PaidIntakeCard
+              key={intake.id}
+              intake={intake}
+              password={password}
+              onStatusSaved={onStatusSaved}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaidIntakeCard({
+  intake,
+  password,
+  onStatusSaved,
+}: {
+  intake: ShiftPlanPaidIntake;
+  password: string;
+  onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
 }) {
   const [copiedKey, setCopiedKey] = useState("");
+  const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(
+    intake.fulfillment_status || "New",
+  );
+  const [adminNotes, setAdminNotes] = useState(intake.admin_notes || "");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   async function copyText(key: string, text: string) {
     try {
@@ -444,174 +541,247 @@ function PaidSubmissionGroup({
     }
   }
 
+  async function saveStatus(nextStatus = fulfillmentStatus) {
+    setIsSaving(true);
+    setSaveMessage("");
+
+    try {
+      const response = await fetch("/api/admin/paid-intake-status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          id: intake.id,
+          fulfillment_status: nextStatus,
+          admin_notes: adminNotes,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        intake?: PaidIntakeStatusUpdate;
+      };
+
+      if (!response.ok || !result.intake) {
+        setSaveMessage(result.message || "Could not save status.");
+        return;
+      }
+
+      setFulfillmentStatus(result.intake.fulfillment_status);
+      setAdminNotes(result.intake.admin_notes || "");
+      onStatusSaved(result.intake);
+      setSaveMessage(result.message || "Fulfillment status saved.");
+    } catch {
+      setSaveMessage("Could not reach the admin update route right now.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function markDelivered() {
+    setFulfillmentStatus("Delivered");
+    await saveStatus("Delivered");
+  }
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <GroupHeader title={title} count={intakes.length} />
-      {intakes.length === 0 ? (
-        <EmptyState message="No submissions in this group yet." />
-      ) : (
-        <div className="grid gap-4 p-4">
-          {intakes.map((intake) => (
-            <article
-              key={`${intake.intake_type}-${intake.email}-${intake.created_at}`}
-              className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-slate-950">
-                      {intake.first_name}
-                    </p>
-                    <span className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
-                      {formatPaidLabel(intake.intake_type)}
-                    </span>
-                  </div>
-                  <p className="mt-1 break-all text-sm text-slate-600">
-                    {intake.email}
-                  </p>
-                </div>
-                <p className="text-sm font-medium text-slate-500">
-                  {formatDate(intake.created_at)}
-                </p>
-              </div>
-
-              <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <AdminField label="Intake type" value={formatPaidLabel(intake.intake_type)} />
-                <AdminField label="Plan dates" value={formatPlanDates(intake)} />
-                <AdminField label="Job / role" value={intake.job_role || "-"} />
-                <AdminField
-                  label="Schedule"
-                  value={intake.schedule_type || intake.typical_shift_pattern || "-"}
-                />
-                <AdminField
-                  label="Main goal"
-                  value={intake.main_goal || intake.monthly_goal || "-"}
-                />
-                <AdminField
-                  label="Preferred plan style"
-                  value={intake.preferred_plan_style || "-"}
-                />
-                <AdminField
-                  label="Safety acknowledged"
-                  value={intake.safety_acknowledged ? "Yes" : "No"}
-                />
-              </dl>
-
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <CopyButton
-                  copied={copiedKey === `prompt-${intake.email}-${intake.created_at}`}
-                  failed={copiedKey === `prompt-${intake.email}-${intake.created_at}-failed`}
-                  label="Copy AI Prompt"
-                  onClick={() =>
-                    void copyText(
-                      `prompt-${intake.email}-${intake.created_at}`,
-                      buildAiPrompt(intake),
-                    )
-                  }
-                />
-                <CopyButton
-                  copied={copiedKey === `email-${intake.email}-${intake.created_at}`}
-                  failed={copiedKey === `email-${intake.email}-${intake.created_at}-failed`}
-                  label="Copy Customer Email Draft"
-                  onClick={() =>
-                    void copyText(
-                      `email-${intake.email}-${intake.created_at}`,
-                      buildCustomerEmailDraft(intake),
-                    )
-                  }
-                  variant="secondary"
-                />
-              </div>
-
-              <details className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-teal-800">
-                  View planning details
-                </summary>
-                <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  <AdminField
-                    label="Exact work shifts"
-                    value={intake.exact_work_shifts || "-"}
-                  />
-                  <AdminField
-                    label="Commute time"
-                    value={intake.commute_time || intake.typical_commute_time || "-"}
-                  />
-                  <AdminField
-                    label="Meal prep"
-                    value={
-                      intake.meal_prep_preferences ||
-                      intake.meal_prep_needs_this_week ||
-                      "-"
-                    }
-                  />
-                  <AdminField
-                    label="Workout / training"
-                    value={
-                      intake.workout_training_goals ||
-                      intake.workout_training_preferences ||
-                      intake.workout_training_goals_this_week ||
-                      "-"
-                    }
-                  />
-                  <AdminField
-                    label="Appointments"
-                    value={intake.appointments || intake.appointments_this_week || "-"}
-                  />
-                  <AdminField
-                    label="Errands"
-                    value={intake.errands || intake.errands_this_week || "-"}
-                  />
-                  <AdminField
-                    label="Family / personal responsibilities"
-                    value={
-                      intake.family_personal_responsibilities ||
-                      intake.family_personal_responsibilities_this_week ||
-                      "-"
-                    }
-                  />
-                  <AdminField
-                    label="Top 3 priorities"
-                    value={intake.top_3_priorities || intake.top_3_priorities_this_week || "-"}
-                  />
-                  <AdminField
-                    label="Anything to avoid"
-                    value={intake.anything_to_avoid || intake.avoid_after_work || "-"}
-                  />
-                  <AdminField
-                    label="Recurring responsibilities"
-                    value={intake.recurring_responsibilities || "-"}
-                  />
-                  <AdminField
-                    label="What changed from last week"
-                    value={intake.changed_from_last_week || "-"}
-                  />
-                  <AdminField
-                    label="What worked from last plan"
-                    value={intake.worked_from_last_plan || "-"}
-                  />
-                  <AdminField
-                    label="What felt unrealistic"
-                    value={intake.unrealistic_from_last_plan || "-"}
-                  />
-                  <AdminField
-                    label="Specific request this week"
-                    value={intake.specific_request_this_week || "-"}
-                  />
-                  <AdminField
-                    label="What makes the week messy"
-                    value={intake.messy_week_reason || "-"}
-                  />
-                  <AdminField
-                    label="What to organize"
-                    value={intake.organize_focus || "-"}
-                  />
-                </dl>
-              </details>
-            </article>
-          ))}
+    <article className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-slate-950">{intake.first_name}</p>
+            <span className="rounded-lg bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
+              {formatPaidLabel(intake.intake_type)}
+            </span>
+            <span className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+              {intake.fulfillment_status || "New"}
+            </span>
+          </div>
+          <p className="mt-1 break-all text-sm text-slate-600">{intake.email}</p>
         </div>
-      )}
-    </div>
+        <p className="text-sm font-medium text-slate-500">
+          {formatDate(intake.created_at)}
+        </p>
+      </div>
+
+      <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <AdminField label="Intake type" value={formatPaidLabel(intake.intake_type)} />
+        <AdminField label="Plan dates" value={formatPlanDates(intake)} />
+        <AdminField label="Job / role" value={intake.job_role || "-"} />
+        <AdminField
+          label="Schedule"
+          value={intake.schedule_type || intake.typical_shift_pattern || "-"}
+        />
+        <AdminField
+          label="Main goal"
+          value={intake.main_goal || intake.monthly_goal || "-"}
+        />
+        <AdminField
+          label="Preferred plan style"
+          value={intake.preferred_plan_style || "-"}
+        />
+        <AdminField
+          label="Safety acknowledged"
+          value={intake.safety_acknowledged ? "Yes" : "No"}
+        />
+        <AdminField
+          label="Delivered"
+          value={intake.delivered_at ? formatDate(intake.delivered_at) : "-"}
+        />
+        <AdminField
+          label="Last updated"
+          value={intake.updated_at ? formatDate(intake.updated_at) : "-"}
+        />
+      </dl>
+
+      <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
+        <div className="grid gap-4 lg:grid-cols-[14rem_1fr]">
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Fulfillment status
+            <select
+              value={fulfillmentStatus}
+              onChange={(event) =>
+                setFulfillmentStatus(event.target.value as FulfillmentStatus)
+              }
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {fulfillmentStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Admin notes
+            <textarea
+              value={adminNotes}
+              onChange={(event) => setAdminNotes(event.target.value)}
+              className="field-control min-h-24"
+              placeholder="Internal notes about fulfillment, edits, or customer follow-up."
+            />
+          </label>
+        </div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button
+            type="button"
+            onClick={() => void saveStatus()}
+            disabled={isSaving}
+            className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+          >
+            {isSaving ? "Saving..." : "Save status"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void markDelivered()}
+            disabled={isSaving}
+            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-fit"
+          >
+            Mark Delivered
+          </button>
+          {saveMessage ? (
+            <p className="text-sm font-medium text-slate-600" role="status">
+              {saveMessage}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <CopyButton
+          copied={copiedKey === `prompt-${intake.id}`}
+          failed={copiedKey === `prompt-${intake.id}-failed`}
+          label="Copy AI Prompt"
+          onClick={() => void copyText(`prompt-${intake.id}`, buildAiPrompt(intake))}
+        />
+        <CopyButton
+          copied={copiedKey === `email-${intake.id}`}
+          failed={copiedKey === `email-${intake.id}-failed`}
+          label="Copy Customer Email Draft"
+          onClick={() =>
+            void copyText(`email-${intake.id}`, buildCustomerEmailDraft(intake))
+          }
+          variant="secondary"
+        />
+      </div>
+
+      <details className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-teal-800">
+          View planning details
+        </summary>
+        <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <AdminField label="Exact work shifts" value={intake.exact_work_shifts || "-"} />
+          <AdminField
+            label="Commute time"
+            value={intake.commute_time || intake.typical_commute_time || "-"}
+          />
+          <AdminField
+            label="Meal prep"
+            value={
+              intake.meal_prep_preferences || intake.meal_prep_needs_this_week || "-"
+            }
+          />
+          <AdminField
+            label="Workout / training"
+            value={
+              intake.workout_training_goals ||
+              intake.workout_training_preferences ||
+              intake.workout_training_goals_this_week ||
+              "-"
+            }
+          />
+          <AdminField
+            label="Appointments"
+            value={intake.appointments || intake.appointments_this_week || "-"}
+          />
+          <AdminField
+            label="Errands"
+            value={intake.errands || intake.errands_this_week || "-"}
+          />
+          <AdminField
+            label="Family / personal responsibilities"
+            value={
+              intake.family_personal_responsibilities ||
+              intake.family_personal_responsibilities_this_week ||
+              "-"
+            }
+          />
+          <AdminField
+            label="Top 3 priorities"
+            value={intake.top_3_priorities || intake.top_3_priorities_this_week || "-"}
+          />
+          <AdminField
+            label="Anything to avoid"
+            value={intake.anything_to_avoid || intake.avoid_after_work || "-"}
+          />
+          <AdminField
+            label="Recurring responsibilities"
+            value={intake.recurring_responsibilities || "-"}
+          />
+          <AdminField
+            label="What changed from last week"
+            value={intake.changed_from_last_week || "-"}
+          />
+          <AdminField
+            label="What worked from last plan"
+            value={intake.worked_from_last_plan || "-"}
+          />
+          <AdminField
+            label="What felt unrealistic"
+            value={intake.unrealistic_from_last_plan || "-"}
+          />
+          <AdminField
+            label="Specific request this week"
+            value={intake.specific_request_this_week || "-"}
+          />
+          <AdminField
+            label="What makes the week messy"
+            value={intake.messy_week_reason || "-"}
+          />
+          <AdminField label="What to organize" value={intake.organize_focus || "-"} />
+        </dl>
+      </details>
+    </article>
   );
 }
 

@@ -34,6 +34,7 @@ type ShiftPlanIntake = {
 };
 
 type ShiftPlanPaidIntake = {
+  id: string;
   created_at: string;
   intake_type: "custom_plan" | "founding_pro" | "founding_pro_weekly";
   first_name: string;
@@ -74,6 +75,10 @@ type ShiftPlanPaidIntake = {
   unrealistic_from_last_plan: string | null;
   specific_request_this_week: string | null;
   safety_acknowledged: boolean;
+  fulfillment_status: string | null;
+  admin_notes: string | null;
+  delivered_at: string | null;
+  updated_at: string | null;
 };
 
 const betaSignupColumns = [
@@ -105,6 +110,7 @@ const shiftPlanIntakeColumns = [
 ].join(",");
 
 const shiftPlanPaidIntakeColumns = [
+  "id",
   "created_at",
   "intake_type",
   "first_name",
@@ -145,6 +151,10 @@ const shiftPlanPaidIntakeColumns = [
   "unrealistic_from_last_plan",
   "specific_request_this_week",
   "safety_acknowledged",
+  "fulfillment_status",
+  "admin_notes",
+  "delivered_at",
+  "updated_at",
 ].join(",");
 
 export async function POST(request: Request) {

@@ -47,6 +47,22 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-slate-950">
+              AI-assisted planning
+            </h2>
+            <p className="mt-3">
+              ShiftPlan may use AI-assisted tools to help draft routine plans
+              from the intake details you submit. AI-generated drafts may
+              contain errors, omissions, unrealistic suggestions, or incorrect
+              assumptions. During the MVP and founding period, plans generated
+              through the admin workflow are reviewed before delivery, but you
+              are still responsible for reviewing the final plan and deciding
+              what fits your real life, work policies, obligations, and personal
+              situation.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-950">
               Current offers
             </h2>
             <div className="mt-3 grid gap-4">
@@ -112,7 +128,9 @@ export default function TermsPage() {
             </h2>
             <p className="mt-3">
               Do not submit emergencies, medical requests, unsafe requests,
-              sensitive medical information, prescription medication lists, lab
+              private medical information, protected health information,
+              medication details, diagnoses, symptoms, emergency information,
+              safety-sensitive information, prescription medication lists, lab
               values, medical records, insurance numbers, Social Security
               numbers, or requests for professional advice that ShiftPlan is not
               designed to provide.

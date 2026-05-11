@@ -1166,6 +1166,22 @@ function PaidIntakeCard({
     await savePlan("Delivered", true);
   }
 
+  function copyDeliveryEmail() {
+    if (!deliveredPlan?.plan_body?.trim()) {
+      setPlanMessage("Save a plan before copying the delivery email.");
+      return;
+    }
+
+    setPlanMessage("");
+    void copyText(
+      `delivery-email-${intake.id}`,
+      buildDeliveryEmailDraft(intake, deliveredPlan, {
+        planNumber,
+        planLimit,
+      }),
+    );
+  }
+
   async function generateDraftPlan() {
     if (generationBlockMessage) {
       setDraftMessage(generationBlockMessage);
@@ -1824,6 +1840,13 @@ function PaidIntakeCard({
             }
             variant="secondary"
           />
+          <CopyButton
+            copied={copiedKey === `delivery-email-${intake.id}`}
+            failed={copiedKey === `delivery-email-${intake.id}-failed`}
+            label="Copy Delivery Email"
+            onClick={copyDeliveryEmail}
+            variant="secondary"
+          />
           {planMessage ? (
             <p className="text-sm font-medium text-slate-600" role="status">
               {planMessage}
@@ -2182,6 +2205,81 @@ function buildCustomerEmailDraft(intake: ShiftPlanPaidIntake) {
     "Best,",
     "ShiftPlan",
   ].join("\n");
+}
+
+function buildDeliveryEmailDraft(
+  intake: ShiftPlanPaidIntake,
+  deliveredPlan: ShiftPlanDeliveredPlan,
+  usage: { planNumber: string; planLimit: string },
+) {
+  const firstName = valueOrFallback(intake.first_name);
+  const planDates = formatDeliveryPlanDates(deliveredPlan, intake);
+  const planBody = deliveredPlan.plan_body.trim();
+  const foundingProWeeklySection =
+    intake.intake_type === "founding_pro_weekly"
+      ? [
+          "Plan usage:",
+          `This is Plan ${usage.planNumber || "X"} of ${usage.planLimit || "Y"} for your current billing period.`,
+          "",
+          "Founding Pro check-in:",
+          "After this week, reply with:",
+          "1. What worked?",
+          "2. What felt unrealistic?",
+          "3. What changed?",
+          "4. What should be adjusted next week?",
+          "",
+        ]
+      : [];
+
+  return [
+    `Subject: Your ShiftPlan for ${planDates} is ready`,
+    "",
+    `Hi ${firstName},`,
+    "",
+    `Your ShiftPlan for ${planDates} is ready.`,
+    "",
+    "This plan was built around the schedule and priorities you submitted.",
+    "",
+    "Inside your plan, you'll find:",
+    "- Your week at a glance",
+    "- A 7-day routine structure",
+    "- Workday and off-day planning",
+    "- Meal prep placement",
+    "- Workout/training placement",
+    "- Errand and appointment batching",
+    "- Top priorities",
+    "- A simple copy/paste checklist",
+    "",
+    "Important note:",
+    "ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
+    "",
+    ...foundingProWeeklySection,
+    "Your plan:",
+    "",
+    planBody,
+    "",
+    "Thanks,",
+    "ShiftPlan",
+  ].join("\n");
+}
+
+function formatDeliveryPlanDates(
+  deliveredPlan: ShiftPlanDeliveredPlan,
+  intake: ShiftPlanPaidIntake,
+) {
+  const start =
+    deliveredPlan.plan_start_date || intake.plan_start_date || intake.week_start_date;
+  const end = deliveredPlan.plan_end_date || intake.plan_end_date || intake.week_end_date;
+
+  if (start && end) {
+    return `${formatPlainDate(start)} to ${formatPlainDate(end)}`;
+  }
+
+  if (start || end) {
+    return formatPlainDate(start || end || "");
+  }
+
+  return "your requested week";
 }
 
 const customPlanOutputStructure = [

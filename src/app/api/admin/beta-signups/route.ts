@@ -78,6 +78,12 @@ type ShiftPlanPaidIntake = {
   fulfillment_status: string | null;
   admin_notes: string | null;
   delivered_at: string | null;
+  founding_pro_plan_number: number | null;
+  founding_pro_plan_limit: number | null;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  subscription_status: string | null;
+  usage_notes: string | null;
   updated_at: string | null;
 };
 
@@ -154,6 +160,12 @@ const shiftPlanPaidIntakeColumns = [
   "fulfillment_status",
   "admin_notes",
   "delivered_at",
+  "founding_pro_plan_number",
+  "founding_pro_plan_limit",
+  "billing_period_start",
+  "billing_period_end",
+  "subscription_status",
+  "usage_notes",
   "updated_at",
 ].join(",");
 

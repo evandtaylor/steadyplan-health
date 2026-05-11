@@ -15,6 +15,13 @@ type FulfillmentStatus =
   | "Needs Info"
   | "Canceled"
   | "Refunded";
+type SubscriptionStatus =
+  | "Unknown"
+  | "Active"
+  | "Canceled"
+  | "Past Due"
+  | "Trial"
+  | "Not Applicable";
 
 type BetaSignup = {
   created_at: string;
@@ -89,6 +96,12 @@ type ShiftPlanPaidIntake = {
   fulfillment_status: FulfillmentStatus | null;
   admin_notes: string | null;
   delivered_at: string | null;
+  founding_pro_plan_number: number | null;
+  founding_pro_plan_limit: number | null;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  subscription_status: SubscriptionStatus | null;
+  usage_notes: string | null;
   updated_at: string | null;
 };
 
@@ -97,6 +110,17 @@ type PaidIntakeStatusUpdate = {
   fulfillment_status: FulfillmentStatus;
   admin_notes: string | null;
   delivered_at: string | null;
+  updated_at: string;
+};
+
+type FoundingProUsageUpdate = {
+  id: string;
+  founding_pro_plan_number: number | null;
+  founding_pro_plan_limit: number;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  subscription_status: SubscriptionStatus;
+  usage_notes: string | null;
   updated_at: string;
 };
 
@@ -124,6 +148,15 @@ const fulfillmentStatuses: FulfillmentStatus[] = [
   "Needs Info",
   "Canceled",
   "Refunded",
+];
+
+const subscriptionStatuses: SubscriptionStatus[] = [
+  "Unknown",
+  "Active",
+  "Canceled",
+  "Past Due",
+  "Trial",
+  "Not Applicable",
 ];
 
 export function AdminDashboard() {
@@ -215,6 +248,25 @@ export function AdminDashboard() {
               fulfillment_status: update.fulfillment_status,
               admin_notes: update.admin_notes,
               delivered_at: update.delivered_at,
+              updated_at: update.updated_at,
+            }
+          : intake,
+      ),
+    );
+  }
+
+  function handleFoundingProUsageUpdate(update: FoundingProUsageUpdate) {
+    setShiftPlanPaidIntakes((currentIntakes) =>
+      currentIntakes.map((intake) =>
+        intake.id === update.id
+          ? {
+              ...intake,
+              founding_pro_plan_number: update.founding_pro_plan_number,
+              founding_pro_plan_limit: update.founding_pro_plan_limit,
+              billing_period_start: update.billing_period_start,
+              billing_period_end: update.billing_period_end,
+              subscription_status: update.subscription_status,
+              usage_notes: update.usage_notes,
               updated_at: update.updated_at,
             }
           : intake,
@@ -339,6 +391,7 @@ export function AdminDashboard() {
               intakes={paidGroups.custom}
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
+              onUsageSaved={handleFoundingProUsageUpdate}
             />
           ) : null}
           {selectedGroup === "founding" ? (
@@ -347,6 +400,7 @@ export function AdminDashboard() {
               intakes={paidGroups.founding}
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
+              onUsageSaved={handleFoundingProUsageUpdate}
             />
           ) : null}
           {selectedGroup === "weekly" ? (
@@ -355,6 +409,7 @@ export function AdminDashboard() {
               intakes={paidGroups.weekly}
               password={password}
               onStatusSaved={handlePaidIntakeStatusUpdate}
+              onUsageSaved={handleFoundingProUsageUpdate}
             />
           ) : null}
         </div>
@@ -486,11 +541,13 @@ function PaidSubmissionGroup({
   intakes,
   password,
   onStatusSaved,
+  onUsageSaved,
 }: {
   title: string;
   intakes: ShiftPlanPaidIntake[];
   password: string;
   onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
+  onUsageSaved: (update: FoundingProUsageUpdate) => void;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -505,6 +562,7 @@ function PaidSubmissionGroup({
               intake={intake}
               password={password}
               onStatusSaved={onStatusSaved}
+              onUsageSaved={onUsageSaved}
             />
           ))}
         </div>
@@ -517,10 +575,12 @@ function PaidIntakeCard({
   intake,
   password,
   onStatusSaved,
+  onUsageSaved,
 }: {
   intake: ShiftPlanPaidIntake;
   password: string;
   onStatusSaved: (update: PaidIntakeStatusUpdate) => void;
+  onUsageSaved: (update: FoundingProUsageUpdate) => void;
 }) {
   const [copiedKey, setCopiedKey] = useState("");
   const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(
@@ -529,6 +589,28 @@ function PaidIntakeCard({
   const [adminNotes, setAdminNotes] = useState(intake.admin_notes || "");
   const [saveMessage, setSaveMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const isFoundingPro = intake.intake_type !== "custom_plan";
+  const startingPlanLimit = intake.founding_pro_plan_limit || 4;
+  const [planNumber, setPlanNumber] = useState(
+    intake.founding_pro_plan_number ? String(intake.founding_pro_plan_number) : "",
+  );
+  const [planLimit, setPlanLimit] = useState(String(startingPlanLimit));
+  const [billingPeriodStart, setBillingPeriodStart] = useState(
+    intake.billing_period_start || "",
+  );
+  const [billingPeriodEnd, setBillingPeriodEnd] = useState(
+    intake.billing_period_end || "",
+  );
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(
+    intake.subscription_status || "Unknown",
+  );
+  const [usageNotes, setUsageNotes] = useState(intake.usage_notes || "");
+  const [usageMessage, setUsageMessage] = useState("");
+  const [isSavingUsage, setIsSavingUsage] = useState(false);
+  const numericPlanNumber = planNumber ? Number(planNumber) : null;
+  const numericPlanLimit = Number(planLimit) || 4;
+  const hasReachedPlanLimit =
+    numericPlanNumber !== null && numericPlanNumber >= numericPlanLimit;
 
   async function copyText(key: string, text: string) {
     try {
@@ -584,6 +666,56 @@ function PaidIntakeCard({
     await saveStatus("Delivered");
   }
 
+  async function saveUsage() {
+    setIsSavingUsage(true);
+    setUsageMessage("");
+
+    try {
+      const response = await fetch("/api/admin/founding-pro-usage", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          id: intake.id,
+          founding_pro_plan_number: planNumber || null,
+          founding_pro_plan_limit: planLimit,
+          billing_period_start: billingPeriodStart || null,
+          billing_period_end: billingPeriodEnd || null,
+          subscription_status: subscriptionStatus,
+          usage_notes: usageNotes,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        intake?: FoundingProUsageUpdate;
+      };
+
+      if (!response.ok || !result.intake) {
+        setUsageMessage(result.message || "Could not save usage.");
+        return;
+      }
+
+      setPlanNumber(
+        result.intake.founding_pro_plan_number
+          ? String(result.intake.founding_pro_plan_number)
+          : "",
+      );
+      setPlanLimit(String(result.intake.founding_pro_plan_limit || 4));
+      setBillingPeriodStart(result.intake.billing_period_start || "");
+      setBillingPeriodEnd(result.intake.billing_period_end || "");
+      setSubscriptionStatus(result.intake.subscription_status || "Unknown");
+      setUsageNotes(result.intake.usage_notes || "");
+      onUsageSaved(result.intake);
+      setUsageMessage(result.message || "Founding Pro usage saved.");
+    } catch {
+      setUsageMessage("Could not reach the usage update route right now.");
+    } finally {
+      setIsSavingUsage(false);
+    }
+  }
+
   return (
     <article className="rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -594,8 +726,13 @@ function PaidIntakeCard({
               {formatPaidLabel(intake.intake_type)}
             </span>
             <span className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-              {intake.fulfillment_status || "New"}
+              {fulfillmentStatus}
             </span>
+            {isFoundingPro ? (
+              <span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
+                {formatUsageBadge(intake)}
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 break-all text-sm text-slate-600">{intake.email}</p>
         </div>
@@ -632,6 +769,21 @@ function PaidIntakeCard({
           label="Last updated"
           value={intake.updated_at ? formatDate(intake.updated_at) : "-"}
         />
+        {isFoundingPro ? (
+          <>
+            <AdminField label="Plan usage" value={formatUsageBadge(intake)} />
+            <AdminField
+              label="Billing period"
+              value={formatBillingPeriod(intake)}
+            />
+            <AdminField
+              label="Subscription status"
+              value={intake.subscription_status || "Unknown"}
+            />
+          </>
+        ) : (
+          <AdminField label="Founding Pro usage" value="Not applicable" />
+        )}
       </dl>
 
       <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
@@ -686,6 +838,132 @@ function PaidIntakeCard({
           ) : null}
         </div>
       </div>
+
+      {isFoundingPro ? (
+        <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50/60 p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-950">
+                Founding Pro usage
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Manual tracking for the current monthly billing period. This
+                does not change billing or block fulfillment.
+              </p>
+            </div>
+            <span className="w-fit rounded-lg bg-white px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-100">
+              {planNumber
+                ? `Plan ${planNumber} of ${numericPlanLimit}`
+                : "Plan usage: Not set"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Plan number
+              <select
+                value={planNumber}
+                onChange={(event) => setPlanNumber(event.target.value)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">Not set</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Plan limit
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={planLimit}
+                onChange={(event) => setPlanLimit(event.target.value)}
+                className="field-control"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Billing period start
+              <input
+                type="date"
+                value={billingPeriodStart}
+                onChange={(event) => setBillingPeriodStart(event.target.value)}
+                className="field-control"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Billing period end
+              <input
+                type="date"
+                value={billingPeriodEnd}
+                onChange={(event) => setBillingPeriodEnd(event.target.value)}
+                className="field-control"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-[14rem_1fr]">
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Subscription status
+              <select
+                value={subscriptionStatus}
+                onChange={(event) =>
+                  setSubscriptionStatus(event.target.value as SubscriptionStatus)
+                }
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                {subscriptionStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              Usage notes
+              <textarea
+                value={usageNotes}
+                onChange={(event) => setUsageNotes(event.target.value)}
+                className="field-control min-h-24"
+                placeholder="Internal notes about billing period, plan count, or usage context."
+              />
+            </label>
+          </div>
+
+          {hasReachedPlanLimit ? (
+            <div
+              className="mt-4 grid gap-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-950"
+              role="status"
+            >
+              {numericPlanNumber === 4 && numericPlanLimit === 4 ? (
+                <p>Included plans used after this delivery.</p>
+              ) : null}
+              <p>
+                This subscriber has reached the included plan limit for this
+                billing period.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={() => void saveUsage()}
+              disabled={isSavingUsage}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            >
+              {isSavingUsage ? "Saving..." : "Save usage"}
+            </button>
+            {usageMessage ? (
+              <p className="text-sm font-medium text-slate-600" role="status">
+                {usageMessage}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <CopyButton
@@ -855,6 +1133,25 @@ function formatPlanDates(intake: ShiftPlanPaidIntake) {
   return formatPlainDate(start || end || "");
 }
 
+function formatUsageBadge(intake: ShiftPlanPaidIntake) {
+  const planLimit = intake.founding_pro_plan_limit || 4;
+
+  if (!intake.founding_pro_plan_number) {
+    return "Plan usage: Not set";
+  }
+
+  return `Plan ${intake.founding_pro_plan_number} of ${planLimit} this billing period`;
+}
+
+function formatBillingPeriod(intake: ShiftPlanPaidIntake) {
+  const start = intake.billing_period_start;
+  const end = intake.billing_period_end;
+
+  if (!start && !end) return "Not set";
+  if (start && end) return `${formatPlainDate(start)} to ${formatPlainDate(end)}`;
+  return formatPlainDate(start || end || "");
+}
+
 function buildAiPrompt(intake: ShiftPlanPaidIntake) {
   const isCustomPlan = intake.intake_type === "custom_plan";
   const header = isCustomPlan
@@ -879,6 +1176,15 @@ function buildAiPrompt(intake: ShiftPlanPaidIntake) {
       ["First name", intake.first_name],
       ["Email", intake.email],
       ["Plan dates or week dates", formatPlanDates(intake)],
+      [
+        "Founding Pro usage",
+        isCustomPlan ? "Not applicable" : formatUsageBadge(intake),
+      ],
+      ["Billing period", isCustomPlan ? "Not applicable" : formatBillingPeriod(intake)],
+      [
+        "Subscription status",
+        isCustomPlan ? "Not applicable" : intake.subscription_status || "Unknown",
+      ],
       ["Job / role", intake.job_role],
       ["Schedule type", intake.schedule_type],
       ["Typical shift pattern", intake.typical_shift_pattern],

@@ -335,7 +335,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/beta/shiftplan"
+                href="/intake/founding-pro"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Join Founding Pro
@@ -386,7 +386,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/beta/shiftplan"
+                href="/intake/custom-plan"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Get My 7-Day Plan

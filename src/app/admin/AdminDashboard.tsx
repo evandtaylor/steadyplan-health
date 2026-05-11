@@ -22,6 +22,12 @@ type SubscriptionStatus =
   | "Past Due"
   | "Trial"
   | "Not Applicable";
+type DeliveryStatus =
+  | "Draft"
+  | "Reviewed"
+  | "Delivered"
+  | "Needs Revision"
+  | "Archived";
 
 type BetaSignup = {
   created_at: string;
@@ -144,12 +150,30 @@ type ShiftPlanSubscriberPreference = {
   admin_notes: string | null;
 };
 
+type ShiftPlanDeliveredPlan = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  paid_intake_id: string | null;
+  customer_email: string;
+  customer_name: string | null;
+  plan_type: PaidIntakeType;
+  plan_title: string | null;
+  plan_start_date: string | null;
+  plan_end_date: string | null;
+  plan_body: string;
+  delivery_status: DeliveryStatus;
+  delivered_at: string | null;
+  admin_notes: string | null;
+};
+
 type AdminResponse = {
   message?: string;
   signups?: BetaSignup[];
   shiftPlanIntakes?: ShiftPlanIntake[];
   shiftPlanPaidIntakes?: ShiftPlanPaidIntake[];
   shiftPlanSubscriberPreferences?: ShiftPlanSubscriberPreference[];
+  shiftPlanDeliveredPlans?: ShiftPlanDeliveredPlan[];
 };
 
 const groups: { id: AdminGroup; label: string }[] = [
@@ -180,6 +204,14 @@ const subscriptionStatuses: SubscriptionStatus[] = [
   "Not Applicable",
 ];
 
+const deliveryStatuses: DeliveryStatus[] = [
+  "Draft",
+  "Reviewed",
+  "Delivered",
+  "Needs Revision",
+  "Archived",
+];
+
 export function AdminDashboard() {
   const [password, setPassword] = useState("");
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -191,6 +223,7 @@ export function AdminDashboard() {
   const [subscriberPreferences, setSubscriberPreferences] = useState<
     ShiftPlanSubscriberPreference[]
   >([]);
+  const [deliveredPlans, setDeliveredPlans] = useState<ShiftPlanDeliveredPlan[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup>("free");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -219,6 +252,18 @@ export function AdminDashboard() {
     );
   }, [subscriberPreferences]);
 
+  const deliveredPlansByIntakeId = useMemo(() => {
+    return deliveredPlans.reduce<Record<string, ShiftPlanDeliveredPlan>>(
+      (plans, plan) => {
+        if (plan.paid_intake_id) {
+          plans[plan.paid_intake_id] = plan;
+        }
+        return plans;
+      },
+      {},
+    );
+  }, [deliveredPlans]);
+
   const groupCounts = {
     free: signups.length + shiftPlanIntakes.length,
     custom: paidGroups.custom.length,
@@ -245,7 +290,8 @@ export function AdminDashboard() {
         !result.signups ||
         !result.shiftPlanIntakes ||
         !result.shiftPlanPaidIntakes ||
-        !result.shiftPlanSubscriberPreferences
+        !result.shiftPlanSubscriberPreferences ||
+        !result.shiftPlanDeliveredPlans
       ) {
         setMessage(result.message || "Unable to load admin submissions.");
         setIsUnlocked(false);
@@ -256,6 +302,7 @@ export function AdminDashboard() {
       setShiftPlanIntakes(result.shiftPlanIntakes);
       setShiftPlanPaidIntakes(result.shiftPlanPaidIntakes);
       setSubscriberPreferences(result.shiftPlanSubscriberPreferences);
+      setDeliveredPlans(result.shiftPlanDeliveredPlans);
       setIsUnlocked(true);
     } catch {
       setMessage("Unable to reach the admin data route right now.");
@@ -328,6 +375,20 @@ export function AdminDashboard() {
 
       return currentPreferences.map((preference, index) =>
         index === existingIndex ? nextPreference : preference,
+      );
+    });
+  }
+
+  function handleDeliveredPlanUpdate(update: ShiftPlanDeliveredPlan) {
+    setDeliveredPlans((currentPlans) => {
+      const existingIndex = currentPlans.findIndex((plan) => plan.id === update.id);
+
+      if (existingIndex === -1) {
+        return [update, ...currentPlans];
+      }
+
+      return currentPlans.map((plan, index) =>
+        index === existingIndex ? update : plan,
       );
     });
   }
@@ -452,6 +513,8 @@ export function AdminDashboard() {
               onUsageSaved={handleFoundingProUsageUpdate}
               preferencesByEmail={preferencesByEmail}
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
+              deliveredPlansByIntakeId={deliveredPlansByIntakeId}
+              onPlanSaved={handleDeliveredPlanUpdate}
             />
           ) : null}
           {selectedGroup === "founding" ? (
@@ -463,6 +526,8 @@ export function AdminDashboard() {
               onUsageSaved={handleFoundingProUsageUpdate}
               preferencesByEmail={preferencesByEmail}
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
+              deliveredPlansByIntakeId={deliveredPlansByIntakeId}
+              onPlanSaved={handleDeliveredPlanUpdate}
             />
           ) : null}
           {selectedGroup === "weekly" ? (
@@ -474,6 +539,8 @@ export function AdminDashboard() {
               onUsageSaved={handleFoundingProUsageUpdate}
               preferencesByEmail={preferencesByEmail}
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
+              deliveredPlansByIntakeId={deliveredPlansByIntakeId}
+              onPlanSaved={handleDeliveredPlanUpdate}
             />
           ) : null}
         </div>
@@ -608,6 +675,8 @@ function PaidSubmissionGroup({
   onUsageSaved,
   preferencesByEmail,
   onPreferenceSaved,
+  deliveredPlansByIntakeId,
+  onPlanSaved,
 }: {
   title: string;
   intakes: ShiftPlanPaidIntake[];
@@ -616,6 +685,8 @@ function PaidSubmissionGroup({
   onUsageSaved: (update: FoundingProUsageUpdate) => void;
   preferencesByEmail: Record<string, ShiftPlanSubscriberPreference>;
   onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
+  deliveredPlansByIntakeId: Record<string, ShiftPlanDeliveredPlan>;
+  onPlanSaved: (update: ShiftPlanDeliveredPlan) => void;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -633,6 +704,8 @@ function PaidSubmissionGroup({
               onUsageSaved={onUsageSaved}
               savedPreference={preferencesByEmail[intake.email.toLowerCase()] || null}
               onPreferenceSaved={onPreferenceSaved}
+              deliveredPlan={deliveredPlansByIntakeId[intake.id] || null}
+              onPlanSaved={onPlanSaved}
             />
           ))}
         </div>
@@ -648,6 +721,8 @@ function PaidIntakeCard({
   onUsageSaved,
   savedPreference,
   onPreferenceSaved,
+  deliveredPlan,
+  onPlanSaved,
 }: {
   intake: ShiftPlanPaidIntake;
   password: string;
@@ -655,6 +730,8 @@ function PaidIntakeCard({
   onUsageSaved: (update: FoundingProUsageUpdate) => void;
   savedPreference: ShiftPlanSubscriberPreference | null;
   onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
+  deliveredPlan: ShiftPlanDeliveredPlan | null;
+  onPlanSaved: (update: ShiftPlanDeliveredPlan) => void;
 }) {
   const [copiedKey, setCopiedKey] = useState("");
   const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(
@@ -720,6 +797,25 @@ function PaidIntakeCard({
   );
   const [preferenceMessage, setPreferenceMessage] = useState("");
   const [isSavingPreference, setIsSavingPreference] = useState(false);
+  const [planTitle, setPlanTitle] = useState(deliveredPlan?.plan_title || "");
+  const [planBody, setPlanBody] = useState(deliveredPlan?.plan_body || "");
+  const [planStartDate, setPlanStartDate] = useState(
+    deliveredPlan?.plan_start_date ||
+      intake.plan_start_date ||
+      intake.week_start_date ||
+      "",
+  );
+  const [planEndDate, setPlanEndDate] = useState(
+    deliveredPlan?.plan_end_date || intake.plan_end_date || intake.week_end_date || "",
+  );
+  const [planDeliveryStatus, setPlanDeliveryStatus] = useState<DeliveryStatus>(
+    deliveredPlan?.delivery_status || "Draft",
+  );
+  const [planAdminNotes, setPlanAdminNotes] = useState(
+    deliveredPlan?.admin_notes || "",
+  );
+  const [planMessage, setPlanMessage] = useState("");
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
   const numericPlanNumber = planNumber ? Number(planNumber) : null;
   const numericPlanLimit = Number(planLimit) || 4;
   const hasReachedPlanLimit =
@@ -890,6 +986,68 @@ function PaidIntakeCard({
     } finally {
       setIsSavingPreference(false);
     }
+  }
+
+  async function savePlan(nextStatus = planDeliveryStatus, markPlanDelivered = false) {
+    setIsSavingPlan(true);
+    setPlanMessage("");
+
+    try {
+      const response = await fetch("/api/admin/delivered-plans", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          paid_intake_id: intake.id,
+          customer_email: intake.email,
+          customer_name: intake.first_name,
+          plan_type: intake.intake_type,
+          plan_title: planTitle,
+          plan_start_date: planStartDate || null,
+          plan_end_date: planEndDate || null,
+          plan_body: planBody,
+          delivery_status: nextStatus,
+          admin_notes: planAdminNotes,
+          mark_delivered: markPlanDelivered,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        plan?: ShiftPlanDeliveredPlan;
+        intake?: PaidIntakeStatusUpdate | null;
+      };
+
+      if (!response.ok || !result.plan) {
+        setPlanMessage(result.message || "Could not save plan output.");
+        return;
+      }
+
+      setPlanTitle(result.plan.plan_title || "");
+      setPlanBody(result.plan.plan_body);
+      setPlanStartDate(result.plan.plan_start_date || "");
+      setPlanEndDate(result.plan.plan_end_date || "");
+      setPlanDeliveryStatus(result.plan.delivery_status);
+      setPlanAdminNotes(result.plan.admin_notes || "");
+      onPlanSaved(result.plan);
+
+      if (result.intake) {
+        setFulfillmentStatus(result.intake.fulfillment_status);
+        onStatusSaved(result.intake);
+      }
+
+      setPlanMessage(result.message || "Plan output saved.");
+    } catch {
+      setPlanMessage("Could not reach the plan output route right now.");
+    } finally {
+      setIsSavingPlan(false);
+    }
+  }
+
+  async function markPlanDelivered() {
+    setPlanDeliveryStatus("Delivered");
+    await savePlan("Delivered", true);
   }
 
   return (
@@ -1288,6 +1446,138 @@ function PaidIntakeCard({
           </div>
         </div>
       ) : null}
+
+      <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-950">Plan Output</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Paste the final customer-ready plan here after you generate and
+              review it. This is internal-only storage for fulfillment.
+            </p>
+          </div>
+          <span
+            className={`w-fit rounded-lg px-3 py-1 text-xs font-semibold ring-1 ${
+              deliveredPlan
+                ? "bg-teal-50 text-teal-800 ring-teal-100"
+                : "bg-slate-50 text-slate-700 ring-slate-200"
+            }`}
+          >
+            {deliveredPlan ? "Saved plan exists" : "No saved plan yet"}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <label className="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2">
+            Plan title
+            <input
+              type="text"
+              value={planTitle}
+              onChange={(event) => setPlanTitle(event.target.value)}
+              className="field-control"
+              placeholder="Custom 7-Day ShiftPlan"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Plan start date
+            <input
+              type="date"
+              value={planStartDate}
+              onChange={(event) => setPlanStartDate(event.target.value)}
+              className="field-control"
+            />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Plan end date
+            <input
+              type="date"
+              value={planEndDate}
+              onChange={(event) => setPlanEndDate(event.target.value)}
+              className="field-control"
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[14rem_1fr]">
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Delivery status
+            <select
+              value={planDeliveryStatus}
+              onChange={(event) =>
+                setPlanDeliveryStatus(event.target.value as DeliveryStatus)
+              }
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {deliveryStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-slate-700">
+            Plan output admin notes
+            <textarea
+              value={planAdminNotes}
+              onChange={(event) => setPlanAdminNotes(event.target.value)}
+              className="field-control min-h-24"
+              placeholder="Internal notes about review, revision, or delivery."
+            />
+          </label>
+        </div>
+
+        <label className="mt-4 grid gap-2 text-sm font-semibold text-slate-700">
+          Final plan body
+          <textarea
+            value={planBody}
+            onChange={(event) => setPlanBody(event.target.value)}
+            className="field-control min-h-72 font-mono text-sm"
+            placeholder="Paste the final ShiftPlan here after review."
+          />
+        </label>
+
+        {deliveredPlan?.delivered_at ? (
+          <p className="mt-3 text-sm font-medium text-slate-600">
+            Plan delivered: {formatDate(deliveredPlan.delivered_at)}
+          </p>
+        ) : null}
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <button
+            type="button"
+            onClick={() => void savePlan()}
+            disabled={isSavingPlan}
+            className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+          >
+            {isSavingPlan ? "Saving..." : "Save Plan"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void markPlanDelivered()}
+            disabled={isSavingPlan}
+            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-fit"
+          >
+            Mark Delivered
+          </button>
+          <CopyButton
+            copied={copiedKey === `saved-plan-${intake.id}`}
+            failed={copiedKey === `saved-plan-${intake.id}-failed`}
+            label="Copy Saved Plan"
+            onClick={() =>
+              void copyText(
+                `saved-plan-${intake.id}`,
+                planBody || "No saved plan body yet.",
+              )
+            }
+            variant="secondary"
+          />
+          {planMessage ? (
+            <p className="text-sm font-medium text-slate-600" role="status">
+              {planMessage}
+            </p>
+          ) : null}
+        </div>
+      </div>
 
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <CopyButton

@@ -107,6 +107,23 @@ type ShiftPlanSubscriberPreference = {
   admin_notes: string | null;
 };
 
+type ShiftPlanDeliveredPlan = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  paid_intake_id: string | null;
+  customer_email: string;
+  customer_name: string | null;
+  plan_type: string;
+  plan_title: string | null;
+  plan_start_date: string | null;
+  plan_end_date: string | null;
+  plan_body: string;
+  delivery_status: string;
+  delivered_at: string | null;
+  admin_notes: string | null;
+};
+
 const betaSignupColumns = [
   "created_at",
   "name",
@@ -209,6 +226,23 @@ const shiftPlanSubscriberPreferenceColumns = [
   "admin_notes",
 ].join(",");
 
+const shiftPlanDeliveredPlanColumns = [
+  "id",
+  "created_at",
+  "updated_at",
+  "paid_intake_id",
+  "customer_email",
+  "customer_name",
+  "plan_type",
+  "plan_title",
+  "plan_start_date",
+  "plan_end_date",
+  "plan_body",
+  "delivery_status",
+  "delivered_at",
+  "admin_notes",
+].join(",");
+
 export async function POST(request: Request) {
   let payload: AdminRequest;
 
@@ -264,6 +298,10 @@ export async function POST(request: Request) {
     select: shiftPlanSubscriberPreferenceColumns,
     order: "updated_at.desc",
   });
+  const shiftPlanDeliveredPlanQuery = new URLSearchParams({
+    select: shiftPlanDeliveredPlanColumns,
+    order: "updated_at.desc",
+  });
 
   try {
     const headers = {
@@ -276,6 +314,7 @@ export async function POST(request: Request) {
       shiftPlanIntakeResponse,
       shiftPlanPaidIntakeResponse,
       shiftPlanSubscriberPreferenceResponse,
+      shiftPlanDeliveredPlanResponse,
     ] = await Promise.all([
         fetch(`${supabaseRestUrl}/beta_signups?${betaSignupQuery}`, {
           headers,
@@ -299,13 +338,21 @@ export async function POST(request: Request) {
             cache: "no-store",
           },
         ),
+        fetch(
+          `${supabaseRestUrl}/shiftplan_delivered_plans?${shiftPlanDeliveredPlanQuery}`,
+          {
+            headers,
+            cache: "no-store",
+          },
+        ),
       ]);
 
     if (
       !betaSignupResponse.ok ||
       !shiftPlanIntakeResponse.ok ||
       !shiftPlanPaidIntakeResponse.ok ||
-      !shiftPlanSubscriberPreferenceResponse.ok
+      !shiftPlanSubscriberPreferenceResponse.ok ||
+      !shiftPlanDeliveredPlanResponse.ok
     ) {
       return NextResponse.json(
         {
@@ -321,16 +368,19 @@ export async function POST(request: Request) {
       shiftPlanIntakes,
       shiftPlanPaidIntakes,
       shiftPlanSubscriberPreferences,
+      shiftPlanDeliveredPlans,
     ] = (await Promise.all([
       betaSignupResponse.json(),
       shiftPlanIntakeResponse.json(),
       shiftPlanPaidIntakeResponse.json(),
       shiftPlanSubscriberPreferenceResponse.json(),
+      shiftPlanDeliveredPlanResponse.json(),
     ])) as [
       BetaSignup[],
       ShiftPlanIntake[],
       ShiftPlanPaidIntake[],
       ShiftPlanSubscriberPreference[],
+      ShiftPlanDeliveredPlan[],
     ];
 
     return NextResponse.json(
@@ -339,6 +389,7 @@ export async function POST(request: Request) {
         shiftPlanIntakes,
         shiftPlanPaidIntakes,
         shiftPlanSubscriberPreferences,
+        shiftPlanDeliveredPlans,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

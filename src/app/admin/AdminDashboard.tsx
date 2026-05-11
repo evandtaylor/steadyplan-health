@@ -431,6 +431,19 @@ function PaidSubmissionGroup({
   title: string;
   intakes: ShiftPlanPaidIntake[];
 }) {
+  const [copiedKey, setCopiedKey] = useState("");
+
+  async function copyText(key: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      window.setTimeout(() => setCopiedKey(""), 1800);
+    } catch {
+      setCopiedKey(`${key}-failed`);
+      window.setTimeout(() => setCopiedKey(""), 2200);
+    }
+  }
+
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <GroupHeader title={title} count={intakes.length} />
@@ -483,6 +496,32 @@ function PaidSubmissionGroup({
                   value={intake.safety_acknowledged ? "Yes" : "No"}
                 />
               </dl>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <CopyButton
+                  copied={copiedKey === `prompt-${intake.email}-${intake.created_at}`}
+                  failed={copiedKey === `prompt-${intake.email}-${intake.created_at}-failed`}
+                  label="Copy AI Prompt"
+                  onClick={() =>
+                    void copyText(
+                      `prompt-${intake.email}-${intake.created_at}`,
+                      buildAiPrompt(intake),
+                    )
+                  }
+                />
+                <CopyButton
+                  copied={copiedKey === `email-${intake.email}-${intake.created_at}`}
+                  failed={copiedKey === `email-${intake.email}-${intake.created_at}-failed`}
+                  label="Copy Customer Email Draft"
+                  onClick={() =>
+                    void copyText(
+                      `email-${intake.email}-${intake.created_at}`,
+                      buildCustomerEmailDraft(intake),
+                    )
+                  }
+                  variant="secondary"
+                />
+              </div>
 
               <details className="mt-5 rounded-lg border border-slate-200 bg-white p-4">
                 <summary className="cursor-pointer text-sm font-semibold text-teal-800">
@@ -576,6 +615,33 @@ function PaidSubmissionGroup({
   );
 }
 
+function CopyButton({
+  copied,
+  failed,
+  label,
+  onClick,
+  variant = "primary",
+}: {
+  copied: boolean;
+  failed: boolean;
+  label: string;
+  onClick: () => void;
+  variant?: "primary" | "secondary";
+}) {
+  const baseClasses =
+    "inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit";
+  const variantClasses =
+    variant === "primary"
+      ? "bg-teal-800 text-white hover:bg-teal-900"
+      : "border border-slate-300 bg-white text-slate-800 hover:border-teal-300 hover:text-teal-900";
+
+  return (
+    <button type="button" onClick={onClick} className={`${baseClasses} ${variantClasses}`}>
+      {failed ? "Copy failed" : copied ? "Copied" : label}
+    </button>
+  );
+}
+
 function GroupHeader({ title, count }: { title: string; count: number }) {
   return (
     <div className="border-b border-slate-200 px-4 py-4 sm:px-6">
@@ -617,6 +683,153 @@ function formatPlanDates(intake: ShiftPlanPaidIntake) {
   if (!start && !end) return "-";
   if (start && end) return `${formatPlainDate(start)} to ${formatPlainDate(end)}`;
   return formatPlainDate(start || end || "");
+}
+
+function buildAiPrompt(intake: ShiftPlanPaidIntake) {
+  const isCustomPlan = intake.intake_type === "custom_plan";
+  const header = isCustomPlan
+    ? "CUSTOM 7-DAY SHIFTPLAN"
+    : "SHIFTPLAN FOUNDING PRO — WEEKLY PLAN";
+
+  return [
+    header,
+    "",
+    "Product:",
+    "ShiftPlan helps nurses and shift workers turn messy shift schedules into simple weekly life plans. It helps organize sleep/wind-down blocks, meals, workouts, recovery/reset blocks, errands, appointments, family responsibilities, training schedules, and personal tasks around irregular, long, or demanding schedules.",
+    "",
+    "Safety boundaries:",
+    "ShiftPlan is lifestyle and routine planning only.",
+    "Do not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, supplement guidance, healthcare advice, mental health guidance, workplace safety guidance, or emergency support.",
+    "Do not claim to fix sleep problems, fatigue, burnout, anxiety, insomnia, sleep disorders, or any medical condition.",
+    "Use safe language such as routine planning, weekly structure, wind-down block, reset block, recovery block, meal prep placement, workout placement, task batching, and checklist.",
+    "",
+    "Customer intake data:",
+    formatPromptFields([
+      ["Intake type", formatPaidLabel(intake.intake_type)],
+      ["First name", intake.first_name],
+      ["Email", intake.email],
+      ["Plan dates or week dates", formatPlanDates(intake)],
+      ["Job / role", intake.job_role],
+      ["Schedule type", intake.schedule_type],
+      ["Typical shift pattern", intake.typical_shift_pattern],
+      ["Exact work shifts", intake.exact_work_shifts],
+      ["Commute time", intake.commute_time || intake.typical_commute_time],
+      ["Main goal", intake.main_goal],
+      ["Monthly goal", intake.monthly_goal],
+      [
+        "Meal prep preferences or needs",
+        intake.meal_prep_preferences || intake.meal_prep_needs_this_week,
+      ],
+      [
+        "Workout / training goals or preferences",
+        intake.workout_training_goals ||
+          intake.workout_training_preferences ||
+          intake.workout_training_goals_this_week,
+      ],
+      ["Appointments", intake.appointments || intake.appointments_this_week],
+      ["Errands", intake.errands || intake.errands_this_week],
+      [
+        "Family / personal responsibilities",
+        intake.family_personal_responsibilities ||
+          intake.family_personal_responsibilities_this_week,
+      ],
+      ["Top 3 priorities", intake.top_3_priorities || intake.top_3_priorities_this_week],
+      ["Anything to avoid", intake.anything_to_avoid],
+      ["Preferred plan style", intake.preferred_plan_style],
+      ["Organizing focus", intake.organize_focus],
+      ["Recurring responsibilities", intake.recurring_responsibilities],
+      ["Avoid after work", intake.avoid_after_work],
+      ["Messy week reason", intake.messy_week_reason],
+      ["Changed from last week", intake.changed_from_last_week],
+      ["What worked from last plan", intake.worked_from_last_plan],
+      ["What felt unrealistic", intake.unrealistic_from_last_plan],
+      ["Specific request this week", intake.specific_request_this_week],
+    ]),
+    "",
+    "Output rules:",
+    "1. Create a realistic 7-day plan.",
+    "2. Keep workdays simple.",
+    "3. Do not overload post-shift periods.",
+    "4. Batch errands and appointments when possible.",
+    "5. Place workouts/training where they fit best around the schedule.",
+    "6. Include meal prep placement, not nutrition coaching.",
+    "7. Include recovery/reset blocks as lifestyle organization, not treatment.",
+    "8. Include a copy/paste checklist.",
+    "9. Include the safety disclaimer.",
+    "10. Use plain, practical language.",
+    "11. Make the plan feel premium, organized, and personalized.",
+    "12. Do not mention that AI generated the plan.",
+    "",
+    `Required output structure for ${isCustomPlan ? "custom_plan" : "founding_pro / founding_pro_weekly"}:`,
+    isCustomPlan ? customPlanOutputStructure : foundingProOutputStructure,
+    "",
+    "Important disclaimer text to include in the prompt output:",
+    "ShiftPlan is for lifestyle and routine organization only. This plan helps organize your week around work, meals, workouts, errands, appointments, recovery blocks, and personal responsibilities. It does not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, or healthcare advice.",
+  ].join("\n");
+}
+
+function buildCustomerEmailDraft(intake: ShiftPlanPaidIntake) {
+  const firstName = valueOrFallback(intake.first_name);
+  const planName = formatPaidLabel(intake.intake_type);
+
+  return [
+    `Subject: Your ${planName} is ready`,
+    "",
+    `Hi ${firstName},`,
+    "",
+    `Your ${planName} is ready. I built it around the schedule details and preferences you submitted, with a focus on keeping the week practical and easy to follow.`,
+    "",
+    "Important note: ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, or healthcare advice.",
+    "",
+    "Best,",
+    "ShiftPlan",
+  ].join("\n");
+}
+
+const customPlanOutputStructure = [
+  "1. Header",
+  "2. Important note",
+  "3. Your week at a glance",
+  "4. 7-day plan",
+  "5. Workday routine",
+  "6. Post-shift reset",
+  "7. Off-day routine",
+  "8. Meal prep structure",
+  "9. Workout/training placement",
+  "10. Errands, appointments, and family responsibilities",
+  "11. Top 3 priorities this week",
+  "12. Simple copy/paste checklist",
+  "13. Final note",
+].join("\n");
+
+const foundingProOutputStructure = [
+  "1. Header",
+  "2. Plan usage placeholder if exact usage is not tracked yet",
+  "3. Saved preferences used if available",
+  "4. Important note",
+  "5. This week’s game plan",
+  "6. Your week at a glance",
+  "7. 7-day plan",
+  "8. Workday routine",
+  "9. Post-shift reset",
+  "10. Off-day routine",
+  "11. Meal prep structure",
+  "12. Workout/training placement",
+  "13. Errands, appointments, and family responsibilities",
+  "14. Top 3 priorities this week",
+  "15. Copy/paste checklist",
+  "16. Founding Pro weekly check-in",
+  "17. Final note",
+].join("\n");
+
+function formatPromptFields(fields: [string, string | null | undefined][]) {
+  return fields
+    .map(([label, value]) => `- ${label}: ${valueOrFallback(value)}`)
+    .join("\n");
+}
+
+function valueOrFallback(value: string | null | undefined) {
+  return value && value.trim() ? value.trim() : "Not provided";
 }
 
 function formatPlainDate(value: string) {

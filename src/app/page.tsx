@@ -81,7 +81,7 @@ const faqItems = [
   },
 ];
 
-const foundingProPaymentLink = "https://buy.stripe.com/dRmcN53lz6qvej7g5r0RG00";
+const foundingProPaymentLink = "https://buy.stripe.com/14A8wP4pDg152Ap4mJ0RG03";
 const customPlanPaymentLink = "https://buy.stripe.com/14AaEXcW9g155MBcTf0RG01";
 
 export default function Home() {

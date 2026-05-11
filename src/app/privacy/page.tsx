@@ -52,9 +52,10 @@ export default function PrivacyPage() {
             <p className="mt-3">
               ShiftPlan does not intentionally collect medical records or
               protected health information. Please do not submit diagnoses,
-              prescription medication lists, lab values, medical record numbers,
-              insurance numbers, Social Security numbers, emergency requests, or
-              other sensitive medical information.
+              symptoms, prescription medication details, lab values, medical
+              record numbers, insurance numbers, Social Security numbers,
+              emergency requests, workplace safety concerns, or other private
+              medical or safety information.
             </p>
           </section>
 
@@ -71,13 +72,34 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-semibold text-slate-950">
+              AI-assisted draft plans
+            </h2>
+            <p className="mt-3">
+              ShiftPlan may use AI tools, including OpenAI, to help create draft
+              routine plans for customers who request a plan. Information you
+              submit through intake forms may be processed by these tools to
+              create or improve a requested ShiftPlan. During the MVP and
+              founding period, AI-generated drafts are reviewed before delivery.
+            </p>
+            <p className="mt-3">
+              Please do not submit private medical information, protected health
+              information, medication details, diagnoses, symptoms, emergency
+              information, or safety-sensitive information for AI processing.
+              ShiftPlan is for lifestyle and routine planning only. It does not
+              provide medical advice, diagnosis, treatment, healthcare guidance,
+              or emergency support.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-950">
               Payments and storage
             </h2>
             <p className="mt-3">
               Form responses may be stored with service providers used to run
-              ShiftPlan. Payment processing, if paid checkout is used, is
-              handled by third-party payment providers such as Stripe. Do not
-              send payment card details through ShiftPlan forms.
+              ShiftPlan. Payment processing is handled by Stripe when paid
+              checkout is used. Do not send payment card details through
+              ShiftPlan forms.
             </p>
           </section>
 

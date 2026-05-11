@@ -224,6 +224,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_PASSWORD=
 OPENAI_API_KEY=
 OPENAI_MODEL=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+RESEND_API_KEY=
 ```
 
 Notes:
@@ -234,6 +237,9 @@ Notes:
 - `ADMIN_PASSWORD` protects the simple internal admin page. This is not full authentication.
 - `OPENAI_API_KEY` is server-only and used only by the admin draft generation route. Never prefix it with `NEXT_PUBLIC_`.
 - `OPENAI_MODEL` is optional. If blank, admin draft generation uses the app default model.
+- `STRIPE_SECRET_KEY` is server-only and used by the Stripe webhook route to verify Checkout Session details. Never prefix it with `NEXT_PUBLIC_`.
+- `STRIPE_WEBHOOK_SECRET` is server-only and used to verify Stripe webhook signatures. Create it from the Stripe webhook endpoint settings.
+- `RESEND_API_KEY` is server-only and used to send internal purchase notification emails to `evan@shiftplan.ai`.
 
 Restart the dev server after changing environment variables.
 
@@ -246,6 +252,9 @@ SUPABASE_SERVICE_ROLE_KEY
 ADMIN_PASSWORD
 OPENAI_API_KEY
 OPENAI_MODEL
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+RESEND_API_KEY
 ```
 
 Secret handling rules:
@@ -256,7 +265,29 @@ Secret handling rules:
 - Do not paste service role keys into client components.
 - Do not expose `SUPABASE_SERVICE_ROLE_KEY` with a `NEXT_PUBLIC_` prefix.
 - Do not expose `OPENAI_API_KEY` with a `NEXT_PUBLIC_` prefix.
+- Do not expose Stripe or Resend secrets with a `NEXT_PUBLIC_` prefix.
 - Rotate keys immediately if a secret is accidentally shared.
+
+## Stripe purchase notifications
+
+ShiftPlan uses a server-side Stripe webhook for internal purchase alerts. The endpoint is:
+
+```text
+https://www.shiftplan.ai/api/stripe/webhook
+```
+
+Configure this endpoint in the Stripe Dashboard with this event:
+
+- `checkout.session.completed`
+
+This single event covers the current Payment Link checkout flow for both offers:
+
+- `Custom 7-Day ShiftPlan` -> internal email points to `https://www.shiftplan.ai/intake/custom-plan`
+- `ShiftPlan Founding Pro` -> internal email points to `https://www.shiftplan.ai/intake/founding-pro`
+
+The webhook verifies the Stripe signature with `STRIPE_WEBHOOK_SECRET`, retrieves the Checkout Session server-side with `STRIPE_SECRET_KEY`, and sends an internal Resend email to `evan@shiftplan.ai`. It does not send customer emails, create accounts, store card details, or change Stripe prices.
+
+Before using live purchase notifications, confirm in Resend that `notifications@shiftplan.ai` or the `shiftplan.ai` sending domain is verified.
 
 ## Supabase setup
 

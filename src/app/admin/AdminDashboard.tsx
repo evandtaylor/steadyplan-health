@@ -822,6 +822,7 @@ function PaidIntakeCard({
   const numericPlanLimit = Number(planLimit) || 4;
   const hasReachedPlanLimit =
     numericPlanNumber !== null && numericPlanNumber >= numericPlanLimit;
+  const generationBlockMessage = getDraftGenerationBlockMessage(intake);
 
   async function copyText(key: string, text: string) {
     try {
@@ -1053,6 +1054,11 @@ function PaidIntakeCard({
   }
 
   async function generateDraftPlan() {
+    if (generationBlockMessage) {
+      setDraftMessage(generationBlockMessage);
+      return;
+    }
+
     setIsGeneratingDraft(true);
     setDraftMessage("");
 
@@ -1596,7 +1602,7 @@ function PaidIntakeCard({
           <button
             type="button"
             onClick={() => void generateDraftPlan()}
-            disabled={isGeneratingDraft || isSavingPlan}
+            disabled={isGeneratingDraft || isSavingPlan || Boolean(generationBlockMessage)}
             className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
           >
             {isGeneratingDraft ? "Generating..." : "Generate Draft Plan"}
@@ -1637,6 +1643,11 @@ function PaidIntakeCard({
           {draftMessage ? (
             <p className="text-sm font-medium text-slate-600" role="status">
               {draftMessage}
+            </p>
+          ) : null}
+          {generationBlockMessage && !draftMessage ? (
+            <p className="text-sm font-medium text-amber-800" role="status">
+              {generationBlockMessage}
             </p>
           ) : null}
         </div>
@@ -1822,7 +1833,7 @@ function formatUsageBadge(intake: ShiftPlanPaidIntake) {
     return "Plan usage: Not set";
   }
 
-  return `Plan ${intake.founding_pro_plan_number} of ${planLimit} this billing period`;
+  return `Plan ${intake.founding_pro_plan_number} of ${planLimit} for this billing period.`;
 }
 
 function formatBillingPeriod(intake: ShiftPlanPaidIntake) {
@@ -1854,6 +1865,13 @@ function buildAiPrompt(
     "Do not provide medical advice, diagnosis, treatment, sleep disorder guidance, fatigue treatment, burnout treatment, medication guidance, supplement guidance, healthcare advice, mental health guidance, workplace safety guidance, or emergency support.",
     "Do not claim to fix sleep problems, fatigue, burnout, anxiety, insomnia, sleep disorders, or any medical condition.",
     "Use safe language such as routine planning, weekly structure, wind-down block, reset block, recovery block, meal prep placement, workout placement, task batching, and checklist.",
+    "",
+    "Schedule-data quality rules:",
+    "Paid plans must be based on the actual submitted shift days and times.",
+    "Do not invent shift days or shift times.",
+    "Do not use generic Mon/Wed/Fri templates unless the submitted intake explicitly says those are the workdays.",
+    "If required schedule details are missing, do not produce a customer-ready plan. Instead, ask for the missing shift days and times.",
+    "If saved preferences mention recurring responsibilities without exact days or times, treat them as flexible. For example: Place school pickup on the confirmed pickup days this week. Do not invent Tuesday/Thursday unless the intake says Tuesday/Thursday.",
     "",
     "Customer intake data:",
     formatPromptFields([
@@ -1913,7 +1931,7 @@ function buildAiPrompt(
     "",
     "Output rules:",
     "1. Create a realistic 7-day plan.",
-    "2. Keep workdays simple.",
+    "2. Build around the exact submitted shift days and times.",
     "3. Do not overload post-shift periods.",
     "4. Batch errands and appointments when possible.",
     "5. Place workouts/training where they fit best around the schedule.",
@@ -1985,7 +2003,7 @@ const customPlanOutputStructure = [
 
 const foundingProOutputStructure = [
   "1. Header",
-  "2. Plan usage placeholder if exact usage is not tracked yet",
+  "2. Plan usage for this billing period if available",
   "3. Saved preferences used if available",
   "4. Important note",
   "5. This week’s game plan",
@@ -2011,6 +2029,25 @@ function formatPromptFields(fields: [string, string | null | undefined][]) {
 
 function valueOrFallback(value: string | null | undefined) {
   return value && value.trim() ? value.trim() : "Not provided";
+}
+
+function getDraftGenerationBlockMessage(intake: ShiftPlanPaidIntake) {
+  if (intake.intake_type === "founding_pro") {
+    return "Founding Pro onboarding saves preferences. Ask the subscriber to submit a weekly schedule before generating a weekly plan.";
+  }
+
+  if (intake.intake_type === "custom_plan" && !intake.exact_work_shifts?.trim()) {
+    return "Exact work shifts are required before generating a paid ShiftPlan.";
+  }
+
+  if (
+    intake.intake_type === "founding_pro_weekly" &&
+    !intake.exact_work_shifts?.trim()
+  ) {
+    return "This weekly schedule needs exact shift days and times before generating a plan.";
+  }
+
+  return "";
 }
 
 function formatPlainDate(value: string) {

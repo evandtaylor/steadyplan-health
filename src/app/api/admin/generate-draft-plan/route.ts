@@ -267,6 +267,11 @@ export async function POST(request: Request) {
       );
     }
 
+    const validationMessage = getGenerationBlockMessage(intake);
+    if (validationMessage) {
+      return NextResponse.json({ message: validationMessage }, { status: 400 });
+    }
+
     const savedPreference = await getSubscriberPreference(
       supabaseRestUrl,
       headers,
@@ -396,7 +401,7 @@ async function generateDraftPlan(
     body: JSON.stringify({
       model,
       instructions:
-        "You create customer-ready ShiftPlan drafts for admin review. Follow the safety boundaries exactly. Do not mention AI. Do not include medical advice, diagnosis, treatment, medication guidance, healthcare guidance, or emergency support.",
+        "You create customer-ready ShiftPlan drafts for admin review. Follow the submitted schedule data exactly. Do not invent shift days, shift times, appointments, pickups, errands, or responsibilities. Follow the safety boundaries exactly. Do not mention AI. Do not include medical advice, diagnosis, treatment, medication guidance, healthcare guidance, or emergency support.",
       input: prompt,
     }),
     cache: "no-store",
@@ -525,6 +530,13 @@ function buildDraftPrompt(
     "Do not claim to fix sleep problems, fatigue, burnout, anxiety, insomnia, sleep disorders, or any medical condition.",
     "Use safe language such as routine planning, weekly structure, wind-down block, reset block, recovery block, meal prep placement, workout placement, task batching, and checklist.",
     "",
+    "Schedule-data quality rules:",
+    "Paid plans must be based on the actual submitted shift days and times.",
+    "Do not invent shift days or shift times.",
+    "Do not use generic Mon/Wed/Fri templates unless the submitted intake explicitly says those are the workdays.",
+    "If required schedule details are missing, do not produce a customer-ready plan. Instead, ask for the missing shift days and times.",
+    "If saved preferences mention recurring responsibilities without exact days or times, treat them as flexible. For example: Place school pickup on the confirmed pickup days this week. Do not invent Tuesday/Thursday unless the intake says Tuesday/Thursday.",
+    "",
     "Customer intake data:",
     formatPromptFields([
       ["Intake type", formatPaidLabel(intake.intake_type)],
@@ -582,7 +594,7 @@ function buildDraftPrompt(
     "",
     "Output rules:",
     "1. Create a realistic 7-day plan.",
-    "2. Keep workdays simple.",
+    "2. Build around the exact submitted shift days and times.",
     "3. Do not overload post-shift periods.",
     "4. Batch errands and appointments when possible.",
     "5. Place workouts/training where they fit best around the schedule.",
@@ -619,6 +631,26 @@ function formatSavedPreferences(preference: ShiftPlanSubscriberPreference) {
   ].join("\n");
 }
 
+function getGenerationBlockMessage(intake: ShiftPlanPaidIntake) {
+  if (intake.intake_type === "founding_pro") {
+    return "Founding Pro onboarding saves preferences. Ask the subscriber to submit a weekly schedule before generating a weekly plan.";
+  }
+
+  if (intake.intake_type === "custom_plan" && !hasExactWorkShifts(intake)) {
+    return "Exact work shifts are required before generating a paid ShiftPlan.";
+  }
+
+  if (intake.intake_type === "founding_pro_weekly" && !hasExactWorkShifts(intake)) {
+    return "This weekly schedule needs exact shift days and times before generating a plan.";
+  }
+
+  return "";
+}
+
+function hasExactWorkShifts(intake: ShiftPlanPaidIntake) {
+  return Boolean(intake.exact_work_shifts?.trim());
+}
+
 function buildPlanTitle(intake: ShiftPlanPaidIntake) {
   if (intake.intake_type === "custom_plan") return "Custom 7-Day ShiftPlan";
   if (intake.intake_type === "founding_pro") {
@@ -649,7 +681,7 @@ function formatUsageBadge(intake: ShiftPlanPaidIntake) {
     return "Plan usage: Not set";
   }
 
-  return `Plan ${intake.founding_pro_plan_number} of ${planLimit} this billing period`;
+  return `Plan ${intake.founding_pro_plan_number} of ${planLimit} for this billing period.`;
 }
 
 function formatBillingPeriod(intake: ShiftPlanPaidIntake) {
@@ -679,7 +711,7 @@ const customPlanOutputStructure = [
 
 const foundingProOutputStructure = [
   "1. Header",
-  "2. Plan usage placeholder if exact usage is not tracked yet",
+  "2. Plan usage for this billing period if available",
   "3. Saved preferences used if available",
   "4. Important note",
   "5. This week's game plan",

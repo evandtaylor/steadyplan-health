@@ -84,6 +84,9 @@ type ShiftPlanPaidIntake = {
   billing_period_end: string | null;
   subscription_status: string | null;
   usage_notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archive_reason: string | null;
   updated_at: string | null;
 };
 
@@ -203,6 +206,9 @@ const shiftPlanPaidIntakeColumns = [
   "billing_period_end",
   "subscription_status",
   "usage_notes",
+  "is_archived",
+  "archived_at",
+  "archive_reason",
   "updated_at",
 ].join(",");
 

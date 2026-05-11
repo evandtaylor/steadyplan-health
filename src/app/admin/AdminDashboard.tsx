@@ -108,6 +108,9 @@ type ShiftPlanPaidIntake = {
   billing_period_end: string | null;
   subscription_status: SubscriptionStatus | null;
   usage_notes: string | null;
+  is_archived: boolean;
+  archived_at: string | null;
+  archive_reason: string | null;
   updated_at: string | null;
 };
 
@@ -127,6 +130,14 @@ type FoundingProUsageUpdate = {
   billing_period_end: string | null;
   subscription_status: SubscriptionStatus;
   usage_notes: string | null;
+  updated_at: string;
+};
+
+type PaidIntakeArchiveUpdate = {
+  id: string;
+  is_archived: boolean;
+  archived_at: string | null;
+  archive_reason: string | null;
   updated_at: string;
 };
 
@@ -225,22 +236,31 @@ export function AdminDashboard() {
   >([]);
   const [deliveredPlans, setDeliveredPlans] = useState<ShiftPlanDeliveredPlan[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup>("free");
+  const [showArchived, setShowArchived] = useState(false);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const visiblePaidIntakes = useMemo(
+    () =>
+      shiftPlanPaidIntakes.filter((intake) =>
+        showArchived ? Boolean(intake.is_archived) : !intake.is_archived,
+      ),
+    [shiftPlanPaidIntakes, showArchived],
+  );
+
   const paidGroups = useMemo(() => {
     return {
-      custom: shiftPlanPaidIntakes.filter(
+      custom: visiblePaidIntakes.filter(
         (intake) => intake.intake_type === "custom_plan",
       ),
-      founding: shiftPlanPaidIntakes.filter(
+      founding: visiblePaidIntakes.filter(
         (intake) => intake.intake_type === "founding_pro",
       ),
-      weekly: shiftPlanPaidIntakes.filter(
+      weekly: visiblePaidIntakes.filter(
         (intake) => intake.intake_type === "founding_pro_weekly",
       ),
     };
-  }, [shiftPlanPaidIntakes]);
+  }, [visiblePaidIntakes]);
 
   const preferencesByEmail = useMemo(() => {
     return subscriberPreferences.reduce<Record<string, ShiftPlanSubscriberPreference>>(
@@ -270,6 +290,9 @@ export function AdminDashboard() {
     founding: paidGroups.founding.length,
     weekly: paidGroups.weekly.length,
   };
+  const archivedPaidCount = shiftPlanPaidIntakes.filter(
+    (intake) => intake.is_archived,
+  ).length;
 
   async function loadSignups(nextPassword = password) {
     setIsLoading(true);
@@ -350,6 +373,22 @@ export function AdminDashboard() {
               billing_period_end: update.billing_period_end,
               subscription_status: update.subscription_status,
               usage_notes: update.usage_notes,
+              updated_at: update.updated_at,
+            }
+          : intake,
+      ),
+    );
+  }
+
+  function handlePaidIntakeArchiveUpdate(update: PaidIntakeArchiveUpdate) {
+    setShiftPlanPaidIntakes((currentIntakes) =>
+      currentIntakes.map((intake) =>
+        intake.id === update.id
+          ? {
+              ...intake,
+              is_archived: update.is_archived,
+              archived_at: update.archived_at,
+              archive_reason: update.archive_reason,
               updated_at: update.updated_at,
             }
           : intake,
@@ -474,6 +513,28 @@ export function AdminDashboard() {
           </button>
         </div>
 
+        <div className="mt-6 flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">
+              {showArchived ? "Showing archived paid records" : "Archived records hidden"}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              {archivedPaidCount} paid intake
+              {archivedPaidCount === 1 ? "" : "s"} archived. Archived records
+              stay stored for history and can be restored.
+            </p>
+          </div>
+          <label className="flex w-fit cursor-pointer items-center gap-3 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(event) => setShowArchived(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+            />
+            Show archived
+          </label>
+        </div>
+
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {groups.map((group) => (
             <button
@@ -515,6 +576,7 @@ export function AdminDashboard() {
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
               deliveredPlansByIntakeId={deliveredPlansByIntakeId}
               onPlanSaved={handleDeliveredPlanUpdate}
+              onArchiveSaved={handlePaidIntakeArchiveUpdate}
             />
           ) : null}
           {selectedGroup === "founding" ? (
@@ -528,6 +590,7 @@ export function AdminDashboard() {
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
               deliveredPlansByIntakeId={deliveredPlansByIntakeId}
               onPlanSaved={handleDeliveredPlanUpdate}
+              onArchiveSaved={handlePaidIntakeArchiveUpdate}
             />
           ) : null}
           {selectedGroup === "weekly" ? (
@@ -541,6 +604,7 @@ export function AdminDashboard() {
               onPreferenceSaved={handleSubscriberPreferenceUpdate}
               deliveredPlansByIntakeId={deliveredPlansByIntakeId}
               onPlanSaved={handleDeliveredPlanUpdate}
+              onArchiveSaved={handlePaidIntakeArchiveUpdate}
             />
           ) : null}
         </div>
@@ -677,6 +741,7 @@ function PaidSubmissionGroup({
   onPreferenceSaved,
   deliveredPlansByIntakeId,
   onPlanSaved,
+  onArchiveSaved,
 }: {
   title: string;
   intakes: ShiftPlanPaidIntake[];
@@ -687,6 +752,7 @@ function PaidSubmissionGroup({
   onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
   deliveredPlansByIntakeId: Record<string, ShiftPlanDeliveredPlan>;
   onPlanSaved: (update: ShiftPlanDeliveredPlan) => void;
+  onArchiveSaved: (update: PaidIntakeArchiveUpdate) => void;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -706,6 +772,7 @@ function PaidSubmissionGroup({
               onPreferenceSaved={onPreferenceSaved}
               deliveredPlan={deliveredPlansByIntakeId[intake.id] || null}
               onPlanSaved={onPlanSaved}
+              onArchiveSaved={onArchiveSaved}
             />
           ))}
         </div>
@@ -723,6 +790,7 @@ function PaidIntakeCard({
   onPreferenceSaved,
   deliveredPlan,
   onPlanSaved,
+  onArchiveSaved,
 }: {
   intake: ShiftPlanPaidIntake;
   password: string;
@@ -732,6 +800,7 @@ function PaidIntakeCard({
   onPreferenceSaved: (update: ShiftPlanSubscriberPreference) => void;
   deliveredPlan: ShiftPlanDeliveredPlan | null;
   onPlanSaved: (update: ShiftPlanDeliveredPlan) => void;
+  onArchiveSaved: (update: PaidIntakeArchiveUpdate) => void;
 }) {
   const [copiedKey, setCopiedKey] = useState("");
   const [fulfillmentStatus, setFulfillmentStatus] = useState<FulfillmentStatus>(
@@ -740,6 +809,11 @@ function PaidIntakeCard({
   const [adminNotes, setAdminNotes] = useState(intake.admin_notes || "");
   const [saveMessage, setSaveMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isArchived, setIsArchived] = useState(Boolean(intake.is_archived));
+  const [archivedAt, setArchivedAt] = useState(intake.archived_at || "");
+  const [archiveReason, setArchiveReason] = useState(intake.archive_reason || "");
+  const [archiveMessage, setArchiveMessage] = useState("");
+  const [isSavingArchive, setIsSavingArchive] = useState(false);
   const isFoundingPro = intake.intake_type !== "custom_plan";
   const startingPlanLimit = intake.founding_pro_plan_limit || 4;
   const [planNumber, setPlanNumber] = useState(
@@ -876,6 +950,45 @@ function PaidIntakeCard({
   async function markDelivered() {
     setFulfillmentStatus("Delivered");
     await saveStatus("Delivered");
+  }
+
+  async function saveArchiveState(nextArchivedState: boolean) {
+    setIsSavingArchive(true);
+    setArchiveMessage("");
+
+    try {
+      const response = await fetch("/api/admin/archive-paid-intake", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          id: intake.id,
+          is_archived: nextArchivedState,
+          archive_reason: archiveReason,
+        }),
+      });
+      const result = (await response.json()) as {
+        message?: string;
+        intake?: PaidIntakeArchiveUpdate;
+      };
+
+      if (!response.ok || !result.intake) {
+        setArchiveMessage(result.message || "Could not update archive status.");
+        return;
+      }
+
+      setIsArchived(result.intake.is_archived);
+      setArchivedAt(result.intake.archived_at || "");
+      setArchiveReason(result.intake.archive_reason || "");
+      onArchiveSaved(result.intake);
+      setArchiveMessage(result.message || "Archive status saved.");
+    } catch {
+      setArchiveMessage("Could not reach the archive update route right now.");
+    } finally {
+      setIsSavingArchive(false);
+    }
   }
 
   async function saveUsage() {
@@ -1118,6 +1231,11 @@ function PaidIntakeCard({
             <span className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
               {fulfillmentStatus}
             </span>
+            {isArchived ? (
+              <span className="rounded-lg bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
+                Archived
+              </span>
+            ) : null}
             {isFoundingPro ? (
               <span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">
                 {formatUsageBadge(intake)}
@@ -1159,6 +1277,16 @@ function PaidIntakeCard({
           label="Last updated"
           value={intake.updated_at ? formatDate(intake.updated_at) : "-"}
         />
+        <AdminField label="Archived" value={isArchived ? "Yes" : "No"} />
+        {isArchived ? (
+          <>
+            <AdminField
+              label="Archived at"
+              value={archivedAt ? formatDate(archivedAt) : "-"}
+            />
+            <AdminField label="Archive reason" value={archiveReason || "-"} />
+          </>
+        ) : null}
         {isFoundingPro ? (
           <>
             <AdminField label="Plan usage" value={formatUsageBadge(intake)} />
@@ -1224,6 +1352,63 @@ function PaidIntakeCard({
           {saveMessage ? (
             <p className="text-sm font-medium text-slate-600" role="status">
               {saveMessage}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50/70 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-950">
+              Archive status
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-slate-700">
+              Archive old test, completed, or bad test records without deleting
+              them.
+            </p>
+          </div>
+          <span className="w-fit rounded-lg bg-white px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-100">
+            {isArchived ? "Archived" : "Active"}
+          </span>
+        </div>
+        <label className="mt-4 grid gap-2 text-sm font-semibold text-slate-700">
+          Archive reason
+          <textarea
+            value={archiveReason}
+            onChange={(event) => setArchiveReason(event.target.value)}
+            className="field-control min-h-20"
+            placeholder="Optional internal reason, such as test record or completed cleanup."
+          />
+        </label>
+        {isArchived && archivedAt ? (
+          <p className="mt-3 text-sm font-medium text-slate-700">
+            Archived: {formatDate(archivedAt)}
+          </p>
+        ) : null}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          {isArchived ? (
+            <button
+              type="button"
+              onClick={() => void saveArchiveState(false)}
+              disabled={isSavingArchive}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            >
+              {isSavingArchive ? "Restoring..." : "Restore"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void saveArchiveState(true)}
+              disabled={isSavingArchive}
+              className="inline-flex w-full items-center justify-center rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400 sm:w-fit"
+            >
+              {isSavingArchive ? "Archiving..." : "Archive"}
+            </button>
+          )}
+          {archiveMessage ? (
+            <p className="text-sm font-medium text-slate-700" role="status">
+              {archiveMessage}
             </p>
           ) : null}
         </div>

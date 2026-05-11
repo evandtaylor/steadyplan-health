@@ -401,7 +401,7 @@ async function generateDraftPlan(
     body: JSON.stringify({
       model,
       instructions:
-        "You create customer-ready ShiftPlan drafts for admin review. Follow the submitted schedule data exactly. Do not invent shift days, shift times, appointments, pickups, errands, or responsibilities. Follow the safety boundaries exactly. Do not mention AI. Do not include medical advice, diagnosis, treatment, medication guidance, healthcare guidance, or emergency support.",
+        "You create customer-ready ShiftPlan drafts for admin review. Follow the submitted schedule data exactly. Use the canonical date list provided in the prompt for every day heading. Do not shift weekdays or dates. Do not invent shift days, shift times, appointments, pickups, errands, or responsibilities. Follow the safety boundaries exactly. Do not mention AI. Do not include medical advice, diagnosis, treatment, medication guidance, healthcare guidance, or emergency support.",
       input: prompt,
     }),
     cache: "no-store",
@@ -532,10 +532,19 @@ function buildDraftPrompt(
     "",
     "Schedule-data quality rules:",
     "Paid plans must be based on the actual submitted shift days and times.",
+    "Use the submitted plan_start_date/plan_end_date or week_start_date/week_end_date exactly.",
+    "Calculate each calendar date and weekday correctly.",
+    "Do not shift the week.",
+    "Do not invent a Sunday-start week if the submitted start date is Monday.",
     "Do not invent shift days or shift times.",
     "Do not use generic Mon/Wed/Fri templates unless the submitted intake explicitly says those are the workdays.",
+    "If the user mentions an event such as Sunday family dinner, place it on the actual Sunday date inside the submitted week.",
+    "Before finalizing the plan, internally verify that every day label matches the calendar date.",
     "If required schedule details are missing, do not produce a customer-ready plan. Instead, ask for the missing shift days and times.",
     "If saved preferences mention recurring responsibilities without exact days or times, treat them as flexible. For example: Place school pickup on the confirmed pickup days this week. Do not invent Tuesday/Thursday unless the intake says Tuesday/Thursday.",
+    "",
+    "Canonical date list to use for day headings:",
+    formatCanonicalDateList(intake),
     "",
     "Customer intake data:",
     formatPromptFields([
@@ -605,6 +614,7 @@ function buildDraftPrompt(
     "10. Use plain, practical language.",
     "11. Make the plan feel premium, organized, and personalized.",
     "12. Do not mention that AI generated the plan.",
+    "13. Date alignment review: each day heading must include both weekday and date, the weekday must match the date, work shifts must stay on the submitted shift dates, and events must stay on the submitted event days when provided.",
     "",
     isCustomPlan
       ? "Required output structure:\n" + customPlanOutputStructure
@@ -672,6 +682,46 @@ function formatPlanDates(intake: ShiftPlanPaidIntake) {
   if (!start && !end) return "Not provided";
   if (start && end) return `${start} to ${end}`;
   return start || end || "Not provided";
+}
+
+function formatCanonicalDateList(intake: ShiftPlanPaidIntake) {
+  const start = intake.plan_start_date || intake.week_start_date;
+  const end = intake.plan_end_date || intake.week_end_date;
+
+  if (!isIsoDate(start) || !isIsoDate(end)) {
+    return "Not provided";
+  }
+
+  const startDate = parseIsoDateAsUtc(start);
+  const endDate = parseIsoDateAsUtc(end);
+
+  if (endDate.getTime() < startDate.getTime()) {
+    return "Not provided";
+  }
+
+  const rows: string[] = [];
+  const cursor = new Date(startDate);
+
+  for (let index = 0; index < 7 && cursor.getTime() <= endDate.getTime(); index += 1) {
+    const isoDate = cursor.toISOString().slice(0, 10);
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      timeZone: "UTC",
+    }).format(cursor);
+    rows.push(`- ${weekday}, ${isoDate}`);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return rows.length ? rows.join("\n") : "Not provided";
+}
+
+function isIsoDate(value: string | null | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function parseIsoDateAsUtc(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function formatUsageBadge(intake: ShiftPlanPaidIntake) {

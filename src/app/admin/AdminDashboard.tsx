@@ -1511,6 +1511,10 @@ function PaidIntakeCard({
               Paste the final customer-ready plan here after you generate and
               review it. This is internal-only storage for fulfillment.
             </p>
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-950">
+              Before delivery, verify dates, shift times, and appointments
+              match the customer&apos;s intake.
+            </p>
           </div>
           <span
             className={`w-fit rounded-lg px-3 py-1 text-xs font-semibold ring-1 ${
@@ -1868,10 +1872,19 @@ function buildAiPrompt(
     "",
     "Schedule-data quality rules:",
     "Paid plans must be based on the actual submitted shift days and times.",
+    "Use the submitted plan_start_date/plan_end_date or week_start_date/week_end_date exactly.",
+    "Calculate each calendar date and weekday correctly.",
+    "Do not shift the week.",
+    "Do not invent a Sunday-start week if the submitted start date is Monday.",
     "Do not invent shift days or shift times.",
     "Do not use generic Mon/Wed/Fri templates unless the submitted intake explicitly says those are the workdays.",
+    "If the user mentions an event such as Sunday family dinner, place it on the actual Sunday date inside the submitted week.",
+    "Before finalizing the plan, internally verify that every day label matches the calendar date.",
     "If required schedule details are missing, do not produce a customer-ready plan. Instead, ask for the missing shift days and times.",
     "If saved preferences mention recurring responsibilities without exact days or times, treat them as flexible. For example: Place school pickup on the confirmed pickup days this week. Do not invent Tuesday/Thursday unless the intake says Tuesday/Thursday.",
+    "",
+    "Canonical date list to use for day headings:",
+    formatCanonicalDateList(intake),
     "",
     "Customer intake data:",
     formatPromptFields([
@@ -1942,6 +1955,7 @@ function buildAiPrompt(
     "10. Use plain, practical language.",
     "11. Make the plan feel premium, organized, and personalized.",
     "12. Do not mention that AI generated the plan.",
+    "13. Date alignment review: each day heading must include both weekday and date, the weekday must match the date, work shifts must stay on the submitted shift dates, and events must stay on the submitted event days when provided.",
     "",
     `Required output structure for ${isCustomPlan ? "custom_plan" : "founding_pro / founding_pro_weekly"}:`,
     isCustomPlan ? customPlanOutputStructure : foundingProOutputStructure,
@@ -2029,6 +2043,46 @@ function formatPromptFields(fields: [string, string | null | undefined][]) {
 
 function valueOrFallback(value: string | null | undefined) {
   return value && value.trim() ? value.trim() : "Not provided";
+}
+
+function formatCanonicalDateList(intake: ShiftPlanPaidIntake) {
+  const start = intake.plan_start_date || intake.week_start_date;
+  const end = intake.plan_end_date || intake.week_end_date;
+
+  if (!isIsoDate(start) || !isIsoDate(end)) {
+    return "Not provided";
+  }
+
+  const startDate = parseIsoDateAsUtc(start);
+  const endDate = parseIsoDateAsUtc(end);
+
+  if (endDate.getTime() < startDate.getTime()) {
+    return "Not provided";
+  }
+
+  const rows: string[] = [];
+  const cursor = new Date(startDate);
+
+  for (let index = 0; index < 7 && cursor.getTime() <= endDate.getTime(); index += 1) {
+    const isoDate = cursor.toISOString().slice(0, 10);
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      timeZone: "UTC",
+    }).format(cursor);
+    rows.push(`- ${weekday}, ${isoDate}`);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return rows.length ? rows.join("\n") : "Not provided";
+}
+
+function isIsoDate(value: string | null | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function parseIsoDateAsUtc(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function getDraftGenerationBlockMessage(intake: ShiftPlanPaidIntake) {

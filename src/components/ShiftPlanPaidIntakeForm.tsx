@@ -47,6 +47,14 @@ export function ShiftPlanPaidIntakeForm({
   const currentFingerprint = getFormFingerprint(intakeType, form, fields);
   const isDuplicateSubmittedState =
     submitted && currentFingerprint === lastSubmittedFingerprint;
+  const calculatedPlanEndDate =
+    intakeType === "custom_plan"
+      ? calculateEndDate(readRawString(form.plan_start_date))
+      : "";
+  const calculatedWeekEndDate =
+    intakeType === "founding_pro_weekly"
+      ? calculateEndDate(readRawString(form.week_start_date))
+      : "";
 
   function updateField(name: string, value: string | boolean) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -100,6 +108,14 @@ export function ShiftPlanPaidIntakeForm({
         safety_acknowledged: form.safety_acknowledged === true,
       },
     );
+
+    if (intakeType === "custom_plan" && calculatedPlanEndDate) {
+      payload.plan_end_date = calculatedPlanEndDate;
+    }
+
+    if (intakeType === "founding_pro_weekly" && calculatedWeekEndDate) {
+      payload.week_end_date = calculatedWeekEndDate;
+    }
 
     try {
       const response = await fetch("/api/shiftplan-paid-intakes", {
@@ -189,7 +205,7 @@ export function ShiftPlanPaidIntakeForm({
                 <textarea
                   id={field.name}
                   name={field.name}
-                  value={readString(form[field.name])}
+                  value={readRawString(form[field.name])}
                   onChange={(event) =>
                     updateField(field.name, event.target.value)
                   }
@@ -202,15 +218,33 @@ export function ShiftPlanPaidIntakeForm({
                   id={field.name}
                   name={field.name}
                   type={field.type || "text"}
-                  value={readString(form[field.name])}
+                  value={readRawString(form[field.name])}
                   onChange={(event) =>
                     updateField(field.name, event.target.value)
                   }
                   className="field-control"
                   autoComplete={field.type === "email" ? "email" : undefined}
+                  min={field.type === "date" ? "2024-01-01" : undefined}
+                  max={field.type === "date" ? "2100-12-31" : undefined}
                   required
                 />
               )}
+              {field.name === "plan_start_date" ? (
+                <CalculatedEndDateNote
+                  startDate={readRawString(form.plan_start_date)}
+                  endDate={calculatedPlanEndDate}
+                  emptyText="Choose the first day of the 7-day plan. We'll automatically build the plan through the calculated end date."
+                  filledText="We'll automatically build the plan through"
+                />
+              ) : null}
+              {field.name === "week_start_date" ? (
+                <CalculatedEndDateNote
+                  startDate={readRawString(form.week_start_date)}
+                  endDate={calculatedWeekEndDate}
+                  emptyText="Choose the first day of this weekly plan. We'll automatically build through the calculated end date."
+                  filledText="We'll automatically build through"
+                />
+              ) : null}
             </Field>
           ))}
         </div>
@@ -324,4 +358,87 @@ function getFormFingerprint(
 
 function readString(value: string | boolean | undefined) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function readRawString(value: string | boolean | undefined) {
+  return typeof value === "string" ? value : "";
+}
+
+function calculateEndDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return "";
+
+  date.setUTCDate(date.getUTCDate() + 6);
+  return formatDateInput(date);
+}
+
+function parseDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 2024 || year > 2100) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateInput(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatReadableDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return value;
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function CalculatedEndDateNote({
+  startDate,
+  endDate,
+  emptyText,
+  filledText,
+}: {
+  startDate: string;
+  endDate: string;
+  emptyText: string;
+  filledText: string;
+}) {
+  if (!startDate) {
+    return <p className="mt-2 text-sm leading-6 text-slate-500">{emptyText}</p>;
+  }
+
+  if (!endDate) {
+    return (
+      <p className="mt-2 text-sm font-medium leading-6 text-red-700">
+        Enter a valid start date.
+      </p>
+    );
+  }
+
+  return (
+    <p className="mt-2 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
+      {filledText}{" "}
+      <span className="font-semibold">{formatReadableDate(endDate)}</span>.
+    </p>
+  );
 }

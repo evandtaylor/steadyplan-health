@@ -17,7 +17,6 @@ const fields = [
     type: "email" as const,
   },
   { name: "plan_start_date", label: "Plan start date", type: "date" as const },
-  { name: "plan_end_date", label: "Plan end date", type: "date" as const },
   { name: "job_role", label: "Job/role" },
   { name: "schedule_type", label: "Schedule type" },
   {

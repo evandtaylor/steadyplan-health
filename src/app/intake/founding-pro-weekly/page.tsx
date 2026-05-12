@@ -13,7 +13,6 @@ const fields = [
   { name: "first_name", label: "First name" },
   { name: "email", label: "Email", type: "email" as const },
   { name: "week_start_date", label: "Week start date", type: "date" as const },
-  { name: "week_end_date", label: "Week end date", type: "date" as const },
   {
     name: "exact_work_shifts",
     label: "Exact work shifts for this week",

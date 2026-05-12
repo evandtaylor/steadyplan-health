@@ -13,7 +13,6 @@ const requiredFieldsByType = {
     "first_name",
     "email",
     "plan_start_date",
-    "plan_end_date",
     "job_role",
     "schedule_type",
     "exact_work_shifts",
@@ -47,7 +46,6 @@ const requiredFieldsByType = {
     "first_name",
     "email",
     "week_start_date",
-    "week_end_date",
     "exact_work_shifts",
     "appointments_this_week",
     "errands_this_week",
@@ -191,6 +189,30 @@ function validatePayload(payload: PaidIntakePayload): ValidationResult {
     errors.email = "Enter a valid email address.";
   }
 
+  if (intakeType === "custom_plan") {
+    const planStartDate =
+      typeof data.plan_start_date === "string" ? data.plan_start_date : "";
+    const calculatedPlanEndDate = calculateEndDate(planStartDate);
+
+    if (!calculatedPlanEndDate) {
+      errors.plan_start_date = "Enter a valid plan start date.";
+    } else {
+      data.plan_end_date = calculatedPlanEndDate;
+    }
+  }
+
+  if (intakeType === "founding_pro_weekly") {
+    const weekStartDate =
+      typeof data.week_start_date === "string" ? data.week_start_date : "";
+    const calculatedWeekEndDate = calculateEndDate(weekStartDate);
+
+    if (!calculatedWeekEndDate) {
+      errors.week_start_date = "Enter a valid week start date.";
+    } else {
+      data.week_end_date = calculatedWeekEndDate;
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return {
       ok: false,
@@ -216,4 +238,39 @@ function getSuccessMessage(intakeType: string) {
 
 function readText(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function calculateEndDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return "";
+
+  date.setUTCDate(date.getUTCDate() + 6);
+  return formatDateInput(date);
+}
+
+function parseDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 2024 || year > 2100) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateInput(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
 }

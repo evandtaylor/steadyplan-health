@@ -1,8 +1,8 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 
-type AdminGroup = "free" | "custom" | "founding" | "weekly";
+type AdminGroup = "free" | "custom" | "founding" | "weekly" | "app";
 type ProductFilter = "All" | "ShiftPlan" | "KinPlan" | "SuppPlan";
 type PaidIntakeType = "custom_plan" | "founding_pro" | "founding_pro_weekly";
 type FulfillmentStatus =
@@ -178,6 +178,90 @@ type ShiftPlanDeliveredPlan = {
   admin_notes: string | null;
 };
 
+type AppBetaLatestRequest = {
+  id: string;
+  created_at: string;
+  week_start_date: string;
+  week_end_date: string;
+  schedule_type: string;
+  work_schedule: string;
+  main_goal: string;
+  preferred_plan_style: string;
+  status: string;
+};
+
+type AppBetaLatestSavedPlan = {
+  id: string;
+  created_at: string;
+  plan_request_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  plan_title: string | null;
+  usage_month: number;
+  usage_year: number;
+  generation_number_for_month: number;
+};
+
+type AppBetaLatestFeedback = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_saved_plan_id: string;
+  usefulness_rating: number;
+  used_this_week: string;
+  what_worked: string;
+  what_felt_unrealistic: string;
+  what_should_shiftplan_remember: string;
+  would_use_weekly: string;
+  would_pay_9_month: string;
+  additional_notes: string;
+};
+
+type AppBetaSavedPreferences = {
+  id: string;
+  updated_at: string;
+  typical_shift_type: string;
+  usual_commute_time: string;
+  preferred_plan_style: string;
+  meal_prep_preferences: string;
+  workout_training_preferences: string;
+  recurring_responsibilities: string;
+  things_to_avoid_after_work: string;
+  default_week_start_day: string;
+  planning_notes: string;
+};
+
+type AppBetaUsageEvent = {
+  id: string;
+  created_at: string;
+  event_type: string;
+  metadata: Record<string, unknown>;
+};
+
+type AppBetaUser = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  status: string;
+  created_at: string;
+  last_seen_at: string | null;
+  access_code_label: string | null;
+  access_code_active: boolean | null;
+  access_code_expires_at: string | null;
+  max_generations_per_month: number | null;
+  max_generations_per_day: number | null;
+  plans_used_this_month: number;
+  plans_generated_today: number;
+  weekly_request_count: number;
+  saved_plan_count: number;
+  feedback_count: number;
+  latest_request: AppBetaLatestRequest | null;
+  latest_saved_plan: AppBetaLatestSavedPlan | null;
+  latest_feedback: AppBetaLatestFeedback | null;
+  saved_preferences: AppBetaSavedPreferences | null;
+  recent_usage_events: AppBetaUsageEvent[];
+};
+
 type AdminResponse = {
   message?: string;
   signups?: BetaSignup[];
@@ -187,11 +271,17 @@ type AdminResponse = {
   shiftPlanDeliveredPlans?: ShiftPlanDeliveredPlan[];
 };
 
+type AppBetaAdminResponse = {
+  message?: string;
+  appBetaUsers?: AppBetaUser[];
+};
+
 const groups: { id: AdminGroup; label: string }[] = [
   { id: "free", label: "Free Reset / Beta" },
   { id: "custom", label: "Custom Plan" },
   { id: "founding", label: "Founding Pro" },
   { id: "weekly", label: "Weekly Schedule" },
+  { id: "app", label: "App Beta" },
 ];
 
 const fulfillmentStatuses: FulfillmentStatus[] = [
@@ -235,6 +325,7 @@ export function AdminDashboard() {
     ShiftPlanSubscriberPreference[]
   >([]);
   const [deliveredPlans, setDeliveredPlans] = useState<ShiftPlanDeliveredPlan[]>([]);
+  const [appBetaUsers, setAppBetaUsers] = useState<AppBetaUser[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<AdminGroup>("free");
   const [showArchived, setShowArchived] = useState(false);
   const [message, setMessage] = useState("");
@@ -289,6 +380,7 @@ export function AdminDashboard() {
     custom: paidGroups.custom.length,
     founding: paidGroups.founding.length,
     weekly: paidGroups.weekly.length,
+    app: appBetaUsers.length,
   };
   const archivedPaidCount = shiftPlanPaidIntakes.filter(
     (intake) => intake.is_archived,
@@ -307,16 +399,30 @@ export function AdminDashboard() {
         body: JSON.stringify({ password: nextPassword }),
       });
       const result = (await response.json()) as AdminResponse;
+      const appBetaResponse = await fetch("/api/admin/app-beta", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password: nextPassword }),
+      });
+      const appBetaResult = (await appBetaResponse.json()) as AppBetaAdminResponse;
 
       if (
         !response.ok ||
+        !appBetaResponse.ok ||
         !result.signups ||
         !result.shiftPlanIntakes ||
         !result.shiftPlanPaidIntakes ||
         !result.shiftPlanSubscriberPreferences ||
-        !result.shiftPlanDeliveredPlans
+        !result.shiftPlanDeliveredPlans ||
+        !appBetaResult.appBetaUsers
       ) {
-        setMessage(result.message || "Unable to load admin submissions.");
+        setMessage(
+          result.message ||
+            appBetaResult.message ||
+            "Unable to load admin submissions.",
+        );
         setIsUnlocked(false);
         return;
       }
@@ -326,6 +432,7 @@ export function AdminDashboard() {
       setShiftPlanPaidIntakes(result.shiftPlanPaidIntakes);
       setSubscriberPreferences(result.shiftPlanSubscriberPreferences);
       setDeliveredPlans(result.shiftPlanDeliveredPlans);
+      setAppBetaUsers(appBetaResult.appBetaUsers);
       setIsUnlocked(true);
     } catch {
       setMessage("Unable to reach the admin data route right now.");
@@ -535,7 +642,7 @@ export function AdminDashboard() {
           </label>
         </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {groups.map((group) => (
             <button
               key={group.id}
@@ -606,6 +713,9 @@ export function AdminDashboard() {
               onPlanSaved={handleDeliveredPlanUpdate}
               onArchiveSaved={handlePaidIntakeArchiveUpdate}
             />
+          ) : null}
+          {selectedGroup === "app" ? (
+            <AppBetaGroup users={appBetaUsers} />
           ) : null}
         </div>
       </div>
@@ -728,6 +838,295 @@ function FreeSubmissionGroup({
         )}
       </div>
     </div>
+  );
+}
+
+function AppBetaGroup({ users }: { users: AppBetaUser[] }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <GroupHeader title="App Beta testers" count={users.length} />
+      {users.length === 0 ? (
+        <EmptyState message="No app beta users yet." />
+      ) : (
+        <div className="grid gap-4 p-4">
+          {users.map((user) => (
+            <article
+              key={user.id}
+              className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="font-semibold text-slate-950">
+                    {user.first_name || "App beta user"}
+                  </p>
+                  <p className="mt-1 break-all text-sm text-slate-600">
+                    {user.email}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="w-fit rounded-lg bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-800">
+                    {user.status}
+                  </span>
+                  <span className="w-fit rounded-lg bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-800">
+                    {user.access_code_label || "No access label"}
+                  </span>
+                </div>
+              </div>
+
+              <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <AdminField label="Created" value={formatDate(user.created_at)} />
+                <AdminField
+                  label="Last seen"
+                  value={user.last_seen_at ? formatDate(user.last_seen_at) : "-"}
+                />
+                <AdminField
+                  label="Access active"
+                  value={formatBooleanStatus(user.access_code_active)}
+                />
+                <AdminField
+                  label="Access expires"
+                  value={
+                    user.access_code_expires_at
+                      ? formatDate(user.access_code_expires_at)
+                      : "-"
+                  }
+                />
+                <AdminField
+                  label="Monthly limit"
+                  value={formatNullableNumber(user.max_generations_per_month)}
+                />
+                <AdminField
+                  label="Day limit"
+                  value={formatNullableNumber(user.max_generations_per_day)}
+                />
+                <AdminField
+                  label="Plans used this month"
+                  value={String(user.plans_used_this_month)}
+                />
+                <AdminField
+                  label="Plans generated today"
+                  value={String(user.plans_generated_today)}
+                />
+                <AdminField
+                  label="Weekly requests"
+                  value={String(user.weekly_request_count)}
+                />
+                <AdminField
+                  label="Saved plans"
+                  value={String(user.saved_plan_count)}
+                />
+                <AdminField
+                  label="Feedback records"
+                  value={String(user.feedback_count)}
+                />
+              </dl>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                <AppBetaPanel title="Latest request">
+                  {user.latest_request ? (
+                    <dl className="grid gap-3">
+                      <AdminField
+                        label="Dates"
+                        value={`${formatPlainDate(user.latest_request.week_start_date)} to ${formatPlainDate(user.latest_request.week_end_date)}`}
+                      />
+                      <AdminField
+                        label="Schedule type"
+                        value={user.latest_request.schedule_type}
+                      />
+                      <AdminField
+                        label="Status"
+                        value={user.latest_request.status}
+                      />
+                      <AdminField
+                        label="Main goal"
+                        value={user.latest_request.main_goal}
+                      />
+                      <details className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+                        <summary className="cursor-pointer font-semibold text-slate-800">
+                          Work schedule
+                        </summary>
+                        <p className="mt-2 whitespace-pre-wrap leading-6 text-slate-700">
+                          {user.latest_request.work_schedule || "-"}
+                        </p>
+                      </details>
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-slate-600">No requests yet.</p>
+                  )}
+                </AppBetaPanel>
+
+                <AppBetaPanel title="Latest saved plan">
+                  {user.latest_saved_plan ? (
+                    <dl className="grid gap-3">
+                      <AdminField
+                        label="Title"
+                        value={user.latest_saved_plan.plan_title || "Saved ShiftPlan"}
+                      />
+                      <AdminField
+                        label="Dates"
+                        value={`${formatPlainDate(user.latest_saved_plan.week_start_date)} to ${formatPlainDate(user.latest_saved_plan.week_end_date)}`}
+                      />
+                      <AdminField
+                        label="Generation number"
+                        value={String(
+                          user.latest_saved_plan.generation_number_for_month,
+                        )}
+                      />
+                      <AdminField
+                        label="Created"
+                        value={formatDate(user.latest_saved_plan.created_at)}
+                      />
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-slate-600">No saved plans yet.</p>
+                  )}
+                </AppBetaPanel>
+
+                <AppBetaPanel title="Latest feedback">
+                  {user.latest_feedback ? (
+                    <dl className="grid gap-3">
+                      <AdminField
+                        label="Usefulness"
+                        value={`${user.latest_feedback.usefulness_rating} / 5`}
+                      />
+                      <AdminField
+                        label="Used this week"
+                        value={user.latest_feedback.used_this_week}
+                      />
+                      <AdminField
+                        label="Would use weekly"
+                        value={user.latest_feedback.would_use_weekly}
+                      />
+                      <AdminField
+                        label="Would pay $9/month"
+                        value={user.latest_feedback.would_pay_9_month}
+                      />
+                      <AdminField
+                        label="What worked"
+                        value={user.latest_feedback.what_worked || "-"}
+                      />
+                      <AdminField
+                        label="What felt unrealistic"
+                        value={user.latest_feedback.what_felt_unrealistic || "-"}
+                      />
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-slate-600">No feedback yet.</p>
+                  )}
+                </AppBetaPanel>
+              </div>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <AppBetaPanel title="Saved preferences">
+                  {user.saved_preferences ? (
+                    <dl className="grid gap-3 md:grid-cols-2">
+                      <AdminField
+                        label="Typical shift type"
+                        value={user.saved_preferences.typical_shift_type || "-"}
+                      />
+                      <AdminField
+                        label="Usual commute"
+                        value={user.saved_preferences.usual_commute_time || "-"}
+                      />
+                      <AdminField
+                        label="Preferred style"
+                        value={user.saved_preferences.preferred_plan_style || "-"}
+                      />
+                      <AdminField
+                        label="Week starts"
+                        value={
+                          user.saved_preferences.default_week_start_day || "-"
+                        }
+                      />
+                      <AdminField
+                        label="Meal prep"
+                        value={
+                          user.saved_preferences.meal_prep_preferences || "-"
+                        }
+                      />
+                      <AdminField
+                        label="Workout/training"
+                        value={
+                          user.saved_preferences
+                            .workout_training_preferences || "-"
+                        }
+                      />
+                      <AdminField
+                        label="Recurring responsibilities"
+                        value={
+                          user.saved_preferences.recurring_responsibilities ||
+                          "-"
+                        }
+                      />
+                      <AdminField
+                        label="Avoid after work"
+                        value={
+                          user.saved_preferences.things_to_avoid_after_work ||
+                          "-"
+                        }
+                      />
+                      <AdminField
+                        label="Planning notes"
+                        value={user.saved_preferences.planning_notes || "-"}
+                      />
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      No saved preferences yet.
+                    </p>
+                  )}
+                </AppBetaPanel>
+
+                <AppBetaPanel title="Recent usage events">
+                  {user.recent_usage_events.length === 0 ? (
+                    <p className="text-sm text-slate-600">No usage events yet.</p>
+                  ) : (
+                    <div className="grid gap-3">
+                      {user.recent_usage_events.map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-lg border border-slate-200 bg-white p-3"
+                        >
+                          <p className="text-sm font-semibold text-slate-950">
+                            {event.event_type}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {formatDate(event.created_at)}
+                          </p>
+                          <details className="mt-2 text-xs text-slate-700">
+                            <summary className="cursor-pointer font-semibold">
+                              Metadata
+                            </summary>
+                            <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-2">
+                              {formatMetadata(event.metadata)}
+                            </pre>
+                          </details>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AppBetaPanel>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AppBetaPanel({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
+      <h3 className="text-sm font-semibold uppercase text-slate-500">{title}</h3>
+      <div className="mt-3">{children}</div>
+    </section>
   );
 }
 
@@ -2021,6 +2420,19 @@ function AdminField({ label, value }: { label: string; value: string }) {
       </dd>
     </div>
   );
+}
+
+function formatBooleanStatus(value: boolean | null) {
+  if (value === null) return "-";
+  return value ? "Active" : "Inactive";
+}
+
+function formatNullableNumber(value: number | null) {
+  return typeof value === "number" ? String(value) : "-";
+}
+
+function formatMetadata(value: Record<string, unknown>) {
+  return JSON.stringify(value || {}, null, 2);
 }
 
 function formatPaidLabel(value: PaidIntakeType) {

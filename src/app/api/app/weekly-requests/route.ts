@@ -65,6 +65,25 @@ type AppSavedPlan = {
   generation_number_for_month: number;
 };
 
+type AppUsageSummary = {
+  month_used: number;
+  month_limit: number;
+  day_used: number;
+  day_limit: number;
+  monthly_limit_reached: boolean;
+  daily_limit_reached: boolean;
+};
+
+type AppUserAccess = {
+  id: string;
+  access_code_id: string | null;
+};
+
+type AppAccessCodeLimits = {
+  max_generations_per_month: number | null;
+  max_generations_per_day: number | null;
+};
+
 const weeklyRequestColumns = [
   "id",
   "created_at",
@@ -183,9 +202,21 @@ export async function GET() {
       ...item,
       saved_plan: savedPlanByRequestId.get(item.id) || null,
     }));
+    const usage = await getUsageSummary(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+    );
+
+    if (usage === false) {
+      return NextResponse.json(
+        { message: "Could not load app usage right now." },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json(
-      { requests: requestsWithPlans },
+      { requests: requestsWithPlans, usage },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {
@@ -218,6 +249,120 @@ async function getSavedPlansForRequests(
   if (!response.ok) return false;
 
   return (await response.json()) as AppSavedPlan[];
+}
+
+async function getUsageSummary(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+): Promise<AppUsageSummary | false> {
+  const [limits, monthUsed, dayUsed] = await Promise.all([
+    getGenerationLimits(supabaseRestUrl, headers, appUserId),
+    countSavedPlans(supabaseRestUrl, headers, appUserId, "month"),
+    countSavedPlans(supabaseRestUrl, headers, appUserId, "day"),
+  ]);
+
+  if (limits === false || monthUsed === false || dayUsed === false) {
+    return false;
+  }
+
+  return {
+    month_used: monthUsed,
+    month_limit: limits.monthLimit,
+    day_used: dayUsed,
+    day_limit: limits.dayLimit,
+    monthly_limit_reached: monthUsed >= limits.monthLimit,
+    daily_limit_reached: dayUsed >= limits.dayLimit,
+  };
+}
+
+async function getGenerationLimits(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+): Promise<{ monthLimit: number; dayLimit: number } | false> {
+  const fallback = { monthLimit: 4, dayLimit: 2 };
+  const userQuery = new URLSearchParams({
+    select: "id,access_code_id",
+    id: `eq.${appUserId}`,
+    limit: "1",
+  });
+  const userResponse = await fetch(`${supabaseRestUrl}/app_users?${userQuery}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!userResponse.ok) return false;
+
+  const users = (await userResponse.json()) as AppUserAccess[];
+  const user = users[0];
+  if (!user?.access_code_id) return fallback;
+
+  const accessQuery = new URLSearchParams({
+    select: "max_generations_per_month,max_generations_per_day",
+    id: `eq.${user.access_code_id}`,
+    limit: "1",
+  });
+  const accessResponse = await fetch(
+    `${supabaseRestUrl}/app_access_codes?${accessQuery}`,
+    {
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!accessResponse.ok) return false;
+
+  const accessCodes = (await accessResponse.json()) as AppAccessCodeLimits[];
+  const accessCode = accessCodes[0];
+
+  return {
+    monthLimit: normalizeLimit(accessCode?.max_generations_per_month, 4),
+    dayLimit: normalizeLimit(accessCode?.max_generations_per_day, 2),
+  };
+}
+
+async function countSavedPlans(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  period: "month" | "day",
+) {
+  const now = new Date();
+  const query = new URLSearchParams({
+    select: "id",
+    app_user_id: `eq.${appUserId}`,
+  });
+
+  if (period === "month") {
+    query.set("usage_year", `eq.${now.getUTCFullYear()}`);
+    query.set("usage_month", `eq.${now.getUTCMonth() + 1}`);
+  } else {
+    const dayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+    query.append("created_at", `gte.${dayStart.toISOString()}`);
+    query.append("created_at", `lt.${dayEnd.toISOString()}`);
+  }
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  const rows = (await response.json()) as { id: string }[];
+  return rows.length;
+}
+
+function normalizeLimit(value: number | null | undefined, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : fallback;
 }
 
 export async function POST(request: Request) {

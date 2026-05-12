@@ -58,16 +58,27 @@ type WeeklyRequestResponse = {
   message?: string;
   request?: WeeklyRequest;
   requests?: WeeklyRequest[];
+  usage?: AppUsageSummary;
   errors?: Record<string, string>;
 };
 
 type GeneratePlanResponse = {
   message?: string;
   plan?: AppSavedPlan;
+  usage?: AppUsageSummary;
   request?: {
     id: string;
     status: WeeklyRequest["status"];
   };
+};
+
+type AppUsageSummary = {
+  month_used: number;
+  month_limit: number;
+  day_used: number;
+  day_limit: number;
+  monthly_limit_reached?: boolean;
+  daily_limit_reached?: boolean;
 };
 
 type WeeklyRequestFormState = {
@@ -302,6 +313,14 @@ function AppDashboard({
     Record<string, string>
   >({});
   const [copiedPlanId, setCopiedPlanId] = useState("");
+  const [usage, setUsage] = useState<AppUsageSummary>({
+    month_used: 0,
+    month_limit: 4,
+    day_used: 0,
+    day_limit: 2,
+    monthly_limit_reached: false,
+    daily_limit_reached: false,
+  });
   const calculatedWeekEndDate = useMemo(
     () => calculateEndDate(form.weekStartDate),
     [form.weekStartDate],
@@ -328,6 +347,9 @@ function AppDashboard({
       }
 
       setRequests(result.requests || []);
+      if (result.usage) {
+        setUsage(result.usage);
+      }
     } catch {
       setRequestMessage("Could not load weekly requests right now.");
     } finally {
@@ -426,6 +448,9 @@ function AppDashboard({
       const result = (await response.json()) as GeneratePlanResponse;
 
       if (!response.ok || !result.plan) {
+        if (result.usage) {
+          setUsage(result.usage);
+        }
         setGenerationMessages((current) => ({
           ...current,
           [planRequestId]:
@@ -445,6 +470,13 @@ function AppDashboard({
             : request,
         ),
       );
+      setUsage((current) => ({
+        ...current,
+        month_used: Math.min(current.month_used + 1, current.month_limit),
+        day_used: Math.min(current.day_used + 1, current.day_limit),
+        monthly_limit_reached: current.month_used + 1 >= current.month_limit,
+        daily_limit_reached: current.day_used + 1 >= current.day_limit,
+      }));
       setGenerationMessages((current) => ({
         ...current,
         [planRequestId]: "ShiftPlan generated and saved.",
@@ -499,10 +531,18 @@ function AppDashboard({
             <h2 className="text-xl font-semibold text-slate-950">
               Plans used this month
             </h2>
-            <p className="mt-4 text-4xl font-semibold text-teal-800">0 / 4</p>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Usage tracking will connect here in a later customer app phase.
+            <p className="mt-4 text-4xl font-semibold text-teal-800">
+              {usage.month_used} / {usage.month_limit}
             </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Plans generated today: {usage.day_used} of {usage.day_limit}
+            </p>
+            {usage.monthly_limit_reached || usage.daily_limit_reached ? (
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                You&apos;ve used your included AI ShiftPlans for this period.
+                You can still view and copy saved plans.
+              </p>
+            ) : null}
           </article>
 
           <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -866,7 +906,7 @@ function AppDashboard({
                           onClick={() => void handleGeneratePlan(request.id)}
                           disabled={
                             Boolean(generatingRequestId) ||
-                            !canGenerateRequest(request)
+                            !canGenerateRequest(request, usage)
                           }
                           className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
                         >
@@ -1009,6 +1049,10 @@ function formatDateRange(startDate: string, endDate: string) {
   return `${formatReadableDate(startDate)} - ${formatReadableDate(endDate)}`;
 }
 
-function canGenerateRequest(request: WeeklyRequest) {
-  return request.status !== "generated";
+function canGenerateRequest(request: WeeklyRequest, usage: AppUsageSummary) {
+  return (
+    request.status !== "generated" &&
+    !usage.monthly_limit_reached &&
+    !usage.daily_limit_reached
+  );
 }

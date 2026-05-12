@@ -61,6 +61,25 @@ type OpenAIResponse = {
   output?: unknown;
 };
 
+type AppUserAccess = {
+  id: string;
+  access_code_id: string | null;
+};
+
+type AppAccessCodeLimits = {
+  max_generations_per_month: number | null;
+  max_generations_per_day: number | null;
+};
+
+type UsageSummary = {
+  monthUsed: number;
+  monthLimit: number;
+  dayUsed: number;
+  dayLimit: number;
+  monthlyLimitReached: boolean;
+  dailyLimitReached: boolean;
+};
+
 const appPlanRequestColumns = [
   "id",
   "created_at",
@@ -199,6 +218,52 @@ export async function POST(request: Request) {
       );
     }
 
+    const usage = await getUsageSummary(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+    );
+
+    if (usage === false) {
+      return NextResponse.json(
+        { message: "Could not check app usage limits right now." },
+        { status: 502 },
+      );
+    }
+
+    if (usage.monthlyLimitReached || usage.dailyLimitReached) {
+      const reason = usage.monthlyLimitReached
+        ? "monthly_limit_reached"
+        : "daily_limit_reached";
+
+      await recordUsageEvent(config.supabaseRestUrl, config.headers, {
+        appUserId: session.appUserId,
+        eventType: "app_plan_generation_blocked",
+        metadata: {
+          app_plan_request_id: planRequest.id,
+          reason,
+          month_used: usage.monthUsed,
+          month_limit: usage.monthLimit,
+          day_used: usage.dayUsed,
+          day_limit: usage.dayLimit,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          message:
+            "You've used your included AI ShiftPlans for this period. You can still view and copy saved plans.",
+          usage: {
+            month_used: usage.monthUsed,
+            month_limit: usage.monthLimit,
+            day_used: usage.dayUsed,
+            day_limit: usage.dayLimit,
+          },
+        },
+        { status: 429 },
+      );
+    }
+
     const draft = await generatePlan(
       openAiApiKey,
       process.env.OPENAI_MODEL || "gpt-5.2",
@@ -270,13 +335,18 @@ export async function POST(request: Request) {
       "generated",
     );
 
-    await recordUsageEvent(
-      config.supabaseRestUrl,
-      config.headers,
-      session.appUserId,
-      savedPlan.id,
-      planRequest.id,
-    );
+    await recordUsageEvent(config.supabaseRestUrl, config.headers, {
+      appUserId: session.appUserId,
+      eventType: "app_plan_generated",
+      metadata: {
+        app_saved_plan_id: savedPlan.id,
+        app_plan_request_id: planRequest.id,
+        month_used: usage.monthUsed + 1,
+        month_limit: usage.monthLimit,
+        day_used: usage.dayUsed + 1,
+        day_limit: usage.dayLimit,
+      },
+    });
 
     return NextResponse.json(
       {
@@ -292,6 +362,114 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+async function getUsageSummary(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+): Promise<UsageSummary | false> {
+  const [limits, monthUsed, dayUsed] = await Promise.all([
+    getGenerationLimits(supabaseRestUrl, headers, appUserId),
+    countSavedPlans(supabaseRestUrl, headers, appUserId, "month"),
+    countSavedPlans(supabaseRestUrl, headers, appUserId, "day"),
+  ]);
+
+  if (limits === false || monthUsed === false || dayUsed === false) {
+    return false;
+  }
+
+  return {
+    monthUsed,
+    monthLimit: limits.monthLimit,
+    dayUsed,
+    dayLimit: limits.dayLimit,
+    monthlyLimitReached: monthUsed >= limits.monthLimit,
+    dailyLimitReached: dayUsed >= limits.dayLimit,
+  };
+}
+
+async function getGenerationLimits(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+): Promise<{ monthLimit: number; dayLimit: number } | false> {
+  const fallback = { monthLimit: 4, dayLimit: 2 };
+  const userQuery = new URLSearchParams({
+    select: "id,access_code_id",
+    id: `eq.${appUserId}`,
+    limit: "1",
+  });
+  const userResponse = await fetch(`${supabaseRestUrl}/app_users?${userQuery}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!userResponse.ok) return false;
+
+  const users = (await userResponse.json()) as AppUserAccess[];
+  const user = users[0];
+  if (!user?.access_code_id) return fallback;
+
+  const accessQuery = new URLSearchParams({
+    select: "max_generations_per_month,max_generations_per_day",
+    id: `eq.${user.access_code_id}`,
+    limit: "1",
+  });
+  const accessResponse = await fetch(
+    `${supabaseRestUrl}/app_access_codes?${accessQuery}`,
+    {
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!accessResponse.ok) return false;
+
+  const accessCodes = (await accessResponse.json()) as AppAccessCodeLimits[];
+  const accessCode = accessCodes[0];
+
+  return {
+    monthLimit: normalizeLimit(accessCode?.max_generations_per_month, 4),
+    dayLimit: normalizeLimit(accessCode?.max_generations_per_day, 2),
+  };
+}
+
+async function countSavedPlans(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  period: "month" | "day",
+) {
+  const now = new Date();
+  const query = new URLSearchParams({
+    select: "id",
+    app_user_id: `eq.${appUserId}`,
+  });
+
+  if (period === "month") {
+    query.set("usage_year", `eq.${now.getUTCFullYear()}`);
+    query.set("usage_month", `eq.${now.getUTCMonth() + 1}`);
+  } else {
+    const dayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const dayEnd = new Date(dayStart);
+    dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+
+    query.append("created_at", `gte.${dayStart.toISOString()}`);
+    query.append("created_at", `lt.${dayEnd.toISOString()}`);
+  }
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  const rows = (await response.json()) as { id: string }[];
+  return rows.length;
 }
 
 async function getSession() {
@@ -477,9 +655,11 @@ async function markPlanRequestStatus(
 async function recordUsageEvent(
   supabaseRestUrl: string,
   headers: Record<string, string>,
-  appUserId: string,
-  savedPlanId: string,
-  planRequestId: string,
+  event: {
+    appUserId: string;
+    eventType: string;
+    metadata: Record<string, unknown>;
+  },
 ) {
   try {
     await fetch(`${supabaseRestUrl}/app_usage_events`, {
@@ -489,18 +669,21 @@ async function recordUsageEvent(
         Prefer: "return=minimal",
       },
       body: JSON.stringify({
-        app_user_id: appUserId,
-        event_type: "app_plan_generated",
-        metadata: {
-          app_saved_plan_id: savedPlanId,
-          app_plan_request_id: planRequestId,
-        },
+        app_user_id: event.appUserId,
+        event_type: event.eventType,
+        metadata: event.metadata,
       }),
       cache: "no-store",
     });
   } catch {
-    // The plan remains saved even if internal usage event tracking is unavailable.
+    // The app flow continues even if internal usage event tracking is unavailable.
   }
+}
+
+function normalizeLimit(value: number | null | undefined, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : fallback;
 }
 
 function getGenerationBlockMessage(planRequest: AppPlanRequest) {

@@ -63,6 +63,23 @@ type AppSavedPlan = {
   usage_month: number;
   usage_year: number;
   generation_number_for_month: number;
+  feedback?: AppPlanFeedback | null;
+};
+
+type AppPlanFeedback = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  app_saved_plan_id: string;
+  usefulness_rating: number;
+  used_this_week: string;
+  what_worked: string;
+  what_felt_unrealistic: string;
+  what_should_shiftplan_remember: string;
+  would_use_weekly: string;
+  would_pay_9_month: string;
+  additional_notes: string;
 };
 
 type AppUsageSummary = {
@@ -121,6 +138,22 @@ const appSavedPlanColumns = [
   "usage_month",
   "usage_year",
   "generation_number_for_month",
+].join(",");
+
+const appPlanFeedbackColumns = [
+  "id",
+  "created_at",
+  "updated_at",
+  "app_user_id",
+  "app_saved_plan_id",
+  "usefulness_rating",
+  "used_this_week",
+  "what_worked",
+  "what_felt_unrealistic",
+  "what_should_shiftplan_remember",
+  "would_use_weekly",
+  "would_pay_9_month",
+  "additional_notes",
 ].join(",");
 
 const scheduleTypes = new Set([
@@ -195,8 +228,29 @@ export async function GET() {
       );
     }
 
+    const feedback = await getFeedbackForSavedPlans(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      savedPlans.map((item) => item.id),
+    );
+
+    if (feedback === false) {
+      return NextResponse.json(
+        { message: "Could not load saved plan feedback right now." },
+        { status: 502 },
+      );
+    }
+
+    const feedbackBySavedPlanId = new Map(
+      feedback.map((item) => [item.app_saved_plan_id, item]),
+    );
+    const savedPlansWithFeedback = savedPlans.map((plan) => ({
+      ...plan,
+      feedback: feedbackBySavedPlanId.get(plan.id) || null,
+    }));
     const savedPlanByRequestId = new Map(
-      savedPlans.map((plan) => [plan.plan_request_id, plan]),
+      savedPlansWithFeedback.map((plan) => [plan.plan_request_id, plan]),
     );
     const requestsWithPlans = requests.map((item) => ({
       ...item,
@@ -249,6 +303,30 @@ async function getSavedPlansForRequests(
   if (!response.ok) return false;
 
   return (await response.json()) as AppSavedPlan[];
+}
+
+async function getFeedbackForSavedPlans(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  savedPlanIds: string[],
+) {
+  if (savedPlanIds.length === 0) return [];
+
+  const query = new URLSearchParams({
+    select: appPlanFeedbackColumns,
+    app_user_id: `eq.${appUserId}`,
+    app_saved_plan_id: `in.(${savedPlanIds.join(",")})`,
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_plan_feedback?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  return (await response.json()) as AppPlanFeedback[];
 }
 
 async function getUsageSummary(

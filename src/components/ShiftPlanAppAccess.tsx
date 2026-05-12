@@ -52,6 +52,23 @@ type AppSavedPlan = {
   usage_month: number;
   usage_year: number;
   generation_number_for_month: number;
+  feedback?: AppPlanFeedback | null;
+};
+
+type AppPlanFeedback = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  app_saved_plan_id: string;
+  usefulness_rating: number;
+  used_this_week: string;
+  what_worked: string;
+  what_felt_unrealistic: string;
+  what_should_shiftplan_remember: string;
+  would_use_weekly: string;
+  would_pay_9_month: string;
+  additional_notes: string;
 };
 
 type WeeklyRequestResponse = {
@@ -70,6 +87,12 @@ type GeneratePlanResponse = {
     id: string;
     status: WeeklyRequest["status"];
   };
+};
+
+type PlanFeedbackResponse = {
+  message?: string;
+  feedback?: AppPlanFeedback;
+  errors?: Record<string, string>;
 };
 
 type AppUsageSummary = {
@@ -98,6 +121,17 @@ type WeeklyRequestFormState = {
   safetyAcknowledged: boolean;
 };
 
+type PlanFeedbackFormState = {
+  usefulnessRating: string;
+  usedThisWeek: string;
+  whatWorked: string;
+  whatFeltUnrealistic: string;
+  whatShouldShiftPlanRemember: string;
+  wouldUseWeekly: string;
+  wouldPay9Month: string;
+  additionalNotes: string;
+};
+
 const initialWeeklyRequestForm: WeeklyRequestFormState = {
   weekStartDate: "",
   scheduleType: "",
@@ -113,6 +147,17 @@ const initialWeeklyRequestForm: WeeklyRequestFormState = {
   anythingToAvoid: "",
   preferredPlanStyle: "",
   safetyAcknowledged: false,
+};
+
+const initialPlanFeedbackForm: PlanFeedbackFormState = {
+  usefulnessRating: "",
+  usedThisWeek: "",
+  whatWorked: "",
+  whatFeltUnrealistic: "",
+  whatShouldShiftPlanRemember: "",
+  wouldUseWeekly: "",
+  wouldPay9Month: "",
+  additionalNotes: "",
 };
 
 const scheduleTypeOptions = [
@@ -131,6 +176,9 @@ const planStyleOptions = [
   "Checklist-heavy",
   "Calendar-style",
 ];
+
+const usedThisWeekOptions = ["Yes", "No", "Not yet"];
+const yesNoMaybeOptions = ["Yes", "No", "Maybe"];
 
 const safetyCopy =
   "ShiftPlan helps organize your weekly routine around your shift schedule. App-generated AI plans may not be manually reviewed before you see them, and they may contain errors, omissions, unrealistic suggestions, incorrect assumptions, or date and time mistakes. Review and adjust each plan before relying on it. ShiftPlan is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. No outcome is guaranteed.";
@@ -501,6 +549,22 @@ function AppDashboard({
     }
   }
 
+  function handleFeedbackSaved(planId: string, feedback: AppPlanFeedback) {
+    setRequests((current) =>
+      current.map((request) =>
+        request.saved_plan?.id === planId
+          ? {
+              ...request,
+              saved_plan: {
+                ...request.saved_plan,
+                feedback,
+              },
+            }
+          : request,
+      ),
+    );
+  }
+
   return (
     <section className="min-h-[70vh] bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -589,6 +653,10 @@ function AppDashboard({
                     <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-4 text-sm leading-6 text-slate-800">
                       {plan.plan_body}
                     </pre>
+                    <PlanFeedbackForm
+                      plan={plan}
+                      onFeedbackSaved={handleFeedbackSaved}
+                    />
                   </article>
                 ))}
               </div>
@@ -948,6 +1016,226 @@ function AppDashboard({
   );
 }
 
+function PlanFeedbackForm({
+  plan,
+  onFeedbackSaved,
+}: {
+  plan: AppSavedPlan;
+  onFeedbackSaved: (planId: string, feedback: AppPlanFeedback) => void;
+}) {
+  const [form, setForm] = useState<PlanFeedbackFormState>(() =>
+    createPlanFeedbackForm(plan.feedback),
+  );
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  function updateField(field: keyof PlanFeedbackFormState, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+    setMessage("");
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSaving) return;
+
+    setIsSaving(true);
+    setErrors({});
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/app/plan-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          app_saved_plan_id: plan.id,
+          usefulness_rating: form.usefulnessRating,
+          used_this_week: form.usedThisWeek,
+          what_worked: form.whatWorked,
+          what_felt_unrealistic: form.whatFeltUnrealistic,
+          what_should_shiftplan_remember: form.whatShouldShiftPlanRemember,
+          would_use_weekly: form.wouldUseWeekly,
+          would_pay_9_month: form.wouldPay9Month,
+          additional_notes: form.additionalNotes,
+        }),
+      });
+      const result = (await response.json()) as PlanFeedbackResponse;
+
+      if (!response.ok || !result.feedback) {
+        setMessage(result.message || "Could not save feedback right now.");
+        setErrors(result.errors || {});
+        return;
+      }
+
+      onFeedbackSaved(plan.id, result.feedback);
+      setForm(createPlanFeedbackForm(result.feedback));
+      setMessage("Feedback saved.");
+    } catch {
+      setMessage("Could not save feedback right now.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <form
+      className="mt-4 rounded-lg border border-slate-200 bg-white p-4"
+      onSubmit={handleSubmit}
+      noValidate
+    >
+      <div>
+        <h4 className="text-base font-semibold text-slate-950">
+          Give feedback on this plan
+        </h4>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          Help tune ShiftPlan for future weekly planning. You can update this
+          feedback later.
+        </p>
+      </div>
+
+      {message ? (
+        <p
+          className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950"
+          role="status"
+        >
+          {message}
+        </p>
+      ) : null}
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <Field
+          id={`usefulness-${plan.id}`}
+          label="Usefulness rating"
+          error={errors.usefulness_rating}
+        >
+          <select
+            id={`usefulness-${plan.id}`}
+            value={form.usefulnessRating}
+            onChange={(event) =>
+              updateField("usefulnessRating", event.target.value)
+            }
+            className="field-control"
+            required
+          >
+            <option value="">Choose 1-5</option>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <option key={rating} value={rating}>
+                {rating}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <FeedbackSelect
+          id={`used-${plan.id}`}
+          label="Used this week"
+          value={form.usedThisWeek}
+          options={usedThisWeekOptions}
+          error={errors.used_this_week}
+          onChange={(value) => updateField("usedThisWeek", value)}
+        />
+
+        <FeedbackSelect
+          id={`would-use-${plan.id}`}
+          label="Use weekly?"
+          value={form.wouldUseWeekly}
+          options={yesNoMaybeOptions}
+          error={errors.would_use_weekly}
+          onChange={(value) => updateField("wouldUseWeekly", value)}
+        />
+
+        <FeedbackSelect
+          id={`would-pay-${plan.id}`}
+          label="Pay $9/month?"
+          value={form.wouldPay9Month}
+          options={yesNoMaybeOptions}
+          error={errors.would_pay_9_month}
+          onChange={(value) => updateField("wouldPay9Month", value)}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <TextAreaField
+          id={`worked-${plan.id}`}
+          label="What worked?"
+          value={form.whatWorked}
+          onChange={(value) => updateField("whatWorked", value)}
+        />
+        <TextAreaField
+          id={`unrealistic-${plan.id}`}
+          label="What felt unrealistic?"
+          value={form.whatFeltUnrealistic}
+          onChange={(value) => updateField("whatFeltUnrealistic", value)}
+        />
+        <TextAreaField
+          id={`remember-${plan.id}`}
+          label="What should ShiftPlan remember?"
+          value={form.whatShouldShiftPlanRemember}
+          onChange={(value) =>
+            updateField("whatShouldShiftPlanRemember", value)
+          }
+        />
+        <TextAreaField
+          id={`notes-${plan.id}`}
+          label="Additional notes"
+          value={form.additionalNotes}
+          onChange={(value) => updateField("additionalNotes", value)}
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSaving}
+        className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+      >
+        {isSaving
+          ? "Saving feedback..."
+          : plan.feedback
+            ? "Update feedback"
+            : "Save feedback"}
+      </button>
+    </form>
+  );
+}
+
+function FeedbackSelect({
+  id,
+  label,
+  value,
+  options,
+  error,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: string[];
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Field id={id} label={label} error={error}>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="field-control"
+        required
+      >
+        <option value="">Choose one</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
+
 function Field({
   id,
   label,
@@ -1062,4 +1350,21 @@ function canGenerateRequest(request: WeeklyRequest, usage: AppUsageSummary) {
     !usage.monthly_limit_reached &&
     !usage.daily_limit_reached
   );
+}
+
+function createPlanFeedbackForm(
+  feedback?: AppPlanFeedback | null,
+): PlanFeedbackFormState {
+  if (!feedback) return initialPlanFeedbackForm;
+
+  return {
+    usefulnessRating: String(feedback.usefulness_rating),
+    usedThisWeek: feedback.used_this_week,
+    whatWorked: feedback.what_worked,
+    whatFeltUnrealistic: feedback.what_felt_unrealistic,
+    whatShouldShiftPlanRemember: feedback.what_should_shiftplan_remember,
+    wouldUseWeekly: feedback.would_use_weekly,
+    wouldPay9Month: feedback.would_pay_9_month,
+    additionalNotes: feedback.additional_notes,
+  };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@vercel/analytics";
 import { type FormEvent, type ReactNode, useState } from "react";
 
 type FormState = {
@@ -174,6 +175,7 @@ export function ShiftPlanIntakeForm() {
       }
 
       setSubmitted(true);
+      track("free_reset_submit_success");
       setLastSubmittedFingerprint(currentFingerprint);
       setFormMessage(
         result.message ||

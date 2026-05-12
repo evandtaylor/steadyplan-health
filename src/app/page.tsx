@@ -1,6 +1,7 @@
 import { DisclaimerBox } from "@/components/DisclaimerBox";
 import { FeatureCard } from "@/components/FeatureCard";
 import { SectionHeading } from "@/components/SectionHeading";
+import { TrackedLink } from "@/components/TrackedLink";
 import Link from "next/link";
 
 const problemPoints = [
@@ -103,12 +104,13 @@ export default function Home() {
               demanding schedules.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
+              <TrackedLink
                 href="/beta/shiftplan"
+                eventName="free_reset_cta_click"
                 className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
               >
                 Get My Free Reset Plan
-              </Link>
+              </TrackedLink>
               <Link
                 href="#how-it-works"
                 className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
@@ -293,12 +295,13 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link
+              <TrackedLink
                 href="/beta/shiftplan"
+                eventName="free_reset_cta_click"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Get the Free Reset Plan
-              </Link>
+              </TrackedLink>
             </article>
 
             <article className="relative rounded-lg border-2 border-teal-600 bg-white p-6 shadow-lg ring-1 ring-teal-100">
@@ -337,12 +340,13 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link
+              <TrackedLink
                 href={foundingProPaymentLink}
+                eventName="founding_pro_cta_click"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Join Founding Pro
-              </Link>
+              </TrackedLink>
               <p className="mt-3 text-xs leading-5 text-slate-500">
                 After checkout, you&apos;ll be sent to the intake form. Please
                 use the same email at checkout and intake.
@@ -392,12 +396,13 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link
+              <TrackedLink
                 href={customPlanPaymentLink}
+                eventName="custom_plan_cta_click"
                 className="mt-6 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 Get My 7-Day Plan
-              </Link>
+              </TrackedLink>
               <p className="mt-3 text-xs leading-5 text-slate-500">
                 After checkout, you&apos;ll be sent to the intake form. Please
                 use the same email at checkout and intake.
@@ -449,12 +454,13 @@ export default function Home() {
             Share practical schedule details and help shape the first
             deployable ShiftPlan product.
           </p>
-          <Link
+          <TrackedLink
             href="/beta/shiftplan"
+            eventName="free_reset_cta_click"
             className="mt-7 inline-flex w-full items-center justify-center rounded-lg bg-white px-5 py-3 text-base font-semibold text-teal-900 transition hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-800 sm:w-fit"
           >
             Get My Free Reset Plan
-          </Link>
+          </TrackedLink>
         </div>
       </section>
     </>

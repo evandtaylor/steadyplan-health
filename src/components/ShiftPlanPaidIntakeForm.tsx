@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { track } from "@vercel/analytics";
 import { type FormEvent, type ReactNode, useMemo, useState } from "react";
 
 type PaidIntakeType = "custom_plan" | "founding_pro" | "founding_pro_weekly";
@@ -141,6 +142,7 @@ export function ShiftPlanPaidIntakeForm({
       }
 
       setSubmitted(true);
+      track(getSuccessEventName(intakeType));
       setLastSubmittedFingerprint(currentFingerprint);
       setFormMessage(result.message || successTitle);
       setErrors({});
@@ -370,6 +372,14 @@ function calculateEndDate(value: string) {
 
   date.setUTCDate(date.getUTCDate() + 6);
   return formatDateInput(date);
+}
+
+function getSuccessEventName(intakeType: PaidIntakeType) {
+  if (intakeType === "custom_plan") return "custom_plan_intake_submit_success";
+  if (intakeType === "founding_pro") {
+    return "founding_pro_onboarding_submit_success";
+  }
+  return "founding_pro_weekly_submit_success";
 }
 
 function parseDateInput(value: string) {

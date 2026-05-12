@@ -1,6 +1,12 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 type ShiftPlanAppAccessProps = {
   initialAccess?: {
@@ -19,8 +25,81 @@ type AccessResponse = {
   };
 };
 
+type WeeklyRequest = {
+  id: string;
+  created_at: string;
+  email: string;
+  week_start_date: string;
+  week_end_date: string;
+  schedule_type: string;
+  main_goal: string;
+  preferred_plan_style: string;
+  status: "submitted" | "generated" | "failed" | "blocked_safety";
+};
+
+type WeeklyRequestResponse = {
+  message?: string;
+  request?: WeeklyRequest;
+  requests?: WeeklyRequest[];
+  errors?: Record<string, string>;
+};
+
+type WeeklyRequestFormState = {
+  weekStartDate: string;
+  scheduleType: string;
+  workSchedule: string;
+  commuteTime: string;
+  mainGoal: string;
+  mealPrepNeeds: string;
+  workoutTrainingGoals: string;
+  appointments: string;
+  errands: string;
+  familyPersonalResponsibilities: string;
+  topPriorities: string;
+  anythingToAvoid: string;
+  preferredPlanStyle: string;
+  safetyAcknowledged: boolean;
+};
+
+const initialWeeklyRequestForm: WeeklyRequestFormState = {
+  weekStartDate: "",
+  scheduleType: "",
+  workSchedule: "",
+  commuteTime: "",
+  mainGoal: "",
+  mealPrepNeeds: "",
+  workoutTrainingGoals: "",
+  appointments: "",
+  errands: "",
+  familyPersonalResponsibilities: "",
+  topPriorities: "",
+  anythingToAvoid: "",
+  preferredPlanStyle: "",
+  safetyAcknowledged: false,
+};
+
+const scheduleTypeOptions = [
+  "3x12 days",
+  "3x12 nights",
+  "Rotating shifts",
+  "4x10s",
+  "5x8s",
+  "Mixed/irregular",
+  "Other",
+];
+
+const planStyleOptions = [
+  "Simple",
+  "Detailed",
+  "Checklist-heavy",
+  "Calendar-style",
+];
+
 const safetyCopy =
   "ShiftPlan helps organize your weekly routine around your shift schedule. It is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.";
+
+const safetyAcknowledgmentText =
+  "I understand ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.";
 
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
@@ -184,6 +263,112 @@ function AppDashboard({
   email: string;
   firstName: string | null;
 }) {
+  const [form, setForm] = useState<WeeklyRequestFormState>(
+    initialWeeklyRequestForm,
+  );
+  const [requests, setRequests] = useState<WeeklyRequest[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [requestMessage, setRequestMessage] = useState("");
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [isSavingRequest, setIsSavingRequest] = useState(false);
+  const calculatedWeekEndDate = useMemo(
+    () => calculateEndDate(form.weekStartDate),
+    [form.weekStartDate],
+  );
+
+  const loadRequests = useCallback(async () => {
+    setIsLoadingRequests(true);
+
+    try {
+      const response = await fetch("/api/app/weekly-requests", {
+        method: "GET",
+      });
+      const result = (await response.json()) as WeeklyRequestResponse;
+
+      if (!response.ok) {
+        setRequestMessage(
+          result.message || "Could not load weekly requests right now.",
+        );
+        return;
+      }
+
+      setRequests(result.requests || []);
+    } catch {
+      setRequestMessage("Could not load weekly requests right now.");
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadRequests();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadRequests]);
+
+  function updateField(
+    field: keyof WeeklyRequestFormState,
+    value: string | boolean,
+  ) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+    setRequestMessage("");
+  }
+
+  async function handleWeeklyRequestSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSavingRequest) return;
+
+    setIsSavingRequest(true);
+    setRequestMessage("");
+    setErrors({});
+
+    try {
+      const response = await fetch("/api/app/weekly-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          week_start_date: form.weekStartDate,
+          schedule_type: form.scheduleType,
+          work_schedule: form.workSchedule,
+          commute_time: form.commuteTime,
+          main_goal: form.mainGoal,
+          meal_prep_needs: form.mealPrepNeeds,
+          workout_training_goals: form.workoutTrainingGoals,
+          appointments: form.appointments,
+          errands: form.errands,
+          family_personal_responsibilities:
+            form.familyPersonalResponsibilities,
+          top_priorities: form.topPriorities,
+          anything_to_avoid: form.anythingToAvoid,
+          preferred_plan_style: form.preferredPlanStyle,
+          safety_acknowledged: form.safetyAcknowledged,
+        }),
+      });
+      const result = (await response.json()) as WeeklyRequestResponse;
+
+      if (!response.ok || !result.request) {
+        setRequestMessage(
+          result.message || "Could not save weekly request right now.",
+        );
+        setErrors(result.errors || {});
+        return;
+      }
+
+      setRequests((current) => [result.request as WeeklyRequest, ...current]);
+      setForm(initialWeeklyRequestForm);
+      setRequestMessage("Weekly request saved.");
+    } catch {
+      setRequestMessage("Could not save weekly request right now.");
+    } finally {
+      setIsSavingRequest(false);
+    }
+  }
+
   return (
     <section className="min-h-[70vh] bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -200,13 +385,12 @@ function AppDashboard({
                 Signed in for app preview as {email}.
               </p>
             </div>
-            <button
-              type="button"
-              disabled
-              className="inline-flex w-full items-center justify-center rounded-lg bg-slate-300 px-5 py-3 text-base font-semibold text-slate-600 sm:w-fit"
+            <a
+              href="#weekly-request"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
             >
-              Create This Week&apos;s ShiftPlan — coming next
-            </button>
+              Create This Week&apos;s ShiftPlan
+            </a>
           </div>
         </div>
 
@@ -227,10 +411,315 @@ function AppDashboard({
             </h2>
             <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
               Saved customer plans will appear here after the portal is
-              connected. For now, plan delivery still happens through the
-              manual founder workflow.
+              connected. AI generation is coming next.
             </div>
           </article>
+        </div>
+
+        <div
+          id="weekly-request"
+          className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
+        >
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+            <div>
+              <p className="text-sm font-semibold uppercase text-teal-700">
+                Weekly request
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                Create This Week&apos;s ShiftPlan
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Save your schedule and priorities for the week. AI generation
+                is coming next, so this version only saves the request.
+              </p>
+            </div>
+
+            {requestMessage ? (
+              <div
+                className="mt-5 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-950"
+                role="status"
+              >
+                {requestMessage}
+                {requestMessage === "Weekly request saved." ? (
+                  <span className="mt-2 block">
+                    AI generation is coming next.
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+
+            <form
+              className="mt-6 grid gap-5"
+              onSubmit={handleWeeklyRequestSubmit}
+              noValidate
+            >
+              <div className="grid gap-5 md:grid-cols-2">
+                <Field
+                  id="weekStartDate"
+                  label="Week start date"
+                  error={errors.week_start_date}
+                >
+                  <input
+                    id="weekStartDate"
+                    name="weekStartDate"
+                    type="date"
+                    min="2024-01-01"
+                    max="2100-12-31"
+                    value={form.weekStartDate}
+                    onChange={(event) =>
+                      updateField("weekStartDate", event.target.value)
+                    }
+                    className="field-control"
+                    required
+                  />
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    {calculatedWeekEndDate
+                      ? `We'll automatically build through ${formatReadableDate(calculatedWeekEndDate)}.`
+                      : "Choose the first day of this weekly plan. We'll automatically build through the next 6 days."}
+                  </p>
+                </Field>
+
+                <Field
+                  id="scheduleType"
+                  label="Schedule type"
+                  error={errors.schedule_type}
+                >
+                  <select
+                    id="scheduleType"
+                    name="scheduleType"
+                    value={form.scheduleType}
+                    onChange={(event) =>
+                      updateField("scheduleType", event.target.value)
+                    }
+                    className="field-control"
+                    required
+                  >
+                    <option value="">Choose one</option>
+                    {scheduleTypeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <Field
+                id="workSchedule"
+                label="Exact work schedule"
+                helpText="Include days and times, for example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
+                error={errors.work_schedule}
+              >
+                <textarea
+                  id="workSchedule"
+                  name="workSchedule"
+                  value={form.workSchedule}
+                  onChange={(event) =>
+                    updateField("workSchedule", event.target.value)
+                  }
+                  className="field-control min-h-28"
+                  required
+                />
+              </Field>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <Field id="commuteTime" label="Commute time">
+                  <input
+                    id="commuteTime"
+                    name="commuteTime"
+                    value={form.commuteTime}
+                    onChange={(event) =>
+                      updateField("commuteTime", event.target.value)
+                    }
+                    className="field-control"
+                  />
+                </Field>
+
+                <Field
+                  id="preferredPlanStyle"
+                  label="Preferred plan style"
+                  error={errors.preferred_plan_style}
+                >
+                  <select
+                    id="preferredPlanStyle"
+                    name="preferredPlanStyle"
+                    value={form.preferredPlanStyle}
+                    onChange={(event) =>
+                      updateField("preferredPlanStyle", event.target.value)
+                    }
+                    className="field-control"
+                    required
+                  >
+                    <option value="">Choose one</option>
+                    {planStyleOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <Field
+                id="mainGoal"
+                label="Main goal for this week"
+                error={errors.main_goal}
+              >
+                <textarea
+                  id="mainGoal"
+                  name="mainGoal"
+                  value={form.mainGoal}
+                  onChange={(event) =>
+                    updateField("mainGoal", event.target.value)
+                  }
+                  className="field-control min-h-24"
+                  required
+                />
+              </Field>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <TextAreaField
+                  id="mealPrepNeeds"
+                  label="Meal prep needs"
+                  value={form.mealPrepNeeds}
+                  onChange={(value) => updateField("mealPrepNeeds", value)}
+                />
+                <TextAreaField
+                  id="workoutTrainingGoals"
+                  label="Workout/training goals"
+                  value={form.workoutTrainingGoals}
+                  onChange={(value) =>
+                    updateField("workoutTrainingGoals", value)
+                  }
+                />
+                <TextAreaField
+                  id="appointments"
+                  label="Appointments this week"
+                  value={form.appointments}
+                  onChange={(value) => updateField("appointments", value)}
+                />
+                <TextAreaField
+                  id="errands"
+                  label="Errands this week"
+                  value={form.errands}
+                  onChange={(value) => updateField("errands", value)}
+                />
+                <TextAreaField
+                  id="familyPersonalResponsibilities"
+                  label="Family/personal responsibilities"
+                  value={form.familyPersonalResponsibilities}
+                  onChange={(value) =>
+                    updateField("familyPersonalResponsibilities", value)
+                  }
+                />
+                <TextAreaField
+                  id="topPriorities"
+                  label="Top 3 priorities this week"
+                  value={form.topPriorities}
+                  onChange={(value) => updateField("topPriorities", value)}
+                />
+              </div>
+
+              <Field id="anythingToAvoid" label="Anything to avoid">
+                <textarea
+                  id="anythingToAvoid"
+                  name="anythingToAvoid"
+                  value={form.anythingToAvoid}
+                  onChange={(event) =>
+                    updateField("anythingToAvoid", event.target.value)
+                  }
+                  className="field-control min-h-24"
+                />
+              </Field>
+
+              <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <legend className="px-1 text-sm font-semibold text-slate-800">
+                  Safety acknowledgment
+                </legend>
+                <label className="mt-2 flex cursor-pointer gap-3 text-sm leading-6 text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.safetyAcknowledged}
+                    onChange={(event) =>
+                      updateField("safetyAcknowledged", event.target.checked)
+                    }
+                    className="mt-1 h-4 w-4 shrink-0 accent-teal-700"
+                    required
+                  />
+                  <span>{safetyAcknowledgmentText}</span>
+                </label>
+                {errors.safety_acknowledged ? (
+                  <p className="mt-2 text-sm font-medium text-red-700">
+                    {errors.safety_acknowledged}
+                  </p>
+                ) : null}
+              </fieldset>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="submit"
+                  disabled={isSavingRequest}
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+                >
+                  {isSavingRequest ? "Saving..." : "Save weekly request"}
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-5 py-3 text-base font-semibold text-slate-500 sm:w-fit"
+                >
+                  Generate AI plan — coming next
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-xl font-semibold text-slate-950">
+              Recent weekly requests
+            </h2>
+            {isLoadingRequests ? (
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                Loading requests...
+              </p>
+            ) : requests.length === 0 ? (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
+                No weekly requests saved yet.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3">
+                {requests.map((request) => (
+                  <article
+                    key={request.id}
+                    className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-950">
+                          {formatDateRange(
+                            request.week_start_date,
+                            request.week_end_date,
+                          )}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {request.schedule_type}
+                        </p>
+                      </div>
+                      <span className="w-fit rounded-lg bg-teal-100 px-3 py-1 text-sm font-semibold capitalize text-teal-800">
+                        {request.status}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700">
+                      {request.main_goal}
+                    </p>
+                    <p className="mt-3 text-xs font-semibold uppercase text-slate-500">
+                      AI generation is coming next.
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         <aside className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700">
@@ -240,4 +729,112 @@ function AppDashboard({
       </div>
     </section>
   );
+}
+
+function Field({
+  id,
+  label,
+  helpText,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  helpText?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="mb-2 block text-sm font-semibold text-slate-800"
+      >
+        {label}
+      </label>
+      {helpText ? (
+        <p className="mb-2 text-sm leading-6 text-slate-500">{helpText}</p>
+      ) : null}
+      {children}
+      {error ? (
+        <p className="mt-2 text-sm font-medium text-red-700">{error}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function TextAreaField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Field id={id} label={label}>
+      <textarea
+        id={id}
+        name={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="field-control min-h-24"
+      />
+    </Field>
+  );
+}
+
+function calculateEndDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return "";
+
+  date.setUTCDate(date.getUTCDate() + 6);
+  return formatDateInput(date);
+}
+
+function parseDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  if (year < 2024 || year > 2100) return null;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatDateInput(date: Date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatReadableDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return value;
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatDateRange(startDate: string, endDate: string) {
+  return `${formatReadableDate(startDate)} - ${formatReadableDate(endDate)}`;
 }

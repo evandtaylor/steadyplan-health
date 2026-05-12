@@ -143,7 +143,7 @@ export async function POST(request: Request) {
   response.cookies.set(APP_ACCESS_SESSION_COOKIE_NAME, session, {
     httpOnly: true,
     maxAge: APP_ACCESS_SESSION_TTL_SECONDS,
-    path: "/app",
+    path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
   });

@@ -52,10 +52,10 @@ export default function PrivacyPage() {
             <p className="mt-3">
               ShiftPlan does not intentionally collect medical records or
               protected health information. Please do not submit diagnoses,
-              symptoms, prescription medication details, lab values, medical
-              record numbers, insurance numbers, Social Security numbers,
-              emergency requests, workplace safety concerns, or other private
-              medical or safety information.
+              symptoms, medication details, lab values, medical record numbers,
+              insurance numbers, Social Security numbers, emergency requests,
+              workplace safety complaints, safety-sensitive details, or other
+              private medical or safety information.
             </p>
           </section>
 
@@ -78,16 +78,25 @@ export default function PrivacyPage() {
               ShiftPlan may use AI tools, including OpenAI, to help create draft
               routine plans for customers who request a plan. Information you
               submit through intake forms may be processed by these tools to
-              create or improve a requested ShiftPlan. During the MVP and
-              founding period, AI-generated drafts are reviewed before delivery.
+              create or improve a requested ShiftPlan. Some plans may be
+              generated directly inside the ShiftPlan app and shown to you
+              without manual review before you see them.
+            </p>
+            <p className="mt-3">
+              AI-generated plans may contain errors, omissions, unrealistic
+              suggestions, incorrect assumptions, or date and time mistakes. You
+              should review and adjust any generated plan before relying on it
+              in your real life.
             </p>
             <p className="mt-3">
               Please do not submit private medical information, protected health
               information, medication details, diagnoses, symptoms, emergency
-              information, or safety-sensitive information for AI processing.
-              ShiftPlan is for lifestyle and routine planning only. It does not
-              provide medical advice, diagnosis, treatment, healthcare guidance,
-              or emergency support.
+              information, workplace safety complaints, or safety-sensitive
+              details for AI processing. ShiftPlan is for lifestyle and routine
+              planning only. It does not provide medical advice, diagnosis,
+              treatment, fatigue treatment, burnout treatment, sleep disorder
+              guidance, medication guidance, healthcare guidance, mental health
+              guidance, workplace safety guidance, or emergency support.
             </p>
           </section>
 

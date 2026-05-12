@@ -133,10 +133,10 @@ const planStyleOptions = [
 ];
 
 const safetyCopy =
-  "ShiftPlan helps organize your weekly routine around your shift schedule. It is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.";
+  "ShiftPlan helps organize your weekly routine around your shift schedule. App-generated AI plans may not be manually reviewed before you see them, and they may contain errors, omissions, unrealistic suggestions, incorrect assumptions, or date and time mistakes. Review and adjust each plan before relying on it. ShiftPlan is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. No outcome is guaranteed.";
 
 const safetyAcknowledgmentText =
-  "I understand ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.";
+  "I understand ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. I will not submit protected health information, medication details, diagnoses, symptoms, emergency information, workplace safety complaints, or safety-sensitive details.";
 
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
@@ -582,8 +582,9 @@ function AppDashboard({
                       </button>
                     </div>
                     <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-                      AI-generated draft — review and adjust for your real
-                      life.
+                      AI-generated draft — this may not have been manually
+                      reviewed. Check dates, times, assumptions, and fit before
+                      using it.
                     </p>
                     <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-4 text-sm leading-6 text-slate-800">
                       {plan.plan_body}
@@ -608,8 +609,13 @@ function AppDashboard({
                 Create This Week&apos;s ShiftPlan
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Save your schedule and priorities for the week. AI generation
-                is coming next, so this version only saves the request.
+                Save your schedule and priorities for the week, then generate a
+                routine-planning draft from the saved request.
+              </p>
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                App-generated AI plans may not be manually reviewed before you
+                see them. Review dates, shift times, appointments, and
+                assumptions before relying on a plan.
               </p>
             </div>
 
@@ -621,7 +627,7 @@ function AppDashboard({
                 {requestMessage}
                 {requestMessage === "Weekly request saved." ? (
                   <span className="mt-2 block">
-                    AI generation is coming next.
+                    You can generate a draft from this request below.
                   </span>
                 ) : null}
               </div>
@@ -847,7 +853,7 @@ function AppDashboard({
                   disabled
                   className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-5 py-3 text-base font-semibold text-slate-500 sm:w-fit"
                 >
-                  Generate AI plan — coming next
+                  Generate from saved request
                 </button>
               </div>
             </form>
@@ -895,8 +901,9 @@ function AppDashboard({
                       <div className="mt-4 rounded-lg border border-teal-200 bg-white p-3 text-sm leading-6 text-teal-950">
                         <p className="font-semibold">Generated plan saved.</p>
                         <p>
-                          Review it in Saved plans, then adjust anything that
-                          does not fit your real life.
+                          Review it in Saved plans, then check dates, times,
+                          assumptions, and anything that does not fit your real
+                          life.
                         </p>
                       </div>
                     ) : (
@@ -915,8 +922,8 @@ function AppDashboard({
                             : "Generate My ShiftPlan"}
                         </button>
                         <p className="text-xs font-semibold uppercase text-slate-500">
-                          AI-generated draft — review and adjust for your real
-                          life.
+                          AI draft may not be manually reviewed. Check dates,
+                          times, and assumptions.
                         </p>
                       </div>
                     )}

@@ -51,13 +51,18 @@ export default function TermsPage() {
             </h2>
             <p className="mt-3">
               ShiftPlan may use AI-assisted tools to help draft routine plans
-              from the intake details you submit. AI-generated drafts may
-              contain errors, omissions, unrealistic suggestions, or incorrect
-              assumptions. During the MVP and founding period, plans generated
-              through the admin workflow are reviewed before delivery, but you
-              are still responsible for reviewing the final plan and deciding
-              what fits your real life, work policies, obligations, and personal
-              situation.
+              from the intake details you submit. The ShiftPlan app may also
+              generate AI plans directly for users, and those app-generated
+              plans may not be manually reviewed before you see them.
+              AI-generated plans may contain errors, omissions, unrealistic
+              suggestions, incorrect assumptions, or date and time mistakes.
+            </p>
+            <p className="mt-3">
+              During the MVP and founding period, plans generated through the
+              admin fulfillment workflow may be reviewed before delivery. In all
+              cases, you are responsible for reviewing any plan, adjusting it
+              for your real life, and deciding what fits your work policies,
+              obligations, schedule, and personal situation.
             </p>
           </section>
 
@@ -93,8 +98,8 @@ export default function TermsPage() {
                   monthly billing period. One plan covers one 7-day schedule.
                   Unused plans do not roll over. Minor corrections may be
                   included, but major schedule changes may count as a new plan.
-                  During early access, plans may be manually reviewed before
-                  delivery.
+                  During early access, plans delivered through manual
+                  fulfillment may be manually reviewed before delivery.
                 </p>
               </div>
             </div>
@@ -130,10 +135,10 @@ export default function TermsPage() {
               Do not submit emergencies, medical requests, unsafe requests,
               private medical information, protected health information,
               medication details, diagnoses, symptoms, emergency information,
-              safety-sensitive information, prescription medication lists, lab
-              values, medical records, insurance numbers, Social Security
-              numbers, or requests for professional advice that ShiftPlan is not
-              designed to provide.
+              workplace safety complaints, safety-sensitive details,
+              prescription medication lists, lab values, medical records,
+              insurance numbers, Social Security numbers, or requests for
+              professional advice that ShiftPlan is not designed to provide.
             </p>
           </section>
 

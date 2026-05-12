@@ -46,6 +46,23 @@ type WeeklyRequest = {
   preferred_plan_style: string;
   safety_acknowledged: boolean;
   status: "submitted" | "generated" | "failed" | "blocked_safety";
+  saved_plan?: AppSavedPlan | null;
+};
+
+type AppSavedPlan = {
+  id: string;
+  created_at: string;
+  app_user_id: string;
+  plan_request_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  plan_title: string | null;
+  plan_body: string;
+  plan_json: Record<string, unknown> | null;
+  generation_source: string;
+  usage_month: number;
+  usage_year: number;
+  generation_number_for_month: number;
 };
 
 const weeklyRequestColumns = [
@@ -69,6 +86,22 @@ const weeklyRequestColumns = [
   "preferred_plan_style",
   "safety_acknowledged",
   "status",
+].join(",");
+
+const appSavedPlanColumns = [
+  "id",
+  "created_at",
+  "app_user_id",
+  "plan_request_id",
+  "week_start_date",
+  "week_end_date",
+  "plan_title",
+  "plan_body",
+  "plan_json",
+  "generation_source",
+  "usage_month",
+  "usage_year",
+  "generation_number_for_month",
 ].join(",");
 
 const scheduleTypes = new Set([
@@ -129,8 +162,30 @@ export async function GET() {
     }
 
     const requests = (await response.json()) as WeeklyRequest[];
+    const savedPlans = await getSavedPlansForRequests(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      requests.map((item) => item.id),
+    );
+
+    if (savedPlans === false) {
+      return NextResponse.json(
+        { message: "Could not load saved plans right now." },
+        { status: 502 },
+      );
+    }
+
+    const savedPlanByRequestId = new Map(
+      savedPlans.map((plan) => [plan.plan_request_id, plan]),
+    );
+    const requestsWithPlans = requests.map((item) => ({
+      ...item,
+      saved_plan: savedPlanByRequestId.get(item.id) || null,
+    }));
+
     return NextResponse.json(
-      { requests },
+      { requests: requestsWithPlans },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {
@@ -139,6 +194,30 @@ export async function GET() {
       { status: 502 },
     );
   }
+}
+
+async function getSavedPlansForRequests(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  planRequestIds: string[],
+) {
+  if (planRequestIds.length === 0) return [];
+
+  const query = new URLSearchParams({
+    select: appSavedPlanColumns,
+    app_user_id: `eq.${appUserId}`,
+    plan_request_id: `in.(${planRequestIds.join(",")})`,
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  return (await response.json()) as AppSavedPlan[];
 }
 
 export async function POST(request: Request) {

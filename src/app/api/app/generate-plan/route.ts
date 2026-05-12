@@ -1,0 +1,687 @@
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import {
+  APP_ACCESS_SESSION_COOKIE_NAME,
+  verifyAppAccessSession,
+} from "@/lib/app-access";
+import { getSupabaseRestUrl } from "@/lib/supabase-url";
+
+export const runtime = "nodejs";
+
+type GeneratePlanPayload = {
+  plan_request_id?: unknown;
+};
+
+type AppPlanRequest = {
+  id: string;
+  created_at: string;
+  app_user_id: string;
+  email: string;
+  week_start_date: string;
+  week_end_date: string;
+  schedule_type: string;
+  work_schedule: string;
+  commute_time: string | null;
+  main_goal: string;
+  meal_prep_needs: string | null;
+  workout_training_goals: string | null;
+  appointments: string | null;
+  errands: string | null;
+  family_personal_responsibilities: string | null;
+  top_priorities: string | null;
+  anything_to_avoid: string | null;
+  preferred_plan_style: string;
+  safety_acknowledged: boolean;
+  status: "submitted" | "generated" | "failed" | "blocked_safety";
+};
+
+type AppSavedPlan = {
+  id: string;
+  created_at: string;
+  app_user_id: string;
+  plan_request_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  plan_title: string | null;
+  plan_body: string;
+  plan_json: Record<string, unknown> | null;
+  generation_source: string;
+  usage_month: number;
+  usage_year: number;
+  generation_number_for_month: number;
+};
+
+type UpdatedPlanRequest = {
+  id: string;
+  status: AppPlanRequest["status"];
+};
+
+type OpenAIResponse = {
+  output_text?: unknown;
+  output?: unknown;
+};
+
+const appPlanRequestColumns = [
+  "id",
+  "created_at",
+  "app_user_id",
+  "email",
+  "week_start_date",
+  "week_end_date",
+  "schedule_type",
+  "work_schedule",
+  "commute_time",
+  "main_goal",
+  "meal_prep_needs",
+  "workout_training_goals",
+  "appointments",
+  "errands",
+  "family_personal_responsibilities",
+  "top_priorities",
+  "anything_to_avoid",
+  "preferred_plan_style",
+  "safety_acknowledged",
+  "status",
+].join(",");
+
+const appSavedPlanColumns = [
+  "id",
+  "created_at",
+  "app_user_id",
+  "plan_request_id",
+  "week_start_date",
+  "week_end_date",
+  "plan_title",
+  "plan_body",
+  "plan_json",
+  "generation_source",
+  "usage_month",
+  "usage_year",
+  "generation_number_for_month",
+].join(",");
+
+export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json(
+      { message: "Open ShiftPlan app access before generating a plan." },
+      { status: 401 },
+    );
+  }
+
+  let payload: GeneratePlanPayload;
+  try {
+    payload = (await request.json()) as GeneratePlanPayload;
+  } catch {
+    return NextResponse.json(
+      { message: "Choose a weekly request before generating a plan." },
+      { status: 400 },
+    );
+  }
+
+  const planRequestId =
+    typeof payload.plan_request_id === "string"
+      ? payload.plan_request_id.trim()
+      : "";
+
+  if (!planRequestId) {
+    return NextResponse.json(
+      { message: "Choose a weekly request before generating a plan." },
+      { status: 400 },
+    );
+  }
+
+  const openAiApiKey = process.env.OPENAI_API_KEY;
+  if (!openAiApiKey) {
+    return NextResponse.json(
+      { message: "OpenAI is not configured in this environment." },
+      { status: 500 },
+    );
+  }
+
+  const config = getSupabaseConfig();
+  if (!config) {
+    return NextResponse.json(
+      { message: "ShiftPlan app generation is not configured yet." },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const planRequest = await getPlanRequest(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      planRequestId,
+    );
+
+    if (planRequest === false) {
+      return NextResponse.json(
+        { message: "Could not load this weekly request right now." },
+        { status: 502 },
+      );
+    }
+
+    if (!planRequest) {
+      return NextResponse.json(
+        { message: "Weekly request was not found for this app access." },
+        { status: 404 },
+      );
+    }
+
+    const validationMessage = getGenerationBlockMessage(planRequest);
+    if (validationMessage) {
+      return NextResponse.json({ message: validationMessage }, { status: 400 });
+    }
+
+    const existingPlan = await getExistingSavedPlan(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      planRequest.id,
+    );
+
+    if (existingPlan === false) {
+      return NextResponse.json(
+        { message: "Could not check saved plans right now." },
+        { status: 502 },
+      );
+    }
+
+    if (existingPlan && planRequest.status === "generated") {
+      return NextResponse.json(
+        {
+          message: "Saved plan loaded.",
+          plan: existingPlan,
+          request: planRequest,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    const draft = await generatePlan(
+      openAiApiKey,
+      process.env.OPENAI_MODEL || "gpt-5.2",
+      buildPlanPrompt(planRequest),
+    );
+
+    if (!draft) {
+      await markPlanRequestStatus(
+        config.supabaseRestUrl,
+        config.headers,
+        planRequest.id,
+        "failed",
+      );
+
+      return NextResponse.json(
+        { message: "OpenAI could not generate a plan right now." },
+        { status: 500 },
+      );
+    }
+
+    const usageDate = new Date();
+    const usageMonth = usageDate.getUTCMonth() + 1;
+    const usageYear = usageDate.getUTCFullYear();
+    const generationNumber =
+      existingPlan?.generation_number_for_month ||
+      (await getNextGenerationNumber(
+        config.supabaseRestUrl,
+        config.headers,
+        session.appUserId,
+        usageYear,
+        usageMonth,
+      ));
+
+    const savedPlan = await saveGeneratedPlan(
+      config.supabaseRestUrl,
+      config.headers,
+      existingPlan?.id || null,
+      {
+        app_user_id: session.appUserId,
+        plan_request_id: planRequest.id,
+        week_start_date: planRequest.week_start_date,
+        week_end_date: planRequest.week_end_date,
+        plan_title: buildPlanTitle(planRequest),
+        plan_body: draft,
+        plan_json: {
+          request_status_before_generation: planRequest.status,
+          schedule_type: planRequest.schedule_type,
+          preferred_plan_style: planRequest.preferred_plan_style,
+          generated_at: new Date().toISOString(),
+        },
+        generation_source: "openai",
+        usage_month: usageMonth,
+        usage_year: usageYear,
+        generation_number_for_month: generationNumber,
+      },
+    );
+
+    if (!savedPlan) {
+      return NextResponse.json(
+        { message: "Plan was generated, but it could not be saved." },
+        { status: 502 },
+      );
+    }
+
+    const updatedRequest = await markPlanRequestStatus(
+      config.supabaseRestUrl,
+      config.headers,
+      planRequest.id,
+      "generated",
+    );
+
+    await recordUsageEvent(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      savedPlan.id,
+      planRequest.id,
+    );
+
+    return NextResponse.json(
+      {
+        message: "ShiftPlan generated and saved.",
+        plan: savedPlan,
+        request: updatedRequest || { id: planRequest.id, status: "generated" },
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { message: "Could not generate your ShiftPlan right now." },
+      { status: 500 },
+    );
+  }
+}
+
+async function getSession() {
+  const cookieStore = await cookies();
+  return verifyAppAccessSession(
+    cookieStore.get(APP_ACCESS_SESSION_COOKIE_NAME)?.value,
+  );
+}
+
+function getSupabaseConfig() {
+  const supabaseRestUrl = getSupabaseRestUrl();
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseRestUrl || !supabaseServiceRoleKey) return null;
+
+  return {
+    supabaseRestUrl,
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+  };
+}
+
+async function getPlanRequest(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  planRequestId: string,
+) {
+  const query = new URLSearchParams({
+    select: appPlanRequestColumns,
+    id: `eq.${planRequestId}`,
+    app_user_id: `eq.${appUserId}`,
+    limit: "1",
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_plan_requests?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  const rows = (await response.json()) as AppPlanRequest[];
+  return rows[0] || null;
+}
+
+async function getExistingSavedPlan(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  planRequestId: string,
+) {
+  const query = new URLSearchParams({
+    select: appSavedPlanColumns,
+    app_user_id: `eq.${appUserId}`,
+    plan_request_id: `eq.${planRequestId}`,
+    limit: "1",
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return false;
+
+  const rows = (await response.json()) as AppSavedPlan[];
+  return rows[0] || null;
+}
+
+async function getNextGenerationNumber(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  usageYear: number,
+  usageMonth: number,
+) {
+  const query = new URLSearchParams({
+    select: "id",
+    app_user_id: `eq.${appUserId}`,
+    usage_year: `eq.${usageYear}`,
+    usage_month: `eq.${usageMonth}`,
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) return 1;
+
+  const rows = (await response.json()) as { id: string }[];
+  return rows.length + 1;
+}
+
+async function generatePlan(
+  openAiApiKey: string,
+  model: string,
+  prompt: string,
+) {
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      instructions:
+        "You create ShiftPlan weekly plans for app users. Follow the submitted schedule data exactly. Use the canonical date list for every day heading. Do not shift weekdays or dates. Do not invent shift days, shift times, appointments, errands, or responsibilities. Redirect unsafe or medical-heavy requests back to lifestyle and routine organization only. Follow the safety boundaries exactly. Do not mention AI.",
+      input: prompt,
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) return "";
+
+  const result = (await response.json()) as OpenAIResponse;
+  return extractOutputText(result).trim();
+}
+
+async function saveGeneratedPlan(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  existingPlanId: string | null,
+  body: Record<string, unknown>,
+) {
+  const query = existingPlanId
+    ? new URLSearchParams({
+        id: `eq.${existingPlanId}`,
+        select: appSavedPlanColumns,
+      })
+    : new URLSearchParams({
+        select: appSavedPlanColumns,
+      });
+
+  const response = await fetch(`${supabaseRestUrl}/app_saved_plans?${query}`, {
+    method: existingPlanId ? "PATCH" : "POST",
+    headers: {
+      ...headers,
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (!response.ok) return null;
+
+  const rows = (await response.json()) as AppSavedPlan[];
+  return rows[0] || null;
+}
+
+async function markPlanRequestStatus(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  planRequestId: string,
+  status: AppPlanRequest["status"],
+) {
+  const query = new URLSearchParams({
+    id: `eq.${planRequestId}`,
+    select: "id,status",
+  });
+
+  const response = await fetch(`${supabaseRestUrl}/app_plan_requests?${query}`, {
+    method: "PATCH",
+    headers: {
+      ...headers,
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify({ status }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) return null;
+
+  const rows = (await response.json()) as UpdatedPlanRequest[];
+  return rows[0] || null;
+}
+
+async function recordUsageEvent(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  savedPlanId: string,
+  planRequestId: string,
+) {
+  try {
+    await fetch(`${supabaseRestUrl}/app_usage_events`, {
+      method: "POST",
+      headers: {
+        ...headers,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        app_user_id: appUserId,
+        event_type: "app_plan_generated",
+        metadata: {
+          app_saved_plan_id: savedPlanId,
+          app_plan_request_id: planRequestId,
+        },
+      }),
+      cache: "no-store",
+    });
+  } catch {
+    // The plan remains saved even if internal usage event tracking is unavailable.
+  }
+}
+
+function getGenerationBlockMessage(planRequest: AppPlanRequest) {
+  if (!planRequest.safety_acknowledged) {
+    return "Confirm the safety acknowledgment before generating a ShiftPlan.";
+  }
+
+  if (!planRequest.work_schedule?.trim()) {
+    return "Exact work schedule is required before generating a ShiftPlan.";
+  }
+
+  if (!planRequest.main_goal?.trim()) {
+    return "A main goal is required before generating a ShiftPlan.";
+  }
+
+  if (!isIsoDate(planRequest.week_start_date) || !isIsoDate(planRequest.week_end_date)) {
+    return "This weekly request needs a valid 7-day date range before generation.";
+  }
+
+  return "";
+}
+
+function buildPlanTitle(planRequest: AppPlanRequest) {
+  return `ShiftPlan for ${formatReadableDate(planRequest.week_start_date)} - ${formatReadableDate(planRequest.week_end_date)}`;
+}
+
+function buildPlanPrompt(planRequest: AppPlanRequest) {
+  return [
+    "SHIFTPLAN APP WEEKLY PLAN",
+    "",
+    "Product:",
+    "ShiftPlan helps nurses and shift workers turn messy shift schedules into simple weekly life plans. It helps organize sleep/wind-down blocks, meals, workouts, recovery/reset blocks, errands, appointments, family responsibilities, training schedules, and personal tasks around irregular, long, or demanding schedules.",
+    "",
+    "Safety boundaries:",
+    "ShiftPlan is lifestyle and routine planning only.",
+    "Do not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, supplement guidance, healthcare advice, mental health guidance, workplace safety guidance, or emergency support.",
+    "Do not claim to fix sleep problems, fatigue, burnout, anxiety, insomnia, sleep disorders, or any medical condition.",
+    "If unsafe or medical-heavy content is requested, redirect to routine planning language only.",
+    "Use safe language such as routine planning, weekly structure, wind-down block, reset block, recovery block, meal prep placement, workout placement, task batching, and checklist.",
+    "",
+    "Date and schedule rules:",
+    "Use the submitted week_start_date and week_end_date exactly.",
+    "Use the canonical date list below for every day heading.",
+    "Every day heading must include both weekday and date.",
+    "The weekday must match the date.",
+    "Do not shift the week.",
+    "Do not invent a Sunday-start week if the submitted start date is Monday.",
+    "Work shifts must stay on the submitted shift dates.",
+    "Events must stay on submitted event days when provided.",
+    "Do not invent shift days, shift times, appointments, errands, or responsibilities.",
+    "Before finalizing the plan, internally verify that every day label matches the calendar date.",
+    "",
+    "Canonical date list:",
+    formatCanonicalDateList(planRequest.week_start_date, planRequest.week_end_date),
+    "",
+    "Customer weekly request:",
+    formatPromptFields([
+      ["Week dates", `${planRequest.week_start_date} to ${planRequest.week_end_date}`],
+      ["Schedule type", planRequest.schedule_type],
+      ["Exact work schedule", planRequest.work_schedule],
+      ["Commute time", planRequest.commute_time],
+      ["Main goal", planRequest.main_goal],
+      ["Meal prep needs", planRequest.meal_prep_needs],
+      ["Workout/training goals", planRequest.workout_training_goals],
+      ["Appointments this week", planRequest.appointments],
+      ["Errands this week", planRequest.errands],
+      [
+        "Family/personal responsibilities",
+        planRequest.family_personal_responsibilities,
+      ],
+      ["Top 3 priorities", planRequest.top_priorities],
+      ["Anything to avoid", planRequest.anything_to_avoid],
+      ["Preferred plan style", planRequest.preferred_plan_style],
+    ]),
+    "",
+    "Output rules:",
+    "1. Create a realistic 7-day plan.",
+    "2. Keep workdays simple.",
+    "3. Do not overload post-shift periods.",
+    "4. Batch errands and appointments when possible.",
+    "5. Place workouts/training where they fit best around the schedule.",
+    "6. Include meal prep placement, not nutrition coaching.",
+    "7. Include recovery/reset blocks as lifestyle organization, not treatment.",
+    "8. Include a copy/paste checklist.",
+    "9. Include the safety disclaimer.",
+    "10. Use plain, practical language.",
+    "11. Make the plan feel premium, organized, and personalized.",
+    "12. Do not mention that AI generated the plan.",
+    "",
+    "Required output structure:",
+    "1. Header",
+    "2. Important note/disclaimer",
+    "3. Week at a glance",
+    "4. 7-day plan with weekday/date alignment",
+    "5. Workday routine",
+    "6. Post-shift reset",
+    "7. Off-day routine",
+    "8. Meal prep structure",
+    "9. Workout/training placement",
+    "10. Errands/appointments/family responsibilities",
+    "11. Top 3 priorities",
+    "12. Copy/paste checklist",
+    "13. Final note",
+    "",
+    "Important disclaimer text to include:",
+    "ShiftPlan is for lifestyle and routine organization only. This plan helps organize your week around work, meals, workouts, errands, appointments, recovery blocks, and personal responsibilities. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
+  ].join("\n");
+}
+
+function formatCanonicalDateList(start: string, end: string) {
+  if (!isIsoDate(start) || !isIsoDate(end)) return "Not provided";
+
+  const startDate = parseIsoDateAsUtc(start);
+  const endDate = parseIsoDateAsUtc(end);
+  const rows: string[] = [];
+  const cursor = new Date(startDate);
+
+  for (let index = 0; index < 7 && cursor.getTime() <= endDate.getTime(); index += 1) {
+    const isoDate = cursor.toISOString().slice(0, 10);
+    const weekday = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      timeZone: "UTC",
+    }).format(cursor);
+    rows.push(`- ${weekday}, ${isoDate}`);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return rows.length ? rows.join("\n") : "Not provided";
+}
+
+function isIsoDate(value: string | null | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function parseIsoDateAsUtc(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatReadableDate(value: string) {
+  const date = parseIsoDateAsUtc(value);
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatPromptFields(fields: [string, string | null | undefined][]) {
+  return fields
+    .map(([label, value]) => `- ${label}: ${valueOrFallback(value)}`)
+    .join("\n");
+}
+
+function valueOrFallback(value: string | null | undefined) {
+  return value && value.trim() ? value.trim() : "Not provided";
+}
+
+function extractOutputText(result: OpenAIResponse) {
+  if (typeof result.output_text === "string") {
+    return result.output_text;
+  }
+
+  if (!Array.isArray(result.output)) {
+    return "";
+  }
+
+  return result.output
+    .flatMap((item) => {
+      if (!item || typeof item !== "object" || !("content" in item)) return [];
+      const content = (item as { content?: unknown }).content;
+      if (!Array.isArray(content)) return [];
+
+      return content.map((part) => {
+        if (!part || typeof part !== "object") return "";
+        const maybeText = part as { text?: unknown };
+        return typeof maybeText.text === "string" ? maybeText.text : "";
+      });
+    })
+    .filter(Boolean)
+    .join("\n");
+}

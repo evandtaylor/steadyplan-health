@@ -35,6 +35,23 @@ type WeeklyRequest = {
   main_goal: string;
   preferred_plan_style: string;
   status: "submitted" | "generated" | "failed" | "blocked_safety";
+  saved_plan?: AppSavedPlan | null;
+};
+
+type AppSavedPlan = {
+  id: string;
+  created_at: string;
+  app_user_id: string;
+  plan_request_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  plan_title: string | null;
+  plan_body: string;
+  plan_json: Record<string, unknown> | null;
+  generation_source: string;
+  usage_month: number;
+  usage_year: number;
+  generation_number_for_month: number;
 };
 
 type WeeklyRequestResponse = {
@@ -42,6 +59,15 @@ type WeeklyRequestResponse = {
   request?: WeeklyRequest;
   requests?: WeeklyRequest[];
   errors?: Record<string, string>;
+};
+
+type GeneratePlanResponse = {
+  message?: string;
+  plan?: AppSavedPlan;
+  request?: {
+    id: string;
+    status: WeeklyRequest["status"];
+  };
 };
 
 type WeeklyRequestFormState = {
@@ -271,9 +297,18 @@ function AppDashboard({
   const [requestMessage, setRequestMessage] = useState("");
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [isSavingRequest, setIsSavingRequest] = useState(false);
+  const [generatingRequestId, setGeneratingRequestId] = useState("");
+  const [generationMessages, setGenerationMessages] = useState<
+    Record<string, string>
+  >({});
+  const [copiedPlanId, setCopiedPlanId] = useState("");
   const calculatedWeekEndDate = useMemo(
     () => calculateEndDate(form.weekStartDate),
     [form.weekStartDate],
+  );
+  const savedPlans = useMemo(
+    () => requests.flatMap((request) => (request.saved_plan ? [request.saved_plan] : [])),
+    [requests],
   );
 
   const loadRequests = useCallback(async () => {
@@ -369,6 +404,71 @@ function AppDashboard({
     }
   }
 
+  async function handleGeneratePlan(planRequestId: string) {
+    if (generatingRequestId) return;
+
+    setGeneratingRequestId(planRequestId);
+    setGenerationMessages((current) => ({
+      ...current,
+      [planRequestId]: "",
+    }));
+
+    try {
+      const response = await fetch("/api/app/generate-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          plan_request_id: planRequestId,
+        }),
+      });
+      const result = (await response.json()) as GeneratePlanResponse;
+
+      if (!response.ok || !result.plan) {
+        setGenerationMessages((current) => ({
+          ...current,
+          [planRequestId]:
+            result.message || "Could not generate this ShiftPlan right now.",
+        }));
+        return;
+      }
+
+      setRequests((current) =>
+        current.map((request) =>
+          request.id === planRequestId
+            ? {
+                ...request,
+                status: result.request?.status || "generated",
+                saved_plan: result.plan,
+              }
+            : request,
+        ),
+      );
+      setGenerationMessages((current) => ({
+        ...current,
+        [planRequestId]: "ShiftPlan generated and saved.",
+      }));
+    } catch {
+      setGenerationMessages((current) => ({
+        ...current,
+        [planRequestId]: "Could not generate this ShiftPlan right now.",
+      }));
+    } finally {
+      setGeneratingRequestId("");
+    }
+  }
+
+  async function handleCopyPlan(plan: AppSavedPlan) {
+    try {
+      await navigator.clipboard.writeText(plan.plan_body);
+      setCopiedPlanId(plan.id);
+      window.setTimeout(() => setCopiedPlanId(""), 1800);
+    } catch {
+      setCopiedPlanId("");
+    }
+  }
+
   return (
     <section className="min-h-[70vh] bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -409,10 +509,49 @@ function AppDashboard({
             <h2 className="text-xl font-semibold text-slate-950">
               Saved plans
             </h2>
-            <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
-              Saved customer plans will appear here after the portal is
-              connected. AI generation is coming next.
-            </div>
+            {savedPlans.length === 0 ? (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
+                Generated ShiftPlans will appear here after you create one from
+                a weekly request.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-4">
+                {savedPlans.map((plan) => (
+                  <article
+                    key={plan.id}
+                    className="rounded-lg border border-teal-200 bg-teal-50 p-4"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-950">
+                          {plan.plan_title || "Saved ShiftPlan"}
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          {formatDateRange(
+                            plan.week_start_date,
+                            plan.week_end_date,
+                          )}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleCopyPlan(plan)}
+                        className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                      >
+                        {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
+                      </button>
+                    </div>
+                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                      AI-generated draft — review and adjust for your real
+                      life.
+                    </p>
+                    <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-4 text-sm leading-6 text-slate-800">
+                      {plan.plan_body}
+                    </pre>
+                  </article>
+                ))}
+              </div>
+            )}
           </article>
         </div>
 
@@ -712,9 +851,40 @@ function AppDashboard({
                     <p className="mt-3 text-sm leading-6 text-slate-700">
                       {request.main_goal}
                     </p>
-                    <p className="mt-3 text-xs font-semibold uppercase text-slate-500">
-                      AI generation is coming next.
-                    </p>
+                    {request.saved_plan ? (
+                      <div className="mt-4 rounded-lg border border-teal-200 bg-white p-3 text-sm leading-6 text-teal-950">
+                        <p className="font-semibold">Generated plan saved.</p>
+                        <p>
+                          Review it in Saved plans, then adjust anything that
+                          does not fit your real life.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleGeneratePlan(request.id)}
+                          disabled={
+                            Boolean(generatingRequestId) ||
+                            !canGenerateRequest(request)
+                          }
+                          className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+                        >
+                          {generatingRequestId === request.id
+                            ? "Generating..."
+                            : "Generate My ShiftPlan"}
+                        </button>
+                        <p className="text-xs font-semibold uppercase text-slate-500">
+                          AI-generated draft — review and adjust for your real
+                          life.
+                        </p>
+                      </div>
+                    )}
+                    {generationMessages[request.id] ? (
+                      <p className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700">
+                        {generationMessages[request.id]}
+                      </p>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -837,4 +1007,8 @@ function formatReadableDate(value: string) {
 
 function formatDateRange(startDate: string, endDate: string) {
   return `${formatReadableDate(startDate)} - ${formatReadableDate(endDate)}`;
+}
+
+function canGenerateRequest(request: WeeklyRequest) {
+  return request.status !== "generated";
 }

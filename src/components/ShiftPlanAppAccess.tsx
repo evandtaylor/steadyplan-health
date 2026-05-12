@@ -95,6 +95,28 @@ type PlanFeedbackResponse = {
   errors?: Record<string, string>;
 };
 
+type AppUserPreferences = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  typical_shift_type: string;
+  usual_commute_time: string;
+  preferred_plan_style: string;
+  meal_prep_preferences: string;
+  workout_training_preferences: string;
+  recurring_responsibilities: string;
+  things_to_avoid_after_work: string;
+  default_week_start_day: string;
+  planning_notes: string;
+};
+
+type PreferencesResponse = {
+  message?: string;
+  preferences?: AppUserPreferences | null;
+  errors?: Record<string, string>;
+};
+
 type AppUsageSummary = {
   month_used: number;
   month_limit: number;
@@ -132,6 +154,18 @@ type PlanFeedbackFormState = {
   additionalNotes: string;
 };
 
+type PreferencesFormState = {
+  typicalShiftType: string;
+  usualCommuteTime: string;
+  preferredPlanStyle: string;
+  mealPrepPreferences: string;
+  workoutTrainingPreferences: string;
+  recurringResponsibilities: string;
+  thingsToAvoidAfterWork: string;
+  defaultWeekStartDay: string;
+  planningNotes: string;
+};
+
 const initialWeeklyRequestForm: WeeklyRequestFormState = {
   weekStartDate: "",
   scheduleType: "",
@@ -160,6 +194,18 @@ const initialPlanFeedbackForm: PlanFeedbackFormState = {
   additionalNotes: "",
 };
 
+const initialPreferencesForm: PreferencesFormState = {
+  typicalShiftType: "",
+  usualCommuteTime: "",
+  preferredPlanStyle: "",
+  mealPrepPreferences: "",
+  workoutTrainingPreferences: "",
+  recurringResponsibilities: "",
+  thingsToAvoidAfterWork: "",
+  defaultWeekStartDay: "",
+  planningNotes: "",
+};
+
 const scheduleTypeOptions = [
   "3x12 days",
   "3x12 nights",
@@ -179,6 +225,15 @@ const planStyleOptions = [
 
 const usedThisWeekOptions = ["Yes", "No", "Not yet"];
 const yesNoMaybeOptions = ["Yes", "No", "Maybe"];
+const weekStartDayOptions = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 const safetyCopy =
   "ShiftPlan helps organize your weekly routine around your shift schedule. App-generated AI plans may not be manually reviewed before you see them, and they may contain errors, omissions, unrealistic suggestions, incorrect assumptions, or date and time mistakes. Review and adjust each plan before relying on it. ShiftPlan is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. No outcome is guaranteed.";
@@ -356,6 +411,18 @@ function AppDashboard({
   const [requestMessage, setRequestMessage] = useState("");
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [isSavingRequest, setIsSavingRequest] = useState(false);
+  const [preferences, setPreferences] = useState<AppUserPreferences | null>(
+    null,
+  );
+  const [preferencesForm, setPreferencesForm] = useState<PreferencesFormState>(
+    initialPreferencesForm,
+  );
+  const [preferencesErrors, setPreferencesErrors] = useState<
+    Record<string, string>
+  >({});
+  const [preferencesMessage, setPreferencesMessage] = useState("");
+  const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [generatingRequestId, setGeneratingRequestId] = useState("");
   const [generationMessages, setGenerationMessages] = useState<
     Record<string, string>
@@ -405,13 +472,39 @@ function AppDashboard({
     }
   }, []);
 
+  const loadPreferences = useCallback(async () => {
+    setIsLoadingPreferences(true);
+
+    try {
+      const response = await fetch("/api/app/preferences", {
+        method: "GET",
+      });
+      const result = (await response.json()) as PreferencesResponse;
+
+      if (!response.ok) {
+        setPreferencesMessage(
+          result.message || "Could not load preferences right now.",
+        );
+        return;
+      }
+
+      setPreferences(result.preferences || null);
+      setPreferencesForm(createPreferencesForm(result.preferences || null));
+    } catch {
+      setPreferencesMessage("Could not load preferences right now.");
+    } finally {
+      setIsLoadingPreferences(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadRequests();
+      void loadPreferences();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [loadRequests]);
+  }, [loadPreferences, loadRequests]);
 
   function updateField(
     field: keyof WeeklyRequestFormState,
@@ -420,6 +513,64 @@ function AppDashboard({
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
     setRequestMessage("");
+  }
+
+  function updatePreferenceField(
+    field: keyof PreferencesFormState,
+    value: string,
+  ) {
+    setPreferencesForm((current) => ({ ...current, [field]: value }));
+    setPreferencesErrors((current) => ({ ...current, [field]: "" }));
+    setPreferencesMessage("");
+  }
+
+  async function handlePreferencesSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSavingPreferences) return;
+
+    setIsSavingPreferences(true);
+    setPreferencesErrors({});
+    setPreferencesMessage("");
+
+    try {
+      const response = await fetch("/api/app/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          typical_shift_type: preferencesForm.typicalShiftType,
+          usual_commute_time: preferencesForm.usualCommuteTime,
+          preferred_plan_style: preferencesForm.preferredPlanStyle,
+          meal_prep_preferences: preferencesForm.mealPrepPreferences,
+          workout_training_preferences:
+            preferencesForm.workoutTrainingPreferences,
+          recurring_responsibilities:
+            preferencesForm.recurringResponsibilities,
+          things_to_avoid_after_work:
+            preferencesForm.thingsToAvoidAfterWork,
+          default_week_start_day: preferencesForm.defaultWeekStartDay,
+          planning_notes: preferencesForm.planningNotes,
+        }),
+      });
+      const result = (await response.json()) as PreferencesResponse;
+
+      if (!response.ok || !result.preferences) {
+        setPreferencesMessage(
+          result.message || "Could not save preferences right now.",
+        );
+        setPreferencesErrors(result.errors || {});
+        return;
+      }
+
+      setPreferences(result.preferences);
+      setPreferencesForm(createPreferencesForm(result.preferences));
+      setPreferencesMessage("Preferences saved.");
+    } catch {
+      setPreferencesMessage("Could not save preferences right now.");
+    } finally {
+      setIsSavingPreferences(false);
+    }
   }
 
   async function handleWeeklyRequestSubmit(event: FormEvent<HTMLFormElement>) {
@@ -663,6 +814,187 @@ function AppDashboard({
             )}
           </article>
         </div>
+
+        <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase text-teal-700">
+                Saved preferences
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                What ShiftPlan should remember
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                These help future plans feel more personalized. Saved
+                preferences never override your submitted weekly schedule or
+                ShiftPlan safety boundaries.
+              </p>
+            </div>
+            <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+              {isLoadingPreferences
+                ? "Loading"
+                : preferences
+                  ? "Preferences saved"
+                  : "Not saved yet"}
+            </span>
+          </div>
+
+          {preferencesMessage ? (
+            <p
+              className="mt-5 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-950"
+              role="status"
+            >
+              {preferencesMessage}
+            </p>
+          ) : null}
+
+          <form
+            className="mt-6 grid gap-5"
+            onSubmit={handlePreferencesSubmit}
+            noValidate
+          >
+            <div className="grid gap-5 md:grid-cols-3">
+              <Field
+                id="typicalShiftType"
+                label="Typical shift type"
+                error={preferencesErrors.typical_shift_type}
+              >
+                <select
+                  id="typicalShiftType"
+                  value={preferencesForm.typicalShiftType}
+                  onChange={(event) =>
+                    updatePreferenceField(
+                      "typicalShiftType",
+                      event.target.value,
+                    )
+                  }
+                  className="field-control"
+                >
+                  <option value="">Choose one</option>
+                  {scheduleTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field id="usualCommuteTime" label="Usual commute time">
+                <input
+                  id="usualCommuteTime"
+                  value={preferencesForm.usualCommuteTime}
+                  onChange={(event) =>
+                    updatePreferenceField(
+                      "usualCommuteTime",
+                      event.target.value,
+                    )
+                  }
+                  className="field-control"
+                />
+              </Field>
+
+              <Field
+                id="savedPreferredPlanStyle"
+                label="Preferred plan style"
+                error={preferencesErrors.preferred_plan_style}
+              >
+                <select
+                  id="savedPreferredPlanStyle"
+                  value={preferencesForm.preferredPlanStyle}
+                  onChange={(event) =>
+                    updatePreferenceField(
+                      "preferredPlanStyle",
+                      event.target.value,
+                    )
+                  }
+                  className="field-control"
+                >
+                  <option value="">Choose one</option>
+                  {planStyleOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field
+                id="defaultWeekStartDay"
+                label="Default week start day"
+                error={preferencesErrors.default_week_start_day}
+              >
+                <select
+                  id="defaultWeekStartDay"
+                  value={preferencesForm.defaultWeekStartDay}
+                  onChange={(event) =>
+                    updatePreferenceField(
+                      "defaultWeekStartDay",
+                      event.target.value,
+                    )
+                  }
+                  className="field-control"
+                >
+                  <option value="">Choose one</option>
+                  {weekStartDayOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <TextAreaField
+                id="savedMealPrepPreferences"
+                label="Meal prep preferences"
+                value={preferencesForm.mealPrepPreferences}
+                onChange={(value) =>
+                  updatePreferenceField("mealPrepPreferences", value)
+                }
+              />
+              <TextAreaField
+                id="savedWorkoutTrainingPreferences"
+                label="Workout/training preferences"
+                value={preferencesForm.workoutTrainingPreferences}
+                onChange={(value) =>
+                  updatePreferenceField("workoutTrainingPreferences", value)
+                }
+              />
+              <TextAreaField
+                id="savedRecurringResponsibilities"
+                label="Recurring responsibilities"
+                value={preferencesForm.recurringResponsibilities}
+                onChange={(value) =>
+                  updatePreferenceField("recurringResponsibilities", value)
+                }
+              />
+              <TextAreaField
+                id="thingsToAvoidAfterWork"
+                label="Things to avoid after work"
+                value={preferencesForm.thingsToAvoidAfterWork}
+                onChange={(value) =>
+                  updatePreferenceField("thingsToAvoidAfterWork", value)
+                }
+              />
+            </div>
+
+            <TextAreaField
+              id="planningNotes"
+              label="Planning notes"
+              value={preferencesForm.planningNotes}
+              onChange={(value) => updatePreferenceField("planningNotes", value)}
+            />
+
+            <button
+              type="submit"
+              disabled={isSavingPreferences}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-base font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            >
+              {isSavingPreferences ? "Saving..." : "Save preferences"}
+            </button>
+          </form>
+        </section>
 
         <div
           id="weekly-request"
@@ -1366,5 +1698,23 @@ function createPlanFeedbackForm(
     wouldUseWeekly: feedback.would_use_weekly,
     wouldPay9Month: feedback.would_pay_9_month,
     additionalNotes: feedback.additional_notes,
+  };
+}
+
+function createPreferencesForm(
+  preferences?: AppUserPreferences | null,
+): PreferencesFormState {
+  if (!preferences) return initialPreferencesForm;
+
+  return {
+    typicalShiftType: preferences.typical_shift_type,
+    usualCommuteTime: preferences.usual_commute_time,
+    preferredPlanStyle: preferences.preferred_plan_style,
+    mealPrepPreferences: preferences.meal_prep_preferences,
+    workoutTrainingPreferences: preferences.workout_training_preferences,
+    recurringResponsibilities: preferences.recurring_responsibilities,
+    thingsToAvoidAfterWork: preferences.things_to_avoid_after_work,
+    defaultWeekStartDay: preferences.default_week_start_day,
+    planningNotes: preferences.planning_notes,
   };
 }

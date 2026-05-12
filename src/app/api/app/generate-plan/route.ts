@@ -71,6 +71,20 @@ type AppAccessCodeLimits = {
   max_generations_per_day: number | null;
 };
 
+type AppUserPreferences = {
+  id: string;
+  app_user_id: string;
+  typical_shift_type: string;
+  usual_commute_time: string;
+  preferred_plan_style: string;
+  meal_prep_preferences: string;
+  workout_training_preferences: string;
+  recurring_responsibilities: string;
+  things_to_avoid_after_work: string;
+  default_week_start_day: string;
+  planning_notes: string;
+};
+
 type UsageSummary = {
   monthUsed: number;
   monthLimit: number;
@@ -117,6 +131,20 @@ const appSavedPlanColumns = [
   "usage_month",
   "usage_year",
   "generation_number_for_month",
+].join(",");
+
+const appUserPreferencesColumns = [
+  "id",
+  "app_user_id",
+  "typical_shift_type",
+  "usual_commute_time",
+  "preferred_plan_style",
+  "meal_prep_preferences",
+  "workout_training_preferences",
+  "recurring_responsibilities",
+  "things_to_avoid_after_work",
+  "default_week_start_day",
+  "planning_notes",
 ].join(",");
 
 export async function POST(request: Request) {
@@ -264,10 +292,23 @@ export async function POST(request: Request) {
       );
     }
 
+    const preferences = await getUserPreferences(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+    );
+
+    if (preferences === false) {
+      return NextResponse.json(
+        { message: "Could not load saved preferences right now." },
+        { status: 502 },
+      );
+    }
+
     const draft = await generatePlan(
       openAiApiKey,
       process.env.OPENAI_MODEL || "gpt-5.2",
-      buildPlanPrompt(planRequest),
+      buildPlanPrompt(planRequest, preferences),
     );
 
     if (!draft) {
@@ -312,6 +353,7 @@ export async function POST(request: Request) {
           request_status_before_generation: planRequest.status,
           schedule_type: planRequest.schedule_type,
           preferred_plan_style: planRequest.preferred_plan_style,
+          saved_preferences_used: Boolean(preferences),
           generated_at: new Date().toISOString(),
         },
         generation_source: "openai",
@@ -543,6 +585,31 @@ async function getExistingSavedPlan(
   return rows[0] || null;
 }
 
+async function getUserPreferences(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+) {
+  const query = new URLSearchParams({
+    select: appUserPreferencesColumns,
+    app_user_id: `eq.${appUserId}`,
+    limit: "1",
+  });
+
+  const response = await fetch(
+    `${supabaseRestUrl}/app_user_preferences?${query}`,
+    {
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) return false;
+
+  const rows = (await response.json()) as AppUserPreferences[];
+  return rows[0] || null;
+}
+
 async function getNextGenerationNumber(
   supabaseRestUrl: string,
   headers: Record<string, string>,
@@ -710,7 +777,10 @@ function buildPlanTitle(planRequest: AppPlanRequest) {
   return `ShiftPlan for ${formatReadableDate(planRequest.week_start_date)} - ${formatReadableDate(planRequest.week_end_date)}`;
 }
 
-function buildPlanPrompt(planRequest: AppPlanRequest) {
+function buildPlanPrompt(
+  planRequest: AppPlanRequest,
+  preferences: AppUserPreferences | null,
+) {
   return [
     "SHIFTPLAN APP WEEKLY PLAN",
     "",
@@ -759,6 +829,15 @@ function buildPlanPrompt(planRequest: AppPlanRequest) {
       ["Preferred plan style", planRequest.preferred_plan_style],
     ]),
     "",
+    "Saved user preferences:",
+    formatSavedPreferences(preferences),
+    "",
+    "Preference rules:",
+    "Use saved user preferences only when they help personalize routine planning.",
+    "Do not let saved preferences override the submitted week schedule, exact work shifts, safety boundaries, or customer request.",
+    "If saved preferences mention recurring responsibilities without exact days or times, keep them flexible and ask the user to place them on confirmed days rather than inventing dates.",
+    "Do not turn saved preferences into medical, diagnosis, medication, workplace safety, or emergency guidance.",
+    "",
     "Output rules:",
     "1. Create a realistic 7-day plan.",
     "2. Keep workdays simple.",
@@ -791,6 +870,47 @@ function buildPlanPrompt(planRequest: AppPlanRequest) {
     "Important disclaimer text to include:",
     "ShiftPlan is for lifestyle and routine organization only. This plan helps organize your week around work, meals, workouts, errands, appointments, recovery blocks, and personal responsibilities. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
   ].join("\n");
+}
+
+function formatSavedPreferences(preferences: AppUserPreferences | null) {
+  if (!preferences || !hasSavedPreferences(preferences)) {
+    return "Not saved yet.";
+  }
+
+  return formatPromptFields([
+    ["Typical shift type", preferences.typical_shift_type],
+    ["Usual commute time", preferences.usual_commute_time],
+    ["Preferred plan style", preferences.preferred_plan_style],
+    ["Meal prep preferences", preferences.meal_prep_preferences],
+    [
+      "Workout/training preferences",
+      preferences.workout_training_preferences,
+    ],
+    [
+      "Recurring responsibilities",
+      preferences.recurring_responsibilities,
+    ],
+    [
+      "Things to avoid after work",
+      preferences.things_to_avoid_after_work,
+    ],
+    ["Default week start day", preferences.default_week_start_day],
+    ["Planning notes", preferences.planning_notes],
+  ]);
+}
+
+function hasSavedPreferences(preferences: AppUserPreferences) {
+  return [
+    preferences.typical_shift_type,
+    preferences.usual_commute_time,
+    preferences.preferred_plan_style,
+    preferences.meal_prep_preferences,
+    preferences.workout_training_preferences,
+    preferences.recurring_responsibilities,
+    preferences.things_to_avoid_after_work,
+    preferences.default_week_start_day,
+    preferences.planning_notes,
+  ].some((value) => value.trim());
 }
 
 function formatCanonicalDateList(start: string, end: string) {

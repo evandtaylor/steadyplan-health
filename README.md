@@ -312,6 +312,14 @@ Current RLS approach:
 
 This is acceptable for an internal MVP but should be replaced with proper authentication, authorization, audit logging, and a privacy review before production use.
 
+## Future account migration
+
+The current `/app` experience uses private access-code beta accounts. App data is tied to `app_users.id`, including weekly requests, saved plans, usage events, and feedback.
+
+Future Supabase Auth can link `auth.users.id` to `app_users.auth_user_id`. Existing beta users should keep the same `app_users.id`, so saved plans, request history, feedback, and usage limits remain attached when an account is linked.
+
+Do not replace the access-code beta gate with public account creation until the auth, billing, privacy, and migration flows are ready.
+
 ## Current routes
 
 Public pages:

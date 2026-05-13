@@ -782,6 +782,44 @@ function AppDashboard({
           </div>
         </div>
 
+        <article className="mt-6 rounded-lg border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold uppercase text-teal-700">
+                Private beta
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">
+                How to test ShiftPlan
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                ShiftPlan is in private beta. Here&apos;s the best way to test it:
+              </p>
+            </div>
+            <p className="rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600 lg:max-w-sm">
+              App-generated plans may not be manually reviewed before you see
+              them. Always review and adjust the plan for your real life before
+              relying on it.
+            </p>
+          </div>
+          <ol className="mt-5 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              "Save what ShiftPlan should remember.",
+              "Create this week's request.",
+              "Generate your ShiftPlan.",
+              "Review dates, shift times, appointments, and assumptions.",
+              "Use the plan as a flexible guide during the week.",
+              "Leave feedback under the plan so ShiftPlan can improve.",
+            ].map((step, index) => (
+              <li key={step} className="flex gap-3 rounded-lg bg-slate-50 p-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-800 text-xs font-semibold text-white">
+                  {index + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </article>
+
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">

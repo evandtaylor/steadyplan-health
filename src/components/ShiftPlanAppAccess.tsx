@@ -459,6 +459,7 @@ function AppDashboard({
     Record<string, string>
   >({});
   const [copiedPlanId, setCopiedPlanId] = useState("");
+  const [copiedSummaryPlanId, setCopiedSummaryPlanId] = useState("");
   const [usage, setUsage] = useState<AppUsageSummary>({
     month_used: 0,
     month_limit: 4,
@@ -762,6 +763,16 @@ function AppDashboard({
     }
   }
 
+  async function handleCopyWeekSummary(plan: AppSavedPlan) {
+    try {
+      await navigator.clipboard.writeText(buildWeekSummary(plan));
+      setCopiedSummaryPlanId(plan.id);
+      window.setTimeout(() => setCopiedSummaryPlanId(""), 1800);
+    } catch {
+      setCopiedSummaryPlanId("");
+    }
+  }
+
   function handleFeedbackSaved(planId: string, feedback: AppPlanFeedback) {
     setRequests((current) =>
       current.map((request) =>
@@ -926,13 +937,24 @@ function AppDashboard({
                             {plan.plan_title || "Generated weekly plan"}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => void handleCopyPlan(plan)}
-                          className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                        >
-                          {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyWeekSummary(plan)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                          >
+                            {copiedSummaryPlanId === plan.id
+                              ? "Copied"
+                              : "Copy Week Summary"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyPlan(plan)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                          >
+                            {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
+                          </button>
+                        </div>
                       </div>
                       <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-950">
                         AI-generated draft. Review dates, shift times,
@@ -1534,6 +1556,71 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="mt-2">{body}</p>
     </div>
   );
+}
+
+function buildWeekSummary(plan: AppSavedPlan) {
+  const title = plan.plan_title || "Generated weekly ShiftPlan";
+  const dateRange = formatDateRange(plan.week_start_date, plan.week_end_date);
+  const snapshot = extractPlanSection(plan.plan_body, "Week Snapshot");
+  const fallback = plan.plan_body
+    .split(/\r?\n/)
+    .map(cleanSummaryLine)
+    .filter(Boolean)
+    .slice(0, 6);
+  const summaryLines = snapshot.length > 0 ? snapshot : fallback;
+
+  return [
+    title,
+    dateRange,
+    "",
+    "Week summary:",
+    ...summaryLines.map((line) => (line.startsWith("-") ? line : `- ${line}`)),
+  ].join("\n");
+}
+
+function extractPlanSection(body: string, heading: string) {
+  const lines = body.split(/\r?\n/);
+  const sectionLines: string[] = [];
+  let isInSection = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const normalizedHeading = trimmed
+      .replace(/^#{1,4}\s+/, "")
+      .replace(/:$/, "")
+      .toLowerCase();
+
+    if (normalizedHeading === heading.toLowerCase()) {
+      isInSection = true;
+      continue;
+    }
+
+    if (isInSection && isLikelyPlanHeading(trimmed)) break;
+
+    if (isInSection) {
+      const cleaned = cleanSummaryLine(trimmed);
+      if (cleaned) sectionLines.push(cleaned);
+    }
+  }
+
+  return sectionLines.slice(0, 6);
+}
+
+function isLikelyPlanHeading(value: string) {
+  if (!value) return false;
+  if (/^#{1,4}\s+/.test(value)) return true;
+  return value.endsWith(":") && value.length < 80;
+}
+
+function cleanSummaryLine(value: string) {
+  return value
+    .replace(/^#{1,4}\s+/, "")
+    .replace(/^[-*•]\s*/, "")
+    .replace(/^(?:\[[ xX]\]|[☐☑])\s*/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .trim();
 }
 
 function PlanBody({ body }: { body: string }) {

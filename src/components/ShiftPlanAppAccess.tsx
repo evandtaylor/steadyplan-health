@@ -896,6 +896,10 @@ function AppDashboard({
                           </span>
                         </div>
                         <PlanBody body={plan.plan_body} />
+                        <InteractiveChecklist
+                          planId={plan.id}
+                          planBody={plan.plan_body}
+                        />
                       </section>
 
                       <section
@@ -1539,6 +1543,115 @@ function PlanBody({ body }: { body: string }) {
       </div>
     </div>
   );
+}
+
+function InteractiveChecklist({
+  planId,
+  planBody,
+}: {
+  planId: string;
+  planBody: string;
+}) {
+  const items = useMemo(() => parseChecklistItems(planBody), [planBody]);
+  const storageKey = `shiftplan:checklist:${planId}`;
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(
+    () => readStoredChecklist(storageKey),
+  );
+
+  if (items.length === 0) return null;
+
+  const completedCount = items.filter((item) => checkedItems[item.id]).length;
+
+  function toggleItem(itemId: string) {
+    setCheckedItems((current) => {
+      const next = { ...current, [itemId]: !current[itemId] };
+
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // Checklist state is a convenience feature; the plan remains usable.
+      }
+
+      return next;
+    });
+  }
+
+  return (
+    <div className="mt-4 rounded-lg border border-teal-200 bg-white p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h5 className="text-base font-semibold text-slate-950">
+            Interactive checklist
+          </h5>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Tap items as you work through this plan.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-800">
+          {completedCount} of {items.length} complete
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2">
+        {items.map((item) => {
+          const isChecked = Boolean(checkedItems[item.id]);
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => toggleItem(item.id)}
+              className="flex w-full gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              aria-pressed={isChecked}
+            >
+              <span
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
+                  isChecked
+                    ? "border-teal-700 bg-teal-700 text-white"
+                    : "border-slate-300 bg-white text-transparent"
+                }`}
+              >
+                ✓
+              </span>
+              <span className={isChecked ? "text-slate-500 line-through" : ""}>
+                {item.text}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function readStoredChecklist(storageKey: string) {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function parseChecklistItems(body: string) {
+  return body
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const trimmed = line.trim();
+      const markdown = trimmed.match(/^[-*]\s+\[[ xX]\]\s+(.+)$/);
+      const box = trimmed.match(/^[☐☑]\s*(.+)$/);
+      const text = markdown?.[1] || box?.[1] || "";
+
+      return text.trim()
+        ? {
+            id: `${index}-${text.trim().toLowerCase()}`,
+            text: text.trim(),
+          }
+        : null;
+    })
+    .filter((item): item is { id: string; text: string } => Boolean(item));
 }
 
 function PlanFeedbackForm({

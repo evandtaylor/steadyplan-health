@@ -1629,6 +1629,7 @@ function InteractiveChecklist({
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(
     () => readStoredChecklist(storageKey),
   );
+  const [copyState, setCopyState] = useState<"" | "copied" | "failed">("");
 
   if (items.length === 0) {
     return (
@@ -1658,6 +1659,21 @@ function InteractiveChecklist({
     });
   }
 
+  async function copyChecklist() {
+    try {
+      const checklistText = items
+        .map((item) => `${checkedItems[item.id] ? "[x]" : "[ ]"} ${item.text}`)
+        .join("\n");
+
+      await navigator.clipboard.writeText(checklistText);
+      setCopyState("copied");
+      window.setTimeout(() => setCopyState(""), 1800);
+    } catch {
+      setCopyState("failed");
+      window.setTimeout(() => setCopyState(""), 2200);
+    }
+  }
+
   return (
     <div className="mt-4 rounded-lg border border-teal-200 bg-white p-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1673,6 +1689,18 @@ function InteractiveChecklist({
           {completedCount} of {items.length} complete
         </span>
       </div>
+
+      <button
+        type="button"
+        onClick={() => void copyChecklist()}
+        className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+      >
+        {copyState === "failed"
+          ? "Copy failed"
+          : copyState === "copied"
+            ? "Copied"
+            : "Copy Checklist"}
+      </button>
 
       <div className="mt-4 grid gap-2">
         {items.map((item) => {

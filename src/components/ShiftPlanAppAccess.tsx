@@ -1636,22 +1636,44 @@ function readStoredChecklist(storageKey: string) {
 }
 
 function parseChecklistItems(body: string) {
+  const seenItems = new Set<string>();
+
   return body
     .split(/\r?\n/)
-    .map((line, index) => {
+    .map((line) => {
       const trimmed = line.trim();
-      const markdown = trimmed.match(/^[-*]\s+\[[ xX]\]\s+(.+)$/);
-      const box = trimmed.match(/^[☐☑]\s*(.+)$/);
-      const text = markdown?.[1] || box?.[1] || "";
+      const checklist = trimmed.match(
+        /^(?:[-*•]\s*)?(?:\[[ xX]\]|[☐☑])\s*(.+)$/,
+      );
+      const text = checklist ? cleanChecklistText(checklist[1]) : "";
+      const itemKey = normalizeChecklistKey(text);
 
-      return text.trim()
+      if (!text || seenItems.has(itemKey)) return null;
+
+      seenItems.add(itemKey);
+
+      return itemKey
         ? {
-            id: `${index}-${text.trim().toLowerCase()}`,
-            text: text.trim(),
+            id: itemKey,
+            text,
           }
         : null;
     })
     .filter((item): item is { id: string; text: string } => Boolean(item));
+}
+
+function cleanChecklistText(value: string) {
+  return value
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeChecklistKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function PlanFeedbackForm({

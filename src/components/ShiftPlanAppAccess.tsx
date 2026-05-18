@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import Link from "next/link";
 
 type ShiftPlanAppAccessProps = {
   initialAccess?: {
@@ -315,15 +316,23 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div>
           <p className="inline-flex rounded-lg bg-teal-400/10 px-3 py-2 text-sm font-semibold uppercase text-teal-200 ring-1 ring-teal-300/20">
-            ShiftPlan app preview
+            Private beta access
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl">
-            Your weekly planning workspace is taking shape.
+            Open your ShiftPlan app workspace.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            Enter your early access email and code to preview the gated
-            ShiftPlan app foundation.
+            ShiftPlan is in private beta. Use the email and access code you
+            were given to open your weekly planning workspace.
           </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/beta/shiftplan"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300/30 bg-teal-300/10 px-5 py-3 text-sm font-semibold text-teal-100 transition hover:bg-teal-300/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-teal-300 sm:w-fit"
+            >
+              Don&apos;t have access? Join the waitlist
+            </Link>
+          </div>
           <p className="mt-5 rounded-lg border border-slate-700 bg-slate-900 p-4 text-sm leading-6 text-slate-300">
             {safetyCopy}
           </p>
@@ -335,11 +344,12 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
               Early access
             </p>
             <h2 className="mt-2 text-2xl font-semibold">
-              Open ShiftPlan app
+              Have beta access? Log in
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Use the email and access code connected to your early access
-              invite.
+              Enter the exact email and access code from your ShiftPlan beta
+              invite. Access codes are private and not the same as a public
+              account.
             </p>
           </div>
 

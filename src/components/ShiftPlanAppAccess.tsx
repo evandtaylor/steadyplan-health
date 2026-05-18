@@ -245,6 +245,17 @@ const weekStartDayOptions = [
   "Sunday",
 ];
 
+const futureFeatureOptions = [
+  "Interactive checklist",
+  "Add to calendar",
+  "Weekly reminders",
+  "Better mobile app layout",
+  "Editable plans",
+  "Plan history",
+  "Today view",
+  "iPhone app",
+];
+
 const safetyCopy =
   "ShiftPlan helps organize your weekly routine around your shift schedule. App-generated AI plans may not be manually reviewed before you see them, and they may contain errors, omissions, unrealistic suggestions, incorrect assumptions, or date and time mistakes. Review and adjust each plan before relying on it. ShiftPlan is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. No outcome is guaranteed.";
 
@@ -1882,6 +1893,25 @@ function PlanFeedbackForm({
             updateField("whatShouldShiftPlanRemember", value)
           }
         />
+        <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
+          <p className="text-sm font-semibold text-teal-950">
+            Which 3 future features would matter most to you?
+          </p>
+          <p className="mt-2 text-sm leading-6 text-teal-900">
+            Add your picks in Additional notes so we can learn what should come
+            next.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {futureFeatureOptions.map((feature) => (
+              <span
+                key={feature}
+                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-900 ring-1 ring-teal-200"
+              >
+                {feature}
+              </span>
+            ))}
+          </div>
+        </div>
         <TextAreaField
           id={`notes-${plan.id}`}
           label="Additional notes"

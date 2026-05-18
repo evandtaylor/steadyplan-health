@@ -442,6 +442,7 @@ function AppDashboard({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [requestMessage, setRequestMessage] = useState("");
   const [requestReuseMessage, setRequestReuseMessage] = useState("");
+  const [weeklyChangeNote, setWeeklyChangeNote] = useState("");
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [isSavingRequest, setIsSavingRequest] = useState(false);
   const [preferences, setPreferences] = useState<AppUserPreferences | null>(
@@ -572,6 +573,7 @@ function AppDashboard({
     });
     setErrors({});
     setRequestMessage("");
+    setWeeklyChangeNote("");
     setRequestReuseMessage(
       "We copied your previous request. Update anything that changed, then save this week's request.",
     );
@@ -659,7 +661,7 @@ function AppDashboard({
           schedule_type: form.scheduleType,
           work_schedule: form.workSchedule,
           commute_time: form.commuteTime,
-          main_goal: form.mainGoal,
+          main_goal: buildMainGoalWithChangeNote(form.mainGoal, weeklyChangeNote),
           meal_prep_needs: form.mealPrepNeeds,
           workout_training_goals: form.workoutTrainingGoals,
           appointments: form.appointments,
@@ -684,6 +686,7 @@ function AppDashboard({
 
       setRequests((current) => [result.request as WeeklyRequest, ...current]);
       setForm(initialWeeklyRequestForm);
+      setWeeklyChangeNote("");
       setRequestMessage("Weekly request saved.");
       setRequestReuseMessage("");
     } catch {
@@ -1381,6 +1384,22 @@ function AppDashboard({
                 />
               </Field>
 
+              {requestReuseMessage ? (
+                <Field
+                  id="weeklyChangeNote"
+                  label="What changed from the last plan?"
+                  helpText="Optional. Add what is different this week so the new request does not feel like a stale copy."
+                >
+                  <textarea
+                    id="weeklyChangeNote"
+                    name="weeklyChangeNote"
+                    value={weeklyChangeNote}
+                    onChange={(event) => setWeeklyChangeNote(event.target.value)}
+                    className="field-control min-h-24"
+                  />
+                </Field>
+              ) : null}
+
               <div className="grid gap-5 md:grid-cols-2">
                 <TextAreaField
                   id="mealPrepNeeds"
@@ -1647,6 +1666,20 @@ function cleanSummaryLine(value: string) {
     .replace(/__(.*?)__/g, "$1")
     .replace(/`(.*?)`/g, "$1")
     .trim();
+}
+
+function buildMainGoalWithChangeNote(mainGoal: string, changeNote: string) {
+  const trimmedGoal = mainGoal.trim();
+  const trimmedChange = changeNote.trim();
+
+  if (!trimmedChange) return trimmedGoal;
+
+  return [
+    trimmedGoal,
+    "",
+    "What changed from the last plan:",
+    trimmedChange,
+  ].join("\n");
 }
 
 function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {

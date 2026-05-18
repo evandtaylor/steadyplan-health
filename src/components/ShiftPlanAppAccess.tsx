@@ -474,6 +474,9 @@ function AppDashboard({
   >({});
   const [copiedPlanId, setCopiedPlanId] = useState("");
   const [copiedSummaryPlanId, setCopiedSummaryPlanId] = useState("");
+  const [downloadedCalendarPlanId, setDownloadedCalendarPlanId] = useState("");
+  const [calendarDownloadFailedPlanId, setCalendarDownloadFailedPlanId] =
+    useState("");
   const [expandedPlanIds, setExpandedPlanIds] = useState<Record<string, boolean>>(
     {},
   );
@@ -792,6 +795,32 @@ function AppDashboard({
     }
   }
 
+  function handleDownloadCalendar(plan: AppSavedPlan, request?: WeeklyRequest) {
+    try {
+      const calendarText = buildCalendarFile(plan, request);
+      const blob = new Blob([calendarText], {
+        type: "text/calendar;charset=utf-8",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `shiftplan-${plan.week_start_date || "week"}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setCalendarDownloadFailedPlanId("");
+      setDownloadedCalendarPlanId(plan.id);
+      window.setTimeout(() => setDownloadedCalendarPlanId(""), 1800);
+    } catch {
+      setDownloadedCalendarPlanId("");
+      setCalendarDownloadFailedPlanId(plan.id);
+      window.setTimeout(() => setCalendarDownloadFailedPlanId(""), 2200);
+    }
+  }
+
   function togglePlanExpanded(planId: string) {
     setExpandedPlanIds((current) => ({
       ...current,
@@ -965,11 +994,16 @@ function AppDashboard({
               />
             ) : (
               <div className="mt-4 grid gap-4">
-                {savedPlans.map((plan) => (
-                  <article
-                    key={plan.id}
-                    className="overflow-hidden rounded-lg border border-teal-200 bg-white shadow-sm"
-                  >
+                {savedPlans.map((plan) => {
+                  const planRequest = requests.find(
+                    (request) => request.id === plan.plan_request_id,
+                  );
+
+                  return (
+                    <article
+                      key={plan.id}
+                      className="overflow-hidden rounded-lg border border-teal-200 bg-white shadow-sm"
+                    >
                     <div className="border-b border-teal-100 bg-teal-50 p-4 sm:p-5">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div>
@@ -998,6 +1032,19 @@ function AppDashboard({
                           </button>
                           <button
                             type="button"
+                            onClick={() =>
+                              handleDownloadCalendar(plan, planRequest)
+                            }
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                          >
+                            {calendarDownloadFailedPlanId === plan.id
+                              ? "Download failed"
+                              : downloadedCalendarPlanId === plan.id
+                                ? "Downloaded"
+                                : "Download Calendar"}
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => void handleCopyPlan(plan)}
                             className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
                           >
@@ -1008,6 +1055,10 @@ function AppDashboard({
                       <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-950">
                         AI-generated draft. Review dates, shift times,
                         appointments, assumptions, and fit before using it.
+                      </p>
+                      <p className="mt-3 text-xs leading-5 text-teal-900">
+                        Calendar download creates an .ics file you can import
+                        into your calendar. Review times before relying on it.
                       </p>
                     </div>
 
@@ -1053,7 +1104,8 @@ function AppDashboard({
                       </section>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             )}
           </article>
@@ -1638,6 +1690,140 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="mt-2">{body}</p>
     </div>
   );
+}
+
+function buildCalendarFile(plan: AppSavedPlan, request?: WeeklyRequest) {
+  const dateList = buildPlanDateList(plan.week_start_date, plan.week_end_date);
+  if (dateList.length === 0) {
+    throw new Error("Cannot build calendar without a valid date range.");
+  }
+
+  const checklistGroups = parseChecklistGroups(plan.plan_body);
+  const generalGroup = checklistGroups.find((group) => group.label === "General");
+  const timestamp = formatIcsTimestamp(new Date());
+  const events = dateList.map((day, index) => {
+    const matchingGroup = checklistGroups.find(
+      (group) =>
+        group.label !== "General" &&
+        normalizeChecklistKey(group.label).startsWith(
+          normalizeChecklistKey(day.weekday),
+        ),
+    );
+    const items = matchingGroup?.items || [];
+    const generalItems = index === 0 ? generalGroup?.items || [] : [];
+    const descriptionParts = [
+      "Generated by ShiftPlan. Review and adjust for your real life before relying on it.",
+      request?.work_schedule
+        ? `Submitted work schedule: ${request.work_schedule}`
+        : "",
+      items.length > 0
+        ? `Checklist:\n${items.map((item) => `- ${item.text}`).join("\n")}`
+        : "Review the saved ShiftPlan for this day.",
+      generalItems.length > 0
+        ? `General notes:\n${generalItems
+            .map((item) => `- ${item.text}`)
+            .join("\n")}`
+        : "",
+    ].filter(Boolean);
+
+    return buildAllDayIcsEvent({
+      uid: `shiftplan-${plan.id}-${day.date}@shiftplan.ai`,
+      timestamp,
+      date: day.date,
+      summary: `ShiftPlan: ${day.weekday} Plan`,
+      description: descriptionParts.join("\n\n"),
+    });
+  });
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//ShiftPlan//ShiftPlan App//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    ...events,
+    "END:VCALENDAR",
+    "",
+  ].join("\r\n");
+}
+
+function buildAllDayIcsEvent({
+  uid,
+  timestamp,
+  date,
+  summary,
+  description,
+}: {
+  uid: string;
+  timestamp: string;
+  date: string;
+  summary: string;
+  description: string;
+}) {
+  return [
+    "BEGIN:VEVENT",
+    `UID:${escapeIcsText(uid)}`,
+    `DTSTAMP:${timestamp}`,
+    `DTSTART;VALUE=DATE:${formatIcsDate(date)}`,
+    `DTEND;VALUE=DATE:${formatIcsDate(addDaysToIsoDate(date, 1))}`,
+    `SUMMARY:${escapeIcsText(summary)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
+    "END:VEVENT",
+  ].join("\r\n");
+}
+
+function buildPlanDateList(startDate: string, endDate: string) {
+  if (!isValidIsoDate(startDate) || !isValidIsoDate(endDate)) return [];
+
+  const dates: Array<{ date: string; weekday: string }> = [];
+  let currentDate = startDate;
+
+  for (let index = 0; index < 7; index += 1) {
+    if (currentDate > endDate) break;
+
+    dates.push({
+      date: currentDate,
+      weekday: formatWeekday(currentDate),
+    });
+    currentDate = addDaysToIsoDate(currentDate, 1);
+  }
+
+  return dates;
+}
+
+function isValidIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function addDaysToIsoDate(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatWeekday(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
+}
+
+function formatIcsDate(value: string) {
+  return value.replace(/-/g, "");
+}
+
+function formatIcsTimestamp(date: Date) {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
+function escapeIcsText(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\r?\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
 }
 
 function buildWeekSummary(plan: AppSavedPlan) {

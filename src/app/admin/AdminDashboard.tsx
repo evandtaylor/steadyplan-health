@@ -1199,11 +1199,26 @@ function AppAccessCodeManager({
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState("");
+  const [latestInvite, setLatestInvite] = useState<{
+    email: string;
+    accessCode: string;
+    codeLabel: string;
+  } | null>(null);
+  const [inviteCopyState, setInviteCopyState] = useState<
+    "" | "copied" | "failed"
+  >("");
 
   async function handleCreateAccessCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setMessage("");
+    setLatestInvite(null);
+    setInviteCopyState("");
+    const rawInvite = {
+      email: form.email.trim(),
+      accessCode: form.accessCode.trim(),
+      codeLabel: form.codeLabel.trim(),
+    };
 
     try {
       const response = await fetch("/api/admin/app-access-codes", {
@@ -1232,6 +1247,7 @@ function AppAccessCodeManager({
       }
 
       onAccessCodeSaved(result.accessCode);
+      setLatestInvite(rawInvite);
       setForm({
         email: "",
         accessCode: "",
@@ -1250,6 +1266,25 @@ function AppAccessCodeManager({
       setMessage("Could not reach the app access code route right now.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleCopyInviteMessage() {
+    if (!latestInvite) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        buildBetaInviteMessage({
+          email: latestInvite.email,
+          accessCode: latestInvite.accessCode,
+          codeLabel: latestInvite.codeLabel,
+        }),
+      );
+      setInviteCopyState("copied");
+      window.setTimeout(() => setInviteCopyState(""), 1800);
+    } catch {
+      setInviteCopyState("failed");
+      window.setTimeout(() => setInviteCopyState(""), 2200);
     }
   }
 
@@ -1485,6 +1520,29 @@ function AppAccessCodeManager({
           >
             {isSaving ? "Creating..." : "Create access code"}
           </button>
+
+          {latestInvite ? (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+              <p className="font-semibold">
+                Save this code now. ShiftPlan does not store raw access codes.
+              </p>
+              <p className="mt-2">
+                The invite copier uses the code you just typed and will clear
+                after a page refresh.
+              </p>
+              <button
+                type="button"
+                onClick={() => void handleCopyInviteMessage()}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:w-fit"
+              >
+                {inviteCopyState === "failed"
+                  ? "Copy failed"
+                  : inviteCopyState === "copied"
+                    ? "Copied"
+                    : "Copy invite message"}
+              </button>
+            </div>
+          ) : null}
         </form>
 
         {accessCodes.length === 0 ? (
@@ -2919,6 +2977,43 @@ function formatBillingPeriod(intake: ShiftPlanPaidIntake) {
   if (!start && !end) return "Not set";
   if (start && end) return `${formatPlainDate(start)} to ${formatPlainDate(end)}`;
   return formatPlainDate(start || end || "");
+}
+
+function buildBetaInviteMessage({
+  email,
+  accessCode,
+  codeLabel,
+}: {
+  email: string;
+  accessCode: string;
+  codeLabel: string;
+}) {
+  return [
+    "You are invited to test ShiftPlan private beta.",
+    "",
+    "ShiftPlan helps nurses and shift workers turn messy shift schedules into realistic weekly routine plans around shifts, meals, workouts, errands, appointments, and personal responsibilities.",
+    "",
+    "Website:",
+    "https://www.shiftplan.ai/app",
+    "",
+    "Your beta access:",
+    `Email: ${email}`,
+    `Access code: ${accessCode}`,
+    ...(codeLabel ? [`Access label: ${codeLabel}`] : []),
+    "",
+    "How to test:",
+    "1. Open the ShiftPlan app link.",
+    "2. Enter the email and access code above.",
+    "3. Save what ShiftPlan should remember.",
+    "4. Create this week's request.",
+    "5. Generate your ShiftPlan.",
+    "6. Review dates, shift times, appointments, and assumptions before using it.",
+    "7. Leave honest feedback under the plan.",
+    "",
+    "ShiftPlan is for lifestyle and routine organization only, not medical advice, treatment, workplace safety guidance, or emergency support.",
+    "",
+    "Thank you for testing and being honest about what works, what feels off, and what should improve next.",
+  ].join("\n");
 }
 
 function buildAiPrompt(

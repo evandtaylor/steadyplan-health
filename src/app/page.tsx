@@ -63,6 +63,24 @@ const appSignals = [
   { label: "Errands batched", value: "Fri" },
 ];
 
+const appBetaFeatures = [
+  "AI weekly plan generation",
+  "Saved preferences",
+  "Plan history",
+  "Use last week as a starting point",
+  "Feedback under each plan",
+];
+
+const comingNextFeatures = [
+  "More human plan output",
+  "Interactive checklist",
+  "Add-to-calendar export",
+  "Weekly reminders",
+  "Better mobile app layout",
+  "Public accounts later",
+  "iPhone app later",
+];
+
 const faqItems = [
   {
     question: "Is ShiftPlan medical advice?",
@@ -244,8 +262,72 @@ export default function Home() {
         id="pricing"
         className="relative overflow-hidden bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(18,191,174,0.18),transparent_42%),radial-gradient(ellipse_at_bottom_left,rgba(21,87,255,0.2),transparent_38%)]" />
-        <div className="relative mx-auto max-w-6xl">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(21,87,255,0.22),transparent_38%),radial-gradient(ellipse_at_bottom_left,rgba(18,191,174,0.18),transparent_36%)]" />
+        <div className="relative z-10 mx-auto mb-14 max-w-6xl rounded-lg border border-teal-300/20 bg-white/[0.06] p-6 shadow-[0_0_60px_rgba(20,184,166,0.12)] backdrop-blur sm:p-8">
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
+            <div>
+              <p className="text-sm font-semibold uppercase text-teal-200">
+                In private beta now
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+                The AI weekly planner built around shift work.
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-slate-300">
+                Enter your shifts, priorities, meals, workouts, errands,
+                appointments, and responsibilities. ShiftPlan turns them into a
+                realistic weekly plan around your actual work schedule.
+              </p>
+              <p className="mt-4 text-sm leading-6 text-slate-400">
+                ShiftPlan is for lifestyle and routine organization only. It is
+                not medical advice, treatment, healthcare guidance, workplace
+                safety guidance, or emergency support.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <TrackedLink
+                  href="/beta/shiftplan"
+                  eventName="waitlist_cta_click"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-300 px-5 py-3 text-base font-semibold text-slate-950 shadow-[0_0_32px_rgba(45,212,191,0.18)] transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                >
+                  Join the waitlist
+                </TrackedLink>
+                <TrackedLink
+                  href="/beta/shiftplan"
+                  eventName="beta_apply_cta_click"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-5 py-3 text-base font-semibold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                >
+                  Apply for private beta
+                </TrackedLink>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-lg border border-teal-300/20 bg-teal-300/10 p-5">
+                <h3 className="font-semibold text-teal-50">Available now</h3>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                  {appBetaFeatures.map((feature) => (
+                    <li key={feature} className="flex gap-3">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-teal-300" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-slate-950/65 p-5">
+                <h3 className="font-semibold text-white">Coming next</h3>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                  {comingNextFeatures.map((feature) => (
+                    <li key={feature} className="flex gap-3">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-blue-300" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(18,191,174,0.18),transparent_42%),radial-gradient(ellipse_at_bottom_left,rgba(21,87,255,0.2),transparent_38%)]" />
+        <div className="relative z-10 mx-auto max-w-6xl">
           <SectionIntro
             eyebrow="Beta offers"
             title="Choose the ShiftPlan that fits your schedule."

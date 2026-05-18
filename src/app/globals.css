@@ -43,6 +43,25 @@ a {
   box-shadow: 0 0 0 3px rgb(20 184 166 / 18%);
 }
 
+.shiftplan-dark-form .field-control {
+  border-color: rgb(255 255 255 / 0.14);
+  background: rgb(2 6 23 / 0.72);
+  color: #f8fafc;
+}
+
+.shiftplan-dark-form .field-control::placeholder {
+  color: #64748b;
+}
+
+.shiftplan-dark-form .field-control:focus {
+  border-color: #2dd4bf;
+  box-shadow: 0 0 0 3px rgb(45 212 191 / 18%);
+}
+
+.shiftplan-dark-form select.field-control option {
+  color: #0f172a;
+}
+
 @media print {
   @page {
     margin: 0.5in;

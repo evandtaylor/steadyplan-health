@@ -4,24 +4,24 @@ import { ShiftPlanLogo } from "@/components/ShiftPlanLogo";
 
 export function Footer() {
   return (
-    <footer className="border-t border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-8">
+    <footer className="border-t border-white/10 bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-start">
         <div>
-          <ShiftPlanLogo variant="light" />
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <ShiftPlanLogo variant="dark" />
+          <p className="mt-2 text-sm leading-6 text-slate-300">
             A ShiftPlan-first MVP from SteadyPlan Health, built for lifestyle
             organization around irregular work schedules.
           </p>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
             {siteDisclaimer}
           </p>
         </div>
         <div className="flex flex-col gap-3 text-sm">
-          <p className="font-semibold text-slate-950">Explore</p>
+          <p className="font-semibold text-white">Explore</p>
           <div className="flex flex-wrap gap-2">
             <Link
               href="/"
-              className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="rounded-md px-2 py-1 text-slate-300 hover:bg-white/10 hover:text-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300"
             >
               Home
             </Link>
@@ -29,7 +29,7 @@ export function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-md px-2 py-1 text-slate-600 hover:bg-slate-100 hover:text-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="rounded-md px-2 py-1 text-slate-300 hover:bg-white/10 hover:text-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300"
               >
                 {link.label}
               </Link>

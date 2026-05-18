@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { DisclaimerBox } from "@/components/DisclaimerBox";
-import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -10,17 +8,24 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <section className="px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <SectionHeading
-          eyebrow="Privacy"
-          title="ShiftPlan privacy"
-          description="This page explains what ShiftPlan collects, why it is collected, and how to contact us about your information."
-        />
+    <section className="relative overflow-hidden bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(20,184,166,0.24),transparent_32%),radial-gradient(circle_at_86%_4%,rgba(96,165,250,0.18),transparent_26%),linear-gradient(180deg,#020617_0%,#08111f_48%,#020617_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/40 to-transparent" />
+      <div className="relative mx-auto max-w-3xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-200">
+          Privacy
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          ShiftPlan privacy
+        </h1>
+        <p className="mt-5 text-lg leading-8 text-slate-300">
+          This page explains what ShiftPlan collects, why it is collected, and
+          how to contact us about your information.
+        </p>
 
-        <div className="mt-8 space-y-8 text-base leading-8 text-slate-700">
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+        <div className="mt-8 grid gap-5 text-base leading-8 text-slate-300">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               What ShiftPlan is
             </h2>
             <p className="mt-3">
@@ -31,8 +36,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               What we may collect
             </h2>
             <p className="mt-3">
@@ -45,8 +50,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Sensitive information
             </h2>
             <p className="mt-3">
@@ -59,8 +64,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               How we use information
             </h2>
             <p className="mt-3">
@@ -70,8 +75,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-teal-300/20 bg-teal-300/10 p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-teal-50">
               AI-assisted draft plans
             </h2>
             <p className="mt-3">
@@ -100,8 +105,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Payments and storage
             </h2>
             <p className="mt-3">
@@ -112,8 +117,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Sharing and selling
             </h2>
             <p className="mt-3">
@@ -124,8 +129,8 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Contact and deletion requests
             </h2>
             <p className="mt-3">
@@ -133,7 +138,7 @@ export default function PrivacyPage() {
               submitted, contact{" "}
               <a
                 href="mailto:support@shiftplan.ai"
-                className="font-semibold text-teal-800 underline-offset-4 hover:underline"
+                className="font-semibold text-teal-200 underline-offset-4 hover:underline"
               >
                 support@shiftplan.ai
               </a>
@@ -142,9 +147,11 @@ export default function PrivacyPage() {
           </section>
         </div>
 
-        <div className="mt-8">
-          <DisclaimerBox />
-        </div>
+        <aside className="mt-6 rounded-lg border border-white/10 bg-slate-950/70 p-5 text-sm leading-6 text-slate-300 shadow-sm">
+          ShiftPlan is for lifestyle and routine organization only. It does not
+          provide medical advice, diagnosis, treatment, healthcare guidance, or
+          emergency support.
+        </aside>
       </div>
     </section>
   );

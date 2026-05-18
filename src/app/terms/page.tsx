@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { DisclaimerBox } from "@/components/DisclaimerBox";
-import { SectionHeading } from "@/components/SectionHeading";
 
 export const metadata: Metadata = {
   title: "Terms",
@@ -9,17 +7,24 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <section className="px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <SectionHeading
-          eyebrow="Terms"
-          title="ShiftPlan terms"
-          description="These terms explain the basic rules, safety boundaries, and current ShiftPlan offers."
-        />
+    <section className="relative overflow-hidden bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(20,184,166,0.24),transparent_32%),radial-gradient(circle_at_86%_4%,rgba(96,165,250,0.18),transparent_26%),linear-gradient(180deg,#020617_0%,#08111f_48%,#020617_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/40 to-transparent" />
+      <div className="relative mx-auto max-w-3xl">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-200">
+          Terms
+        </p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          ShiftPlan terms
+        </h1>
+        <p className="mt-5 text-lg leading-8 text-slate-300">
+          These terms explain the basic rules, safety boundaries, and current
+          ShiftPlan offers.
+        </p>
 
-        <div className="mt-8 space-y-8 text-base leading-8 text-slate-700">
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+        <div className="mt-8 grid gap-5 text-base leading-8 text-slate-300">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               What ShiftPlan provides
             </h2>
             <p className="mt-3">
@@ -30,8 +35,8 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-teal-300/20 bg-teal-300/10 p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-teal-50">
               Safety boundaries
             </h2>
             <p className="mt-3">
@@ -45,8 +50,8 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               AI-assisted planning
             </h2>
             <p className="mt-3">
@@ -66,13 +71,13 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Current offers
             </h2>
             <div className="mt-3 grid gap-4">
-              <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h3 className="font-semibold text-slate-950">
+              <div className="rounded-lg border border-white/10 bg-slate-950/45 p-4">
+                <h3 className="font-semibold text-white">
                   Free 3x12 Shift Worker Reset Plan
                 </h3>
                 <p className="mt-2">
@@ -80,8 +85,8 @@ export default function TermsPage() {
                   around three 12-hour shifts.
                 </p>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h3 className="font-semibold text-slate-950">
+              <div className="rounded-lg border border-white/10 bg-slate-950/45 p-4">
+                <h3 className="font-semibold text-white">
                   $9 one-time Custom 7-Day ShiftPlan
                 </h3>
                 <p className="mt-2">
@@ -89,8 +94,8 @@ export default function TermsPage() {
                   planning details you submit.
                 </p>
               </div>
-              <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
-                <h3 className="font-semibold text-slate-950">
+              <div className="rounded-lg border border-teal-300/30 bg-teal-300/10 p-4">
+                <h3 className="font-semibold text-teal-50">
                   $9/month ShiftPlan Founding Pro
                 </h3>
                 <p className="mt-2">
@@ -105,8 +110,8 @@ export default function TermsPage() {
             </div>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Payments, cancellations, and refunds
             </h2>
             <p className="mt-3">
@@ -116,8 +121,8 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               No guaranteed outcomes
             </h2>
             <p className="mt-3">
@@ -127,8 +132,8 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">
               Acceptable use
             </h2>
             <p className="mt-3">
@@ -142,13 +147,13 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold text-slate-950">Contact</h2>
+          <section className="rounded-lg border border-white/10 bg-white/[0.06] p-5 shadow-sm backdrop-blur">
+            <h2 className="text-xl font-semibold text-white">Contact</h2>
             <p className="mt-3">
               For questions about these terms, contact{" "}
               <a
                 href="mailto:support@shiftplan.ai"
-                className="font-semibold text-teal-800 underline-offset-4 hover:underline"
+                className="font-semibold text-teal-200 underline-offset-4 hover:underline"
               >
                 support@shiftplan.ai
               </a>
@@ -157,9 +162,11 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <div className="mt-8">
-          <DisclaimerBox />
-        </div>
+        <aside className="mt-6 rounded-lg border border-white/10 bg-slate-950/70 p-5 text-sm leading-6 text-slate-300 shadow-sm">
+          ShiftPlan is for lifestyle and routine organization only. It does not
+          provide medical advice, diagnosis, treatment, healthcare guidance, or
+          emergency support.
+        </aside>
       </div>
     </section>
   );

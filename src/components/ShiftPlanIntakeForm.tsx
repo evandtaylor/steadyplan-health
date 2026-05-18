@@ -61,6 +61,9 @@ const shiftLengthOptions = [
 
 const willingnessOptions = ["Yes", "No", "Maybe"];
 
+const darkFieldControlClass =
+  "w-full rounded-lg border border-white/15 bg-slate-950/70 px-3.5 py-3 text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-teal-300 focus:ring-3 focus:ring-teal-300/20";
+
 export function ShiftPlanIntakeForm() {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>(
@@ -193,17 +196,17 @@ export function ShiftPlanIntakeForm() {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+    <div className="shiftplan-dark-form rounded-lg border border-white/10 bg-white/[0.06] p-5 text-slate-200 shadow-2xl shadow-teal-950/20 backdrop-blur sm:p-8">
       {submitted ? (
         <div
-          className="mb-6 rounded-lg border border-teal-200 bg-teal-50 p-5 text-teal-950 shadow-sm"
+          className="mb-6 rounded-lg border border-teal-300/20 bg-teal-300/10 p-5 text-teal-50 shadow-sm"
           role="status"
         >
           <p className="text-lg font-semibold">Your ShiftPlan intake is saved.</p>
-          <p className="mt-2 text-sm leading-6 text-teal-900">
+          <p className="mt-2 text-sm leading-6 text-teal-100">
             {formMessage}
           </p>
-          <p className="mt-3 text-sm leading-6 text-teal-900">
+          <p className="mt-3 text-sm leading-6 text-teal-100">
             We will use this to understand practical planning needs around your
             shift schedule, meals, workouts, errands, and recovery blocks. It is
             not used for diagnosis, treatment, or medical advice.
@@ -213,7 +216,7 @@ export function ShiftPlanIntakeForm() {
 
       {!submitted && formMessage ? (
         <div
-          className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+          className="mb-6 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100"
           role="alert"
         >
           {formMessage}
@@ -228,7 +231,7 @@ export function ShiftPlanIntakeForm() {
               name="name"
               value={form.name}
               onChange={(event) => updateField("name", event.target.value)}
-              className="field-control"
+              className={darkFieldControlClass}
               autoComplete="name"
               required
             />
@@ -241,7 +244,7 @@ export function ShiftPlanIntakeForm() {
               type="email"
               value={form.email}
               onChange={(event) => updateField("email", event.target.value)}
-              className="field-control"
+              className={darkFieldControlClass}
               autoComplete="email"
               required
             />
@@ -291,7 +294,7 @@ export function ShiftPlanIntakeForm() {
               onChange={(event) =>
                 updateField("workdaysThisWeek", event.target.value)
               }
-              className="field-control"
+              className={darkFieldControlClass}
               required
             />
           </Field>
@@ -307,7 +310,7 @@ export function ShiftPlanIntakeForm() {
               name="commuteTime"
               value={form.commuteTime}
               onChange={(event) => updateField("commuteTime", event.target.value)}
-              className="field-control"
+              className={darkFieldControlClass}
               required
             />
           </Field>
@@ -320,7 +323,7 @@ export function ShiftPlanIntakeForm() {
               name="sleepGoal"
               value={form.sleepGoal}
               onChange={(event) => updateField("sleepGoal", event.target.value)}
-              className="field-control min-h-32"
+              className={`${darkFieldControlClass} min-h-32`}
               required
             />
           </Field>
@@ -335,7 +338,7 @@ export function ShiftPlanIntakeForm() {
               name="workoutGoal"
               value={form.workoutGoal}
               onChange={(event) => updateField("workoutGoal", event.target.value)}
-              className="field-control min-h-32"
+              className={`${darkFieldControlClass} min-h-32`}
               required
             />
           </Field>
@@ -353,7 +356,7 @@ export function ShiftPlanIntakeForm() {
               onChange={(event) =>
                 updateField("nutritionGoal", event.target.value)
               }
-              className="field-control min-h-32"
+              className={`${darkFieldControlClass} min-h-32`}
               required
             />
           </Field>
@@ -372,7 +375,7 @@ export function ShiftPlanIntakeForm() {
             onChange={(event) =>
               updateField("biggestShiftWorkStruggle", event.target.value)
             }
-            className="field-control min-h-28"
+            className={`${darkFieldControlClass} min-h-28`}
             required
           />
         </Field>
@@ -389,13 +392,13 @@ export function ShiftPlanIntakeForm() {
             onChange={(event) =>
               updateField("usefulPlanDetails", event.target.value)
             }
-            className="field-control min-h-28"
+            className={`${darkFieldControlClass} min-h-28`}
             required
           />
         </Field>
 
         <fieldset>
-          <legend className="mb-2 block text-sm font-semibold text-slate-800">
+          <legend className="mb-2 block text-sm font-semibold text-slate-100">
             Would you be interested in a $9 custom 7-day ShiftPlan if the free
             reset plan is useful?
           </legend>
@@ -403,7 +406,7 @@ export function ShiftPlanIntakeForm() {
             {willingnessOptions.map((option) => (
               <label
                 key={option}
-                className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-teal-300 hover:bg-teal-50"
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-slate-950/45 px-4 py-3 text-sm font-medium text-slate-300 transition hover:border-teal-300/40 hover:bg-teal-300/10"
               >
                 <input
                   type="radio"
@@ -413,15 +416,15 @@ export function ShiftPlanIntakeForm() {
                   onChange={(event) =>
                     updateField("willingnessToPay", event.target.value)
                   }
-                  className="peer h-4 w-4 accent-teal-700"
+                  className="peer h-4 w-4 accent-teal-300"
                   required
                 />
-                <span className="peer-checked:text-teal-950">{option}</span>
+                <span className="peer-checked:text-teal-100">{option}</span>
               </label>
             ))}
           </div>
           {errors.willingnessToPay ? (
-            <p className="mt-2 text-sm font-medium text-red-700">
+            <p className="mt-2 text-sm font-medium text-red-300">
               {errors.willingnessToPay}
             </p>
           ) : null}
@@ -430,7 +433,7 @@ export function ShiftPlanIntakeForm() {
         <button
           type="submit"
           disabled={isSubmitting || isDuplicateSubmittedState}
-          className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-teal-300 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-teal-950/20 transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300 sm:w-fit"
         >
           {isSubmitting
             ? "Saving..."
@@ -465,7 +468,7 @@ function SelectField({
         name={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="field-control"
+        className={darkFieldControlClass}
         required
       >
         <option value="">Choose one</option>
@@ -496,16 +499,16 @@ function Field({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-semibold text-slate-800"
+        className="mb-2 block text-sm font-semibold text-slate-100"
       >
         {label}
       </label>
       {helpText ? (
-        <p className="mb-2 text-sm leading-6 text-slate-500">{helpText}</p>
+        <p className="mb-2 text-sm leading-6 text-slate-400">{helpText}</p>
       ) : null}
       {children}
       {error ? (
-        <p className="mt-2 text-sm font-medium text-red-700">{error}</p>
+        <p className="mt-2 text-sm font-medium text-red-300">{error}</p>
       ) : null}
     </div>
   );

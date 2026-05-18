@@ -26,6 +26,9 @@ type ShiftPlanPaidIntakeFormProps = {
 
 type FormState = Record<string, string | boolean>;
 
+const darkFieldControlClass =
+  "w-full rounded-lg border border-white/15 bg-slate-950/70 px-3.5 py-3 text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-teal-300 focus:ring-3 focus:ring-teal-300/20";
+
 export function ShiftPlanPaidIntakeForm({
   intakeType,
   title,
@@ -157,17 +160,17 @@ export function ShiftPlanPaidIntakeForm({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+    <div className="shiftplan-dark-form rounded-lg border border-white/10 bg-white/[0.06] p-5 text-slate-200 shadow-2xl shadow-teal-950/20 backdrop-blur sm:p-8">
       {submitted ? (
         <div
-          className="mb-6 rounded-lg border border-teal-200 bg-teal-50 p-5 text-teal-950 shadow-sm"
+          className="mb-6 rounded-lg border border-teal-300/20 bg-teal-300/10 p-5 text-teal-50 shadow-sm"
           role="status"
         >
           <p className="text-lg font-semibold">{successTitle}</p>
-          <p className="mt-2 text-sm leading-6 text-teal-900">
+          <p className="mt-2 text-sm leading-6 text-teal-100">
             {formMessage}
           </p>
-          <p className="mt-3 text-sm leading-6 text-teal-900">
+          <p className="mt-3 text-sm leading-6 text-teal-100">
             Payment is checked manually during early access. We will match this
             request to the checkout email you submitted.
           </p>
@@ -176,7 +179,7 @@ export function ShiftPlanPaidIntakeForm({
 
       {!submitted && formMessage ? (
         <div
-          className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"
+          className="mb-6 rounded-lg border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100"
           role="alert"
         >
           {formMessage}
@@ -184,9 +187,9 @@ export function ShiftPlanPaidIntakeForm({
       ) : null}
 
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-slate-950">{title}</h2>
-        <p className="mt-3 leading-7 text-slate-600">{description}</p>
-        <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-slate-700">
+        <h2 className="text-2xl font-semibold text-white">{title}</h2>
+        <p className="mt-3 leading-7 text-slate-300">{description}</p>
+        <p className="mt-3 rounded-lg border border-sky-300/20 bg-sky-300/10 p-3 text-sm leading-6 text-sky-100">
           Payment is checked manually during early access. Please use the same
           email you used at checkout.
         </p>
@@ -211,7 +214,7 @@ export function ShiftPlanPaidIntakeForm({
                   onChange={(event) =>
                     updateField(field.name, event.target.value)
                   }
-                  className="field-control min-h-32"
+                  className={`${darkFieldControlClass} min-h-32`}
                   rows={field.rows || 4}
                   required
                 />
@@ -224,7 +227,7 @@ export function ShiftPlanPaidIntakeForm({
                   onChange={(event) =>
                     updateField(field.name, event.target.value)
                   }
-                  className="field-control"
+                  className={darkFieldControlClass}
                   autoComplete={field.type === "email" ? "email" : undefined}
                   min={field.type === "date" ? "2024-01-01" : undefined}
                   max={field.type === "date" ? "2100-12-31" : undefined}
@@ -251,18 +254,18 @@ export function ShiftPlanPaidIntakeForm({
           ))}
         </div>
 
-        <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <legend className="px-1 text-sm font-semibold text-slate-800">
+        <fieldset className="rounded-lg border border-white/10 bg-slate-950/45 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-100">
             Safety confirmation
           </legend>
-          <label className="mt-2 flex cursor-pointer gap-3 text-sm leading-6 text-slate-700">
+          <label className="mt-2 flex cursor-pointer gap-3 text-sm leading-6 text-slate-300">
             <input
               type="checkbox"
               checked={form.safety_acknowledged === true}
               onChange={(event) =>
                 updateField("safety_acknowledged", event.target.checked)
               }
-              className="mt-1 h-4 w-4 shrink-0 accent-teal-700"
+              className="mt-1 h-4 w-4 shrink-0 accent-teal-300"
               required
             />
             <span>
@@ -273,7 +276,7 @@ export function ShiftPlanPaidIntakeForm({
             </span>
           </label>
           {errors.safety_acknowledged ? (
-            <p className="mt-2 text-sm font-medium text-red-700">
+            <p className="mt-2 text-sm font-medium text-red-300">
               {errors.safety_acknowledged}
             </p>
           ) : null}
@@ -283,7 +286,7 @@ export function ShiftPlanPaidIntakeForm({
           <button
             type="submit"
             disabled={isSubmitting || isDuplicateSubmittedState}
-            className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-teal-300 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-teal-950/20 transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300 sm:w-fit"
           >
             {isSubmitting
               ? "Submitting..."
@@ -293,13 +296,13 @@ export function ShiftPlanPaidIntakeForm({
           </button>
           <Link
             href="/"
-            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] px-5 py-3 text-base font-semibold text-slate-100 transition hover:border-teal-300/40 hover:bg-teal-300/10 hover:text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
           >
             Back to homepage
           </Link>
           <Link
             href="/#pricing"
-            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] px-5 py-3 text-base font-semibold text-slate-100 transition hover:border-teal-300/40 hover:bg-teal-300/10 hover:text-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
           >
             Back to pricing
           </Link>
@@ -328,16 +331,16 @@ function Field({
     <div className={wide ? "md:col-span-2" : undefined}>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-semibold text-slate-800"
+        className="mb-2 block text-sm font-semibold text-slate-100"
       >
         {label}
       </label>
       {helpText ? (
-        <p className="mb-2 text-sm leading-6 text-slate-500">{helpText}</p>
+        <p className="mb-2 text-sm leading-6 text-slate-400">{helpText}</p>
       ) : null}
       {children}
       {error ? (
-        <p className="mt-2 text-sm font-medium text-red-700">{error}</p>
+        <p className="mt-2 text-sm font-medium text-red-300">{error}</p>
       ) : null}
     </div>
   );
@@ -434,19 +437,19 @@ function CalculatedEndDateNote({
   filledText: string;
 }) {
   if (!startDate) {
-    return <p className="mt-2 text-sm leading-6 text-slate-500">{emptyText}</p>;
+    return <p className="mt-2 text-sm leading-6 text-slate-400">{emptyText}</p>;
   }
 
   if (!endDate) {
     return (
-      <p className="mt-2 text-sm font-medium leading-6 text-red-700">
+      <p className="mt-2 text-sm font-medium leading-6 text-red-300">
         Enter a valid start date.
       </p>
     );
   }
 
   return (
-    <p className="mt-2 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
+    <p className="mt-2 rounded-lg border border-teal-300/20 bg-teal-300/10 p-3 text-sm leading-6 text-teal-100">
       {filledText}{" "}
       <span className="font-semibold">{formatReadableDate(endDate)}</span>.
     </p>

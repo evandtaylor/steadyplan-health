@@ -649,7 +649,7 @@ async function generatePlan(
     body: JSON.stringify({
       model,
       instructions:
-        "You create ShiftPlan weekly plans for app users. Follow the submitted schedule data exactly. Use the canonical date list for every day heading. Do not shift weekdays or dates. Do not invent shift days, shift times, appointments, errands, or responsibilities. Redirect unsafe or medical-heavy requests back to lifestyle and routine organization only. Follow the safety boundaries exactly. Do not mention AI.",
+        "You create concise, human ShiftPlan weekly plans for app users. Follow the submitted schedule data exactly. Use the verified date list for every day heading, but do not mention the phrase verified date list in the final plan. Do not shift weekdays or dates. Do not invent shift days, shift times, appointments, errands, or responsibilities. Write in calm, practical, mobile-friendly language. Redirect unsafe or medical-heavy requests back to lifestyle and routine organization only. Follow the safety boundaries exactly. Do not mention AI.",
       input: prompt,
     }),
     cache: "no-store",
@@ -796,8 +796,8 @@ function buildPlanPrompt(
     "",
     "Date and schedule rules:",
     "Use the submitted week_start_date and week_end_date exactly.",
-    "Use the canonical date list below for every day heading.",
-    "Every day heading must include both weekday and date.",
+    "Use the verified date list below for every day heading.",
+    "Every day heading must include both weekday and a short date label, like Monday, May 18.",
     "The weekday must match the date.",
     "Do not shift the week.",
     "Do not invent a Sunday-start week if the submitted start date is Monday.",
@@ -806,8 +806,8 @@ function buildPlanPrompt(
     "Do not invent shift days, shift times, appointments, errands, or responsibilities.",
     "Before finalizing the plan, internally verify that every day label matches the calendar date.",
     "",
-    "Canonical date list:",
-    formatCanonicalDateList(planRequest.week_start_date, planRequest.week_end_date),
+    "Verified date list:",
+    formatVerifiedDateList(planRequest.week_start_date, planRequest.week_end_date),
     "",
     "Customer weekly request:",
     formatPromptFields([
@@ -839,36 +839,36 @@ function buildPlanPrompt(
     "Do not turn saved preferences into medical, diagnosis, medication, workplace safety, or emergency guidance.",
     "",
     "Output rules:",
-    "1. Create a realistic 7-day plan.",
-    "2. Keep workdays simple.",
-    "3. Do not overload post-shift periods.",
-    "4. Batch errands and appointments when possible.",
-    "5. Place workouts/training where they fit best around the schedule.",
-    "6. Include meal prep placement, not nutrition coaching.",
-    "7. Include recovery/reset blocks as lifestyle organization, not treatment.",
-    "8. Include a copy/paste checklist.",
-    "9. Include the safety disclaimer.",
-    "10. Use plain, practical language.",
-    "11. Make the plan feel premium, organized, and personalized.",
-    "12. Do not mention that AI generated the plan.",
+    "1. Create a realistic 7-day plan that feels like a helpful person wrote it.",
+    "2. Start with a short human summary in 2-3 sentences.",
+    "3. Keep the whole plan concise, skimmable, and app-ready.",
+    "4. Keep workdays simple and do not overload post-shift periods.",
+    "5. Batch errands and appointments when possible.",
+    "6. Place workouts/training where they fit best around the schedule.",
+    "7. Include meal prep placement, not nutrition coaching.",
+    "8. Include recovery/reset blocks as lifestyle organization, not treatment.",
+    "9. Use short day labels, like Monday, May 18.",
+    "10. Include a compact checklist, but do not repeat every detail from the day-by-day plan.",
+    "11. Keep the safety note compact and place it near the end.",
+    "12. Avoid robotic phrasing and avoid words like canonical dates, framework, placeholder, and template week.",
+    "13. Make the plan feel premium, organized, personalized, and calm.",
+    "14. Do not mention that AI generated the plan.",
     "",
     "Required output structure:",
     "1. Header",
-    "2. Important note/disclaimer",
-    "3. Week at a glance",
-    "4. 7-day plan with weekday/date alignment",
-    "5. Workday routine",
-    "6. Post-shift reset",
-    "7. Off-day routine",
-    "8. Meal prep structure",
-    "9. Workout/training placement",
-    "10. Errands/appointments/family responsibilities",
-    "11. Top 3 priorities",
-    "12. Copy/paste checklist",
-    "13. Final note",
+    "2. Short human summary",
+    "3. Week Snapshot",
+    "4. Main Strategy",
+    "5. Day-by-Day Plan",
+    "6. Workday Routine",
+    "7. Meal Prep",
+    "8. Training",
+    "9. Errands/Appointments",
+    "10. Checklist",
+    "11. Important Note",
     "",
     "Important disclaimer text to include:",
-    "ShiftPlan is for lifestyle and routine organization only. This plan helps organize your week around work, meals, workouts, errands, appointments, recovery blocks, and personal responsibilities. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
+    "ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, supplement guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
   ].join("\n");
 }
 
@@ -913,7 +913,7 @@ function hasSavedPreferences(preferences: AppUserPreferences) {
   ].some((value) => value.trim());
 }
 
-function formatCanonicalDateList(start: string, end: string) {
+function formatVerifiedDateList(start: string, end: string) {
   if (!isIsoDate(start) || !isIsoDate(end)) return "Not provided";
 
   const startDate = parseIsoDateAsUtc(start);
@@ -927,7 +927,12 @@ function formatCanonicalDateList(start: string, end: string) {
       weekday: "long",
       timeZone: "UTC",
     }).format(cursor);
-    rows.push(`- ${weekday}, ${isoDate}`);
+    const shortDate = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(cursor);
+    rows.push(`- ${weekday}, ${shortDate} (${isoDate})`);
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 

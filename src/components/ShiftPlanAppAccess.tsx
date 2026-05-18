@@ -829,6 +829,26 @@ function AppDashboard({
           </div>
         </div>
 
+        <nav
+          aria-label="App dashboard shortcuts"
+          className="mt-4 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+        >
+          {[
+            ["Preferences", "#app-preferences"],
+            ["New Request", "#weekly-request"],
+            ["Saved Plans", "#saved-plans"],
+            ["Feedback", "#saved-plans"],
+          ].map(([label, href]) => (
+            <a
+              key={label}
+              href={href}
+              className="shrink-0 rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-teal-50 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
+
         <article className="mt-6 rounded-lg border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -902,7 +922,10 @@ function AppDashboard({
         </article>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
-          <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <article
+            id="saved-plans"
+            className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+          >
             <h2 className="text-xl font-semibold text-slate-950">
               Plans used this month
             </h2>
@@ -1025,7 +1048,10 @@ function AppDashboard({
           </article>
         </div>
 
-        <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+        <section
+          id="app-preferences"
+          className="mt-6 scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
+        >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-700">

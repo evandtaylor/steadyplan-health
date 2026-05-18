@@ -26,6 +26,12 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/app"
+            className="shrink-0 rounded-lg border border-teal-300/30 bg-teal-300/10 px-3 py-2 text-sm font-semibold text-teal-100 transition hover:bg-teal-300/20 hover:text-white focus:outline-none focus:ring-2 focus:ring-teal-300"
+          >
+            Have beta access? Log in
+          </Link>
         </div>
       </nav>
     </header>

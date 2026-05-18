@@ -262,6 +262,8 @@ const safetyCopy =
 const safetyAcknowledgmentText =
   "I understand ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. I will not submit protected health information, medication details, diagnoses, symptoms, emergency information, workplace safety complaints, or safety-sensitive details.";
 
+const collapsedPlanLineLimit = 52;
+
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
   const [accessCode, setAccessCode] = useState("");
@@ -460,6 +462,9 @@ function AppDashboard({
   >({});
   const [copiedPlanId, setCopiedPlanId] = useState("");
   const [copiedSummaryPlanId, setCopiedSummaryPlanId] = useState("");
+  const [expandedPlanIds, setExpandedPlanIds] = useState<Record<string, boolean>>(
+    {},
+  );
   const [usage, setUsage] = useState<AppUsageSummary>({
     month_used: 0,
     month_limit: 4,
@@ -773,6 +778,13 @@ function AppDashboard({
     }
   }
 
+  function togglePlanExpanded(planId: string) {
+    setExpandedPlanIds((current) => ({
+      ...current,
+      [planId]: !current[planId],
+    }));
+  }
+
   function handleFeedbackSaved(planId: string, feedback: AppPlanFeedback) {
     setRequests((current) =>
       current.map((request) =>
@@ -972,7 +984,21 @@ function AppDashboard({
                             Copy or review
                           </span>
                         </div>
-                        <PlanBody body={plan.plan_body} />
+                        <PlanBody
+                          body={plan.plan_body}
+                          isExpanded={Boolean(expandedPlanIds[plan.id])}
+                        />
+                        {isLongPlanBody(plan.plan_body) ? (
+                          <button
+                            type="button"
+                            onClick={() => togglePlanExpanded(plan.id)}
+                            className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                          >
+                            {expandedPlanIds[plan.id]
+                              ? "Show less"
+                              : "Show full plan"}
+                          </button>
+                        ) : null}
                         <InteractiveChecklist
                           planId={plan.id}
                           planBody={plan.plan_body}
@@ -1623,13 +1649,15 @@ function cleanSummaryLine(value: string) {
     .trim();
 }
 
-function PlanBody({ body }: { body: string }) {
+function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
   const lines = body.split(/\r?\n/);
+  const visibleLines = isExpanded ? lines : lines.slice(0, collapsedPlanLineLimit);
+  const isCollapsed = !isExpanded && lines.length > collapsedPlanLineLimit;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700 sm:p-5">
       <div className="mx-auto max-w-3xl">
-        {lines.map((line, index) => {
+        {visibleLines.map((line, index) => {
           const trimmed = line.trim();
 
           if (!trimmed) {
@@ -1699,9 +1727,18 @@ function PlanBody({ body }: { body: string }) {
             </p>
           );
         })}
+        {isCollapsed ? (
+          <p className="mt-4 rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-600">
+            Preview shown. Use Show full plan to read the rest.
+          </p>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function isLongPlanBody(body: string) {
+  return body.split(/\r?\n/).length > collapsedPlanLineLimit;
 }
 
 function InteractiveChecklist({

@@ -830,6 +830,40 @@ function AppDashboard({
           </ol>
         </article>
 
+        <article className="mt-6 rounded-lg border border-slate-200 bg-slate-950 p-5 text-white shadow-sm sm:p-6">
+          <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold uppercase text-teal-200">
+                iPhone quick access
+              </p>
+              <h2 className="mt-2 text-xl font-semibold">
+                Use ShiftPlan like an app.
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Want quicker access? Add ShiftPlan to your iPhone Home Screen
+                while the native app is still future roadmap.
+              </p>
+            </div>
+            <ol className="grid gap-3 text-sm leading-6 text-slate-200 sm:grid-cols-3">
+              {["Open in Safari", "Tap Share", "Tap Add to Home Screen"].map(
+                (step, index) => (
+                  <li
+                    key={step}
+                    className="rounded-lg border border-white/10 bg-white/[0.06] p-3"
+                  >
+                    <span className="text-xs font-semibold uppercase text-teal-200">
+                      Step {index + 1}
+                    </span>
+                    <span className="mt-1 block font-semibold text-white">
+                      {step}
+                    </span>
+                  </li>
+                ),
+              )}
+            </ol>
+          </div>
+        </article>
+
         <div className="mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">

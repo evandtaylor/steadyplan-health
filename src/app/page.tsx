@@ -81,6 +81,13 @@ const comingNextFeatures = [
   "iPhone app later",
 ];
 
+const appPreviewChecklist = [
+  "Pack meals before first shift",
+  "Keep errands off workdays",
+  "Dentist Friday morning",
+  "Family dinner Saturday",
+];
+
 const faqItems = [
   {
     question: "Is ShiftPlan medical advice?",
@@ -253,6 +260,103 @@ export default function Home() {
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(21,87,255,0.22),transparent_38%),radial-gradient(ellipse_at_bottom_left,rgba(18,191,174,0.18),transparent_36%)]" />
+        <div className="relative mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <SectionIntro
+            eyebrow="Private beta app preview"
+            title="A weekly planning workspace built for repeat use."
+            description="The web app is becoming the place to save preferences, reuse last week's request, generate a plan, and work through a practical checklist."
+            dark
+          />
+          <div className="rounded-lg border border-white/10 bg-white/[0.06] p-4 shadow-2xl backdrop-blur sm:p-5">
+            <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="rounded-lg border border-teal-300/20 bg-slate-950/80 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-teal-200">
+                      Weekly plan snapshot
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold text-white">
+                      Monday, May 18 - Sunday, May 24
+                    </h3>
+                  </div>
+                  <span className="rounded-lg bg-teal-300/15 px-3 py-1 text-xs font-semibold text-teal-100">
+                    Private beta
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2">
+                  {weeklyPlanPreview.slice(0, 4).map((item) => (
+                    <div
+                      key={item.day}
+                      className="grid grid-cols-[2.6rem_4rem_1fr] gap-3 rounded-lg bg-white/[0.05] px-3 py-3 text-sm"
+                    >
+                      <span className="font-semibold text-teal-200">
+                        {item.day}
+                      </span>
+                      <span className="text-xs font-semibold text-white">
+                        {item.shift}
+                      </span>
+                      <span className="truncate text-xs text-slate-400">
+                        {item.plan}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="rounded-lg border border-white/10 bg-slate-950/70 p-4">
+                  <p className="text-xs font-semibold uppercase text-slate-400">
+                    Interactive checklist
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    2 of 4 complete
+                  </p>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-300">
+                    {appPreviewChecklist.map((item, index) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded border text-xs ${
+                            index < 2
+                              ? "border-teal-300 bg-teal-300 text-slate-950"
+                              : "border-white/20 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-teal-300/20 bg-teal-300/10 p-4">
+                    <p className="text-xs font-semibold uppercase text-teal-100">
+                      Saved preferences
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Remember commute, meal prep style, training goals, and
+                      what to avoid after work.
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-blue-300/20 bg-blue-300/10 p-4">
+                    <p className="text-xs font-semibold uppercase text-blue-100">
+                      Starting point
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Reuse last week&apos;s request, update what changed, then
+                      generate a fresh plan.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

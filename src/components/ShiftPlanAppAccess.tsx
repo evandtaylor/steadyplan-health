@@ -899,10 +899,10 @@ function AppDashboard({
               Saved plans
             </h2>
             {savedPlans.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
-                Generated ShiftPlans will appear here after you create one from
-                a weekly request.
-              </div>
+              <GuidanceCard
+                title="No saved plans yet"
+                body="Create your first weekly request, then generate a ShiftPlan. Saved plans will appear here so you can review, copy, reuse, and leave feedback."
+              />
             ) : (
               <div className="mt-4 grid gap-4">
                 {savedPlans.map((plan) => (
@@ -988,6 +988,13 @@ function AppDashboard({
                 preferences never override your submitted weekly schedule or
                 ShiftPlan safety boundaries.
               </p>
+              {!isLoadingPreferences && !preferences ? (
+                <p className="mt-3 rounded-lg border border-dashed border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
+                  No saved preferences yet. Start with the basics ShiftPlan
+                  should remember, like your usual commute, planning style,
+                  meal prep preferences, and recurring responsibilities.
+                </p>
+              ) : null}
             </div>
             <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
               {isLoadingPreferences
@@ -1432,9 +1439,10 @@ function AppDashboard({
                 Loading requests...
               </p>
             ) : requests.length === 0 ? (
-              <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
-                No weekly requests saved yet.
-              </div>
+              <GuidanceCard
+                title="No weekly requests yet"
+                body="Save what ShiftPlan should remember, then create your first weekly request with exact shift days, priorities, meals, workouts, errands, and appointments."
+              />
             ) : (
               <div className="mt-4 grid gap-3">
                 {requests.map((request) => (
@@ -1516,6 +1524,15 @@ function AppDashboard({
         </aside>
       </div>
     </section>
+  );
+}
+
+function GuidanceCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
+      <p className="font-semibold text-slate-900">{title}</p>
+      <p className="mt-2">{body}</p>
+    </div>
   );
 }
 
@@ -1613,7 +1630,17 @@ function InteractiveChecklist({
     () => readStoredChecklist(storageKey),
   );
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return (
+      <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm leading-6 text-slate-600">
+        <p className="font-semibold text-slate-800">No checklist items found.</p>
+        <p className="mt-1">
+          When a saved plan includes checkbox-style lines, ShiftPlan will turn
+          them into a tappable checklist here.
+        </p>
+      </div>
+    );
+  }
 
   const completedCount = items.filter((item) => checkedItems[item.id]).length;
 
@@ -1806,8 +1833,9 @@ function PlanFeedbackForm({
           Give feedback on this plan
         </h4>
         <p className="mt-1 text-sm leading-6 text-slate-600">
-          Help tune ShiftPlan for future weekly planning. You can update this
-          feedback later.
+          {plan.feedback
+            ? "Feedback is saved. You can update it after using or reviewing this plan."
+            : "No feedback saved yet. After reviewing the plan, leave quick notes so future versions can improve."}
         </p>
       </div>
 

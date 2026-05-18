@@ -176,6 +176,17 @@ type PreferencesFormState = {
   planningNotes: string;
 };
 
+type ChecklistItem = {
+  id: string;
+  text: string;
+};
+
+type ChecklistGroup = {
+  id: string;
+  label: string;
+  items: ChecklistItem[];
+};
+
 const initialWeeklyRequestForm: WeeklyRequestFormState = {
   weekStartDate: "",
   scheduleType: "",
@@ -1807,10 +1818,14 @@ function InteractiveChecklist({
   planId: string;
   planBody: string;
 }) {
-  const items = useMemo(() => parseChecklistItems(planBody), [planBody]);
+  const groups = useMemo(() => parseChecklistGroups(planBody), [planBody]);
+  const items = useMemo(() => groups.flatMap((group) => group.items), [groups]);
   const storageKey = `shiftplan:checklist:${planId}`;
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(
     () => readStoredChecklist(storageKey),
+  );
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    () => createInitialChecklistGroupState(groups),
   );
   const [copyState, setCopyState] = useState<"" | "copied" | "failed">("");
 
@@ -1828,6 +1843,13 @@ function InteractiveChecklist({
 
   const completedCount = items.filter((item) => checkedItems[item.id]).length;
 
+  function toggleGroup(groupId: string) {
+    setExpandedGroups((current) => ({
+      ...current,
+      [groupId]: !current[groupId],
+    }));
+  }
+
   function toggleItem(itemId: string) {
     setCheckedItems((current) => {
       const next = { ...current, [itemId]: !current[itemId] };
@@ -1844,9 +1866,16 @@ function InteractiveChecklist({
 
   async function copyChecklist() {
     try {
-      const checklistText = items
-        .map((item) => `${checkedItems[item.id] ? "[x]" : "[ ]"} ${item.text}`)
-        .join("\n");
+      const checklistText = groups
+        .map((group) => {
+          const groupLines = group.items.map(
+            (item) =>
+              `${checkedItems[item.id] ? "[x]" : "[ ]"} ${item.text}`,
+          );
+
+          return [group.label, ...groupLines].join("\n");
+        })
+        .join("\n\n");
 
       await navigator.clipboard.writeText(checklistText);
       setCopyState("copied");
@@ -1886,35 +1915,83 @@ function InteractiveChecklist({
       </button>
 
       <div className="mt-4 grid gap-2">
-        {items.map((item) => {
-          const isChecked = Boolean(checkedItems[item.id]);
+        {groups.map((group, groupIndex) => {
+          const groupCompletedCount = group.items.filter(
+            (item) => checkedItems[item.id],
+          ).length;
+          const isExpanded = expandedGroups[group.id] ?? groupIndex === 0;
 
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => toggleItem(item.id)}
-              className="flex w-full gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-              aria-pressed={isChecked}
+            <section
+              key={group.id}
+              className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
             >
-              <span
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
-                  isChecked
-                    ? "border-teal-700 bg-teal-700 text-white"
-                    : "border-slate-300 bg-white text-transparent"
-                }`}
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.id)}
+                className="flex w-full items-center justify-between gap-3 p-3 text-left transition hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-teal-500"
+                aria-expanded={isExpanded}
               >
-                ✓
-              </span>
-              <span className={isChecked ? "text-slate-500 line-through" : ""}>
-                {item.text}
-              </span>
-            </button>
+                <span>
+                  <span className="block text-sm font-semibold text-slate-950">
+                    {group.label}
+                  </span>
+                  <span className="mt-1 block text-xs font-semibold uppercase text-slate-500">
+                    {groupCompletedCount} of {group.items.length} complete
+                  </span>
+                </span>
+                <span className="text-sm font-semibold text-teal-800">
+                  {isExpanded ? "Hide" : "Show"}
+                </span>
+              </button>
+
+              {isExpanded ? (
+                <div className="grid gap-2 border-t border-slate-200 bg-white p-3">
+                  {group.items.map((item) => {
+                    const isChecked = Boolean(checkedItems[item.id]);
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => toggleItem(item.id)}
+                        className="flex w-full gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left text-sm leading-6 text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        aria-pressed={isChecked}
+                      >
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs font-semibold ${
+                            isChecked
+                              ? "border-teal-700 bg-teal-700 text-white"
+                              : "border-slate-300 bg-white text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </span>
+                        <span
+                          className={
+                            isChecked ? "text-slate-500 line-through" : ""
+                          }
+                        >
+                          {item.text}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
           );
         })}
       </div>
     </div>
   );
+}
+
+function createInitialChecklistGroupState(groups: ChecklistGroup[]) {
+  return groups.reduce<Record<string, boolean>>((state, group, index) => {
+    state[group.id] = index === 0;
+    return state;
+  }, {});
 }
 
 function readStoredChecklist(storageKey: string) {
@@ -1928,31 +2005,63 @@ function readStoredChecklist(storageKey: string) {
   }
 }
 
-function parseChecklistItems(body: string) {
-  const seenItems = new Set<string>();
+function parseChecklistGroups(body: string) {
+  const groupMap = new Map<string, ChecklistGroup>();
+  const seenByGroup = new Map<string, Set<string>>();
+  let currentGroupLabel = "General";
 
-  return body
-    .split(/\r?\n/)
-    .map((line) => {
-      const trimmed = line.trim();
-      const checklist = trimmed.match(
-        /^(?:[-*•]\s*)?(?:\[[ xX]\]|[☐☑])\s*(.+)$/,
-      );
-      const text = checklist ? cleanChecklistText(checklist[1]) : "";
-      const itemKey = normalizeChecklistKey(text);
+  function getGroup(label: string) {
+    const groupLabel = label || "General";
+    const groupId = normalizeChecklistKey(groupLabel) || "general";
+    const existing = groupMap.get(groupId);
 
-      if (!text || seenItems.has(itemKey)) return null;
+    if (existing) return existing;
 
-      seenItems.add(itemKey);
+    const group = {
+      id: groupId,
+      label: groupLabel,
+      items: [],
+    };
 
-      return itemKey
-        ? {
-            id: itemKey,
-            text,
-          }
-        : null;
-    })
-    .filter((item): item is { id: string; text: string } => Boolean(item));
+    groupMap.set(groupId, group);
+    seenByGroup.set(groupId, new Set());
+
+    return group;
+  }
+
+  body.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    const dayHeading = extractDayLabel(trimmed);
+    if (dayHeading) {
+      currentGroupLabel = dayHeading;
+      return;
+    }
+
+    const checklist = trimmed.match(
+      /^(?:[-*•]\s*)?(?:\[[ xX]\]|[☐☑])\s*(.+)$/,
+    );
+    if (!checklist) return;
+
+    const cleaned = cleanChecklistText(checklist[1]);
+    const itemDay = extractLeadingDayFromItem(cleaned);
+    const group = getGroup(itemDay?.label || currentGroupLabel);
+    const text = itemDay?.text || cleaned;
+    const itemKey = normalizeChecklistKey(text);
+    const seenItems = seenByGroup.get(group.id) || new Set<string>();
+
+    if (!text || !itemKey || seenItems.has(itemKey)) return;
+
+    seenItems.add(itemKey);
+    seenByGroup.set(group.id, seenItems);
+    group.items.push({
+      id: itemKey,
+      text,
+    });
+  });
+
+  return Array.from(groupMap.values()).filter((group) => group.items.length > 0);
 }
 
 function cleanChecklistText(value: string) {
@@ -1963,6 +2072,85 @@ function cleanChecklistText(value: string) {
     .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+const dayNamePattern =
+  "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun)";
+
+function extractDayLabel(value: string) {
+  const cleaned = cleanPlanLabel(value);
+  const dayMatch = cleaned.match(
+    new RegExp(
+      `^(${dayNamePattern})(?:day)?(?:,?\\s+[A-Z][a-z]+\\s+\\d{1,2}(?:,\\s*\\d{4})?)?:?$`,
+      "i",
+    ),
+  );
+
+  if (!dayMatch) return "";
+
+  return normalizeDayLabel(cleaned.replace(/:$/, ""));
+}
+
+function extractLeadingDayFromItem(value: string) {
+  const cleaned = cleanChecklistText(value);
+  const dayMatch = cleaned.match(
+    new RegExp(
+      `^(${dayNamePattern}(?:day)?(?:,?\\s+[A-Z][a-z]+\\s+\\d{1,2}(?:,\\s*\\d{4})?)?)\\s*[:\\-–—]\\s*(.+)$`,
+      "i",
+    ),
+  );
+
+  if (!dayMatch) return null;
+
+  return {
+    label: normalizeDayLabel(dayMatch[1]),
+    text: cleanChecklistText(dayMatch[2]),
+  };
+}
+
+function cleanPlanLabel(value: string) {
+  return value
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^[-*•]\s*/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .trim();
+}
+
+function normalizeDayLabel(value: string) {
+  const trimmed = cleanPlanLabel(value).replace(/\s+/g, " ").trim();
+  const dayMatch = trimmed.match(new RegExp(`^(${dayNamePattern})`, "i"));
+  const day = dayMatch ? expandDayName(dayMatch[1]) : "";
+
+  if (!day) return trimmed;
+
+  return trimmed.replace(dayMatch?.[1] || day, day).replace(/:$/, "");
+}
+
+function expandDayName(value: string) {
+  const key = value.toLowerCase();
+  const dayMap: Record<string, string> = {
+    mon: "Monday",
+    monday: "Monday",
+    tue: "Tuesday",
+    tues: "Tuesday",
+    tuesday: "Tuesday",
+    wed: "Wednesday",
+    wednesday: "Wednesday",
+    thu: "Thursday",
+    thur: "Thursday",
+    thurs: "Thursday",
+    thursday: "Thursday",
+    fri: "Friday",
+    friday: "Friday",
+    sat: "Saturday",
+    saturday: "Saturday",
+    sun: "Sunday",
+    sunday: "Sunday",
+  };
+
+  return dayMap[key] || value;
 }
 
 function normalizeChecklistKey(value: string) {

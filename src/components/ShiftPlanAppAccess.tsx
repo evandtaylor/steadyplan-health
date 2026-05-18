@@ -336,7 +336,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   }
 
   return (
-    <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:px-8">
+    <section className="shiftplan-app-theme shiftplan-dark-form px-4 py-14 text-white sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-center">
         <div>
           <p className="inline-flex rounded-lg bg-teal-400/10 px-3 py-2 text-sm font-semibold uppercase text-teal-200 ring-1 ring-teal-300/20">
@@ -845,7 +845,7 @@ function AppDashboard({
   }
 
   return (
-    <section className="min-h-[70vh] bg-slate-50 px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <section className="shiftplan-app-theme shiftplan-dark-form min-h-[70vh] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase text-teal-700">

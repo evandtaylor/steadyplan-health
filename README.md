@@ -86,31 +86,65 @@ Future SuppPlan work may help users organize:
 
 SuppPlan must not recommend supplements, peptides, research chemicals, medications, or dosages for human use. It may help users organize what they already use and prepare safer questions for a qualified professional.
 
-## MVP status
+## Current product status
 
-Current MVP includes:
+Current live product includes:
 
 - ShiftPlan-first public homepage at `/`.
+- App-first private beta positioning and waitlist flow.
+- Paid/manual MVP flow with Stripe Payment Links preserved.
 - Free 3x12 Shift Worker Reset Plan intake at `/beta/shiftplan`.
-- Planned `$9 Custom 7-Day ShiftPlan` interest captured through the existing ShiftPlan intake question.
-- Parked future-concept pages for KinPlan and SuppPlan.
-- Parked future-concept pages for inactive KinPlan and SuppPlan intake routes.
-- General beta signup form preserved at `/beta`.
-- Supabase-backed form submission routes.
+- Paid intake routes for Custom 7-Day ShiftPlan and Founding Pro.
 - Internal founder/admin beta dashboard at `/admin`.
-- Internal manual beta plan templates at `/templates`, not linked from public navigation.
+- Admin AI fulfillment for manual plan drafting.
+- Internal purchase notification emails.
+- `/app` private beta access-code login.
+- Customer-side `/app` AI weekly plan generation.
+- Saved preferences, weekly requests, request reuse, saved plans, usage limits, and feedback.
+- Interactive checklist grouped by day.
+- Calendar `.ics` export.
+- Today / Next up saved-plan view.
+- App Beta admin view and App Access Codes admin management.
+- Parked future-concept pages for KinPlan and SuppPlan.
 - Plain-English privacy and terms pages.
 - ShiftPlan safety disclaimer.
 
 Not included yet:
 
-- Full authentication.
-- Payments.
-- Email automation.
-- AI-generated plans.
-- Food logging.
-- Production-grade admin permissions.
+- Supabase Auth for public users.
+- Public account creation.
+- Native iOS app.
+- Push notifications.
+- Email automation for customer lifecycle messaging.
+- Google or Apple Calendar sync.
+- Paid/free in-app tier gating.
+- Customer billing portal.
 - Secure PHI workflows.
+- Medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, supplement guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.
+
+## Phase 2 focus
+
+Phase 2 is private beta polish, app experience, tester feedback, mobile usability, content readiness, and beta operations.
+
+Near-term work should improve:
+
+- The `/app` beta flow.
+- Generated plan usefulness and timeline readability.
+- Saved preferences and weekly request clarity.
+- Checklist, calendar export, feedback, and copy actions.
+- Mobile QA on iPhone.
+- App Beta admin readability.
+- Private beta operating docs and tester follow-up.
+- Content strategy for waitlist and beta acquisition.
+
+Avoid adding risky infrastructure until beta evidence supports it:
+
+- No Stripe changes without explicit approval.
+- No Supabase Auth or public account creation yet.
+- No native iOS build yet.
+- No push notifications yet.
+- No calendar sync yet.
+- No SQL unless the task explicitly calls for it.
 
 ## Tech stack
 
@@ -125,9 +159,10 @@ Not included yet:
 Planned later:
 
 - Supabase authentication
-- Stripe payments
-- Resend emails
-- OpenAI API for drafted plans after safety and data boundaries are designed
+- Paid/free app tiers and subscription gating
+- Customer billing portal
+- Resend-powered customer lifecycle emails
+- Native iOS planning only after retention proof
 
 ## Safety and compliance positioning
 
@@ -185,8 +220,25 @@ ShiftPlan uses lightweight Codex workflow docs for ChatGPT -> Codex handoffs:
 - [Report template](docs/codex-report-template.md)
 - [Workflow guide](docs/codex-workflow.md)
 - [Core rules](docs/codex-skills/shiftplan-core-rules.md)
+- [Phase 2 manual QA checklist](docs/shiftplan-phase-2-manual-qa.md)
 
 Codex should read the current task queue and core rules before implementation, make separate commits for separate tasks, and run `npm run lint` and `npm run build` before each commit.
+
+Current operating rules:
+
+- Preserve Stripe links unless a task explicitly asks to change them.
+- Preserve paid intake routes.
+- Preserve `/app` behavior unless the task is specifically scoped to `/app`.
+- Preserve `/admin` and manual fulfillment behavior.
+- Do not expose secrets or print environment variable values.
+- Do not add Supabase Auth or public account creation until explicitly requested.
+- Do not build native iOS until the beta evidence supports it.
+- Preserve safety and legal language.
+- Keep ShiftPlan lifestyle/routine planning only.
+
+Manual QA reminder:
+
+- Fresh timeline generation, iPhone calendar export, checklist by day, App Access Codes create/deactivate/reactivate, Agent Mode test access, and Emily follow-up feedback remain important Phase 2 validation work.
 
 ## Vercel deployment
 

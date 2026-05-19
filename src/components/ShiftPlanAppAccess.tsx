@@ -154,6 +154,14 @@ type WeeklyRequestFormState = {
   safetyAcknowledged: boolean;
 };
 
+type WeeklyRequestDraft = Omit<
+  WeeklyRequestFormState,
+  "safetyAcknowledged"
+> & {
+  weeklyChangeNote: string;
+  savedAt: string;
+};
+
 type PlanFeedbackFormState = {
   usefulnessRating: string;
   usedThisWeek: string;
@@ -491,6 +499,8 @@ function AppDashboard({
   const [requestMessage, setRequestMessage] = useState("");
   const [requestReuseMessage, setRequestReuseMessage] = useState("");
   const [weeklyChangeNote, setWeeklyChangeNote] = useState("");
+  const [isWeeklyDraftLoaded, setIsWeeklyDraftLoaded] = useState(false);
+  const [weeklyDraftMessage, setWeeklyDraftMessage] = useState("");
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [isSavingRequest, setIsSavingRequest] = useState(false);
   const [preferences, setPreferences] = useState<AppUserPreferences | null>(
@@ -531,9 +541,17 @@ function AppDashboard({
     () => calculateEndDate(form.weekStartDate),
     [form.weekStartDate],
   );
+  const weeklyRequestDraftStorageKey = useMemo(
+    () => `shiftplan:weekly-request-draft:${normalizeStorageKey(email)}`,
+    [email],
+  );
   const savedPlans = useMemo(
     () => requests.flatMap((request) => (request.saved_plan ? [request.saved_plan] : [])),
     [requests],
+  );
+  const hasWeeklyDraftContent = useMemo(
+    () => hasWeeklyRequestDraftContent(form, weeklyChangeNote),
+    [form, weeklyChangeNote],
   );
 
   const loadRequests = useCallback(async () => {
@@ -597,6 +615,64 @@ function AppDashboard({
     return () => window.clearTimeout(timeoutId);
   }, [loadPreferences, loadRequests]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const draft = readStoredWeeklyRequestDraft(weeklyRequestDraftStorageKey);
+
+      if (draft) {
+        setForm({
+          weekStartDate: draft.weekStartDate,
+          weekSummary: draft.weekSummary,
+          scheduleType: draft.scheduleType,
+          workSchedule: draft.workSchedule,
+          commuteTime: draft.commuteTime,
+          mainGoal: draft.mainGoal,
+          mealPrepNeeds: draft.mealPrepNeeds,
+          workoutTrainingGoals: draft.workoutTrainingGoals,
+          appointments: draft.appointments,
+          errands: draft.errands,
+          familyPersonalResponsibilities:
+            draft.familyPersonalResponsibilities,
+          topPriorities: draft.topPriorities,
+          anythingToAvoid: draft.anythingToAvoid,
+          preferredPlanStyle: draft.preferredPlanStyle,
+          safetyAcknowledged: false,
+        });
+        setWeeklyChangeNote(draft.weeklyChangeNote);
+        setWeeklyDraftMessage("Draft restored on this device.");
+      }
+
+      setIsWeeklyDraftLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [weeklyRequestDraftStorageKey]);
+
+  useEffect(() => {
+    if (!isWeeklyDraftLoaded) return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (!hasWeeklyRequestDraftContent(form, weeklyChangeNote)) {
+        clearStoredWeeklyRequestDraft(weeklyRequestDraftStorageKey);
+        setWeeklyDraftMessage("");
+        return;
+      }
+
+      saveWeeklyRequestDraft(
+        weeklyRequestDraftStorageKey,
+        createWeeklyRequestDraft(form, weeklyChangeNote),
+      );
+      setWeeklyDraftMessage("Draft saved on this device.");
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    form,
+    isWeeklyDraftLoaded,
+    weeklyChangeNote,
+    weeklyRequestDraftStorageKey,
+  ]);
+
   function updateField(
     field: keyof WeeklyRequestFormState,
     value: string | boolean,
@@ -612,6 +688,16 @@ function AppDashboard({
 
   function applyShiftScheduleTemplate(value: string) {
     updateField("workSchedule", value);
+  }
+
+  function clearWeeklyRequestDraft() {
+    clearStoredWeeklyRequestDraft(weeklyRequestDraftStorageKey);
+    setForm(initialWeeklyRequestForm);
+    setWeeklyChangeNote("");
+    setErrors({});
+    setRequestReuseMessage("");
+    setWeeklyDraftMessage("");
+    setRequestMessage("Draft cleared on this device.");
   }
 
   function handleUseAsStartingPoint(request: WeeklyRequest) {
@@ -815,8 +901,10 @@ function AppDashboard({
       }
 
       setRequests((current) => [result.request as WeeklyRequest, ...current]);
+      clearStoredWeeklyRequestDraft(weeklyRequestDraftStorageKey);
       setForm(initialWeeklyRequestForm);
       setWeeklyChangeNote("");
+      setWeeklyDraftMessage("");
       setRequestMessage("Weekly request saved.");
       setRequestReuseMessage("");
     } catch {
@@ -1548,6 +1636,21 @@ function AppDashboard({
               onSubmit={handleWeeklyRequestSubmit}
               noValidate
             >
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  {weeklyDraftMessage ||
+                    "Draft saves on this device as you type."}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearWeeklyRequestDraft}
+                  disabled={!hasWeeklyDraftContent}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
+                >
+                  Clear draft
+                </button>
+              </div>
+
               <Field
                 id="weekSummary"
                 label="Tell ShiftPlan your week"
@@ -2389,6 +2492,111 @@ function appendUniqueText(currentValue: string, nextValue: string) {
   if (!current) return next;
 
   return `${current}\n${next}`;
+}
+
+function normalizeStorageKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") || "local";
+}
+
+function createWeeklyRequestDraft(
+  form: WeeklyRequestFormState,
+  weeklyChangeNote: string,
+): WeeklyRequestDraft {
+  return {
+    weekStartDate: form.weekStartDate,
+    weekSummary: form.weekSummary,
+    scheduleType: form.scheduleType,
+    workSchedule: form.workSchedule,
+    commuteTime: form.commuteTime,
+    mainGoal: form.mainGoal,
+    mealPrepNeeds: form.mealPrepNeeds,
+    workoutTrainingGoals: form.workoutTrainingGoals,
+    appointments: form.appointments,
+    errands: form.errands,
+    familyPersonalResponsibilities: form.familyPersonalResponsibilities,
+    topPriorities: form.topPriorities,
+    anythingToAvoid: form.anythingToAvoid,
+    preferredPlanStyle: form.preferredPlanStyle,
+    weeklyChangeNote,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function hasWeeklyRequestDraftContent(
+  form: WeeklyRequestFormState,
+  weeklyChangeNote: string,
+) {
+  return [
+    form.weekStartDate,
+    form.weekSummary,
+    form.scheduleType,
+    form.workSchedule,
+    form.commuteTime,
+    form.mainGoal,
+    form.mealPrepNeeds,
+    form.workoutTrainingGoals,
+    form.appointments,
+    form.errands,
+    form.familyPersonalResponsibilities,
+    form.topPriorities,
+    form.anythingToAvoid,
+    form.preferredPlanStyle,
+    weeklyChangeNote,
+  ].some((value) => value.trim() !== "");
+}
+
+function saveWeeklyRequestDraft(storageKey: string, draft: WeeklyRequestDraft) {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(draft));
+  } catch {
+    // Draft autosave is device-only convenience; the form remains usable.
+  }
+}
+
+function clearStoredWeeklyRequestDraft(storageKey: string) {
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // Draft autosave is device-only convenience; the form remains usable.
+  }
+}
+
+function readStoredWeeklyRequestDraft(storageKey: string) {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored) as Partial<WeeklyRequestDraft>;
+
+    return {
+      weekStartDate: readDraftString(parsed.weekStartDate),
+      weekSummary: readDraftString(parsed.weekSummary),
+      scheduleType: readDraftString(parsed.scheduleType),
+      workSchedule: readDraftString(parsed.workSchedule),
+      commuteTime: readDraftString(parsed.commuteTime),
+      mainGoal: readDraftString(parsed.mainGoal),
+      mealPrepNeeds: readDraftString(parsed.mealPrepNeeds),
+      workoutTrainingGoals: readDraftString(parsed.workoutTrainingGoals),
+      appointments: readDraftString(parsed.appointments),
+      errands: readDraftString(parsed.errands),
+      familyPersonalResponsibilities: readDraftString(
+        parsed.familyPersonalResponsibilities,
+      ),
+      topPriorities: readDraftString(parsed.topPriorities),
+      anythingToAvoid: readDraftString(parsed.anythingToAvoid),
+      preferredPlanStyle: readDraftString(parsed.preferredPlanStyle),
+      weeklyChangeNote: readDraftString(parsed.weeklyChangeNote),
+      savedAt: readDraftString(parsed.savedAt),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readDraftString(value: unknown) {
+  return typeof value === "string" ? value : "";
 }
 
 function SavedPlanQuickView({ plan }: { plan: AppSavedPlan }) {

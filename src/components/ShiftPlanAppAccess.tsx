@@ -922,6 +922,12 @@ function AppDashboard({
     }));
   }
 
+  function scrollToPlanFeedback(planId: string) {
+    document
+      .getElementById(buildPlanFeedbackId(planId))
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function handleFeedbackSaved(planId: string, feedback: AppPlanFeedback) {
     setRequests((current) =>
       current.map((request) =>
@@ -1177,6 +1183,13 @@ function AppDashboard({
                                   ? "Downloaded"
                                   : "Download Calendar"}
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => scrollToPlanFeedback(plan.id)}
+                              className="col-span-2 inline-flex w-full items-center justify-center rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-300/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                            >
+                              Was this plan useful?
+                            </button>
                           </div>
                         </div>
                         <p className="mt-3 text-xs leading-5 text-slate-400">
@@ -1221,8 +1234,9 @@ function AppDashboard({
                       </section>
 
                       <section
+                        id={buildPlanFeedbackId(plan.id)}
                         aria-label="Feedback"
-                        className="border-t border-slate-200 pt-4"
+                        className="scroll-mt-28 border-t border-slate-200 pt-4"
                       >
                         <PlanFeedbackForm
                           plan={plan}
@@ -2105,6 +2119,10 @@ function buildChecklistCopyText(body: string) {
       return [group.label, ...groupLines].join("\n");
     })
     .join("\n\n");
+}
+
+function buildPlanFeedbackId(planId: string) {
+  return `plan-feedback-${planId}`;
 }
 
 function buildSavedPlanQuickView(plan: AppSavedPlan) {

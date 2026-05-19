@@ -270,11 +270,12 @@ const futureFeatureOptions = [
   "Interactive checklist",
   "Add to calendar",
   "Weekly reminders",
-  "Better mobile app layout",
+  "Better mobile layout",
   "Editable plans",
   "Plan history",
   "Today view",
   "iPhone app",
+  "Voice input",
 ];
 
 const safetyCopy =
@@ -3467,6 +3468,53 @@ function normalizeChecklistKey(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+const futureFeatureNotesPrefix = "Future feature picks:";
+
+function readFutureFeatureSelections(notes: string) {
+  const featureLine = notes
+    .split(/\r?\n/)
+    .find((line) => line.trim().startsWith(futureFeatureNotesPrefix));
+
+  if (!featureLine) return [];
+
+  return futureFeatureOptions.filter((feature) =>
+    featureLine.includes(feature),
+  );
+}
+
+function toggleFutureFeatureInNotes(notes: string, feature: string) {
+  const selected = new Set(readFutureFeatureSelections(notes));
+
+  if (selected.has(feature)) {
+    selected.delete(feature);
+  } else {
+    selected.add(feature);
+  }
+
+  const noteLines = notes
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith(futureFeatureNotesPrefix));
+  const compactNoteLines = trimTrailingBlankLines(noteLines);
+
+  if (selected.size > 0) {
+    compactNoteLines.push(
+      `${futureFeatureNotesPrefix} ${Array.from(selected).join(", ")}`,
+    );
+  }
+
+  return compactNoteLines.join("\n").trim();
+}
+
+function trimTrailingBlankLines(lines: string[]) {
+  const next = [...lines];
+
+  while (next.length > 0 && next[next.length - 1].trim() === "") {
+    next.pop();
+  }
+
+  return next;
+}
+
 function PlanFeedbackForm({
   plan,
   onFeedbackSaved,
@@ -3480,11 +3528,22 @@ function PlanFeedbackForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const selectedFutureFeatures = useMemo(
+    () => readFutureFeatureSelections(form.additionalNotes),
+    [form.additionalNotes],
+  );
 
   function updateField(field: keyof PlanFeedbackFormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: "" }));
     setMessage("");
+  }
+
+  function toggleFutureFeature(feature: string) {
+    updateField(
+      "additionalNotes",
+      toggleFutureFeatureInNotes(form.additionalNotes, feature),
+    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -3632,21 +3691,31 @@ function PlanFeedbackForm({
         />
         <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
           <p className="text-sm font-semibold text-teal-950">
-            Which 3 future features would matter most to you?
+            Which future features matter most?
           </p>
           <p className="mt-2 text-sm leading-6 text-teal-900">
-            Add your picks in Additional notes so we can learn what should come
-            next.
+            Tap any that matter. Your picks stay editable in Additional notes.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {futureFeatureOptions.map((feature) => (
-              <span
-                key={feature}
-                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-teal-900 ring-1 ring-teal-200"
-              >
-                {feature}
-              </span>
-            ))}
+            {futureFeatureOptions.map((feature) => {
+              const isSelected = selectedFutureFeatures.includes(feature);
+
+              return (
+                <button
+                  key={feature}
+                  type="button"
+                  onClick={() => toggleFutureFeature(feature)}
+                  aria-pressed={isSelected}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 transition focus:outline-none focus:ring-2 focus:ring-teal-600 ${
+                    isSelected
+                      ? "bg-teal-800 text-white ring-teal-800"
+                      : "bg-white text-teal-900 ring-teal-200 hover:bg-teal-100"
+                  }`}
+                >
+                  {feature}
+                </button>
+              );
+            })}
           </div>
         </div>
         <TextAreaField

@@ -1232,7 +1232,8 @@ function AppDashboard({
             <div className="grid gap-5 md:grid-cols-3">
               <Field
                 id="typicalShiftType"
-                label="Typical shift type"
+                label="Usual shift pattern"
+                helpText="Pick the schedule pattern ShiftPlan should assume most weeks."
                 error={preferencesErrors.typical_shift_type}
               >
                 <select
@@ -1258,7 +1259,7 @@ function AppDashboard({
               <Field
                 id="usualCommuteTime"
                 label="Usual commute"
-                helpText="Example: 25 minutes each way, plus 10 minutes to park."
+                helpText="Example: 25 minutes each way, plus 10 minutes to park or change."
               >
                 <input
                   id="usualCommuteTime"
@@ -1275,7 +1276,8 @@ function AppDashboard({
 
               <Field
                 id="savedPreferredPlanStyle"
-                label="Preferred plan style"
+                label="Default plan style"
+                helpText="Choose how much structure you usually want in your weekly plan."
                 error={preferencesErrors.preferred_plan_style}
               >
                 <select
@@ -1301,6 +1303,7 @@ function AppDashboard({
               <Field
                 id="defaultWeekStartDay"
                 label="Default week start day"
+                helpText="Example: Monday if you usually plan Monday through Sunday."
                 error={preferencesErrors.default_week_start_day}
               >
                 <select
@@ -1328,7 +1331,7 @@ function AppDashboard({
               <TextAreaField
                 id="savedMealPrepPreferences"
                 label="Usual meal prep"
-                helpText="Example: Prep two grab-and-go meals before the first shift; keep one backup dinner simple."
+                helpText="Example: simple high-protein meals, chicken/rice, yogurt, no cooking after shifts."
                 value={preferencesForm.mealPrepPreferences}
                 onChange={(value) =>
                   updatePreferenceField("mealPrepPreferences", value)
@@ -1337,7 +1340,7 @@ function AppDashboard({
               <TextAreaField
                 id="savedWorkoutTrainingPreferences"
                 label="Usual workout or training"
-                helpText="Example: Strength on first off day, short walk on workdays if it fits."
+                helpText="Example: strength on first off day, short workouts only during work stretches."
                 value={preferencesForm.workoutTrainingPreferences}
                 onChange={(value) =>
                   updatePreferenceField("workoutTrainingPreferences", value)
@@ -1346,7 +1349,7 @@ function AppDashboard({
               <TextAreaField
                 id="savedRecurringResponsibilities"
                 label="Recurring life tasks"
-                helpText="Example: School pickup on confirmed days, laundry weekly, family dinner Sunday."
+                helpText="Example: school pickup on confirmed days, laundry weekly, family dinner Sunday."
                 value={preferencesForm.recurringResponsibilities}
                 onChange={(value) =>
                   updatePreferenceField("recurringResponsibilities", value)
@@ -1355,7 +1358,7 @@ function AppDashboard({
               <TextAreaField
                 id="thingsToAvoidAfterWork"
                 label="Avoid after work"
-                helpText="Example: Errands, heavy chores, and long planning sessions after 12-hour shifts."
+                helpText="Example: no errands, no workouts, no big chores after 12-hour shifts."
                 value={preferencesForm.thingsToAvoidAfterWork}
                 onChange={(value) =>
                   updatePreferenceField("thingsToAvoidAfterWork", value)
@@ -1366,7 +1369,7 @@ function AppDashboard({
             <TextAreaField
               id="planningNotes"
               label="Other defaults"
-              helpText="Example: Keep plans realistic, leave buffer on transition days, and avoid overpacking off days."
+              helpText="Example: keep plans realistic, leave buffer on transition days, avoid overpacking off days."
               value={preferencesForm.planningNotes}
               onChange={(value) => updatePreferenceField("planningNotes", value)}
             />

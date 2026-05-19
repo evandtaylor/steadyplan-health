@@ -1,5 +1,6 @@
 import { ShiftPlanMark } from "@/components/ShiftPlanLogo";
 import { TrackedLink } from "@/components/TrackedLink";
+import { AppPreviewSection } from "@/components/AppPreviewSection";
 import Link from "next/link";
 
 const problemPoints = [

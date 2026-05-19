@@ -732,6 +732,54 @@ function AppDashboard({
     }, 0);
   }
 
+  function handlePlanNextWeekFromPlan(request?: WeeklyRequest) {
+    if (!request) {
+      setRequestReuseMessage(
+        "This saved plan does not have request details available. Start a new weekly request and copy over anything still useful.",
+      );
+      window.setTimeout(() => {
+        document
+          .getElementById("weekly-request")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+      return;
+    }
+
+    const nextWeekStart = isValidIsoDate(request.week_start_date)
+      ? addDaysToIsoDate(request.week_start_date, 7)
+      : "";
+
+    setForm({
+      weekStartDate: nextWeekStart,
+      weekSummary: "",
+      scheduleType: request.schedule_type || "",
+      workSchedule: request.work_schedule || "",
+      commuteTime: request.commute_time || "",
+      mainGoal: request.main_goal || "",
+      mealPrepNeeds: request.meal_prep_needs || "",
+      workoutTrainingGoals: request.workout_training_goals || "",
+      appointments: request.appointments || "",
+      errands: request.errands || "",
+      familyPersonalResponsibilities:
+        request.family_personal_responsibilities || "",
+      topPriorities: request.top_priorities || "",
+      anythingToAvoid: request.anything_to_avoid || "",
+      preferredPlanStyle: request.preferred_plan_style || "",
+      safetyAcknowledged: false,
+    });
+    setErrors({});
+    setRequestMessage("");
+    setWeeklyChangeNote("");
+    setRequestReuseMessage(
+      "We copied this plan's request. Update what changed, then save next week's request.",
+    );
+    window.setTimeout(() => {
+      document
+        .getElementById("weekly-request")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
   function updatePreferenceField(
     field: keyof PreferencesFormState,
     value: string,
@@ -1312,6 +1360,15 @@ function AppDashboard({
                               className="col-span-2 inline-flex w-full items-center justify-center rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-300/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
                             >
                               Was this plan useful?
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePlanNextWeekFromPlan(planRequest)
+                              }
+                              className="col-span-2 inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                            >
+                              Plan next week from this
                             </button>
                           </div>
                         </div>

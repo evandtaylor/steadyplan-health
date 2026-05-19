@@ -275,6 +275,10 @@ const safetyAcknowledgmentText =
 
 const collapsedPlanLineLimit = 52;
 
+const quickSelectAvoidErrands = "No errands after work.";
+const quickSelectLightOffDay =
+  "Keep the first off day light with only essential tasks.";
+
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
   const [accessCode, setAccessCode] = useState("");
@@ -468,6 +472,7 @@ function AppDashboard({
   const [preferencesMessage, setPreferencesMessage] = useState("");
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [generatingRequestId, setGeneratingRequestId] = useState("");
   const [generationMessages, setGenerationMessages] = useState<
     Record<string, string>
@@ -605,6 +610,46 @@ function AppDashboard({
     setPreferencesForm((current) => ({ ...current, [field]: value }));
     setPreferencesErrors((current) => ({ ...current, [field]: "" }));
     setPreferencesMessage("");
+  }
+
+  function applyWeeklyHelperChip(
+    chip:
+      | "commute"
+      | "meal-preferences"
+      | "workout-preferences"
+      | "no-errands-after-work"
+      | "light-first-off-day",
+  ) {
+    if (chip === "commute" && preferences?.usual_commute_time) {
+      updateField("commuteTime", preferences.usual_commute_time);
+      return;
+    }
+
+    if (chip === "meal-preferences" && preferences?.meal_prep_preferences) {
+      updateField("mealPrepNeeds", preferences.meal_prep_preferences);
+      return;
+    }
+
+    if (
+      chip === "workout-preferences" &&
+      preferences?.workout_training_preferences
+    ) {
+      updateField("workoutTrainingGoals", preferences.workout_training_preferences);
+      return;
+    }
+
+    if (chip === "no-errands-after-work") {
+      updateField(
+        "anythingToAvoid",
+        appendUniqueText(form.anythingToAvoid, quickSelectAvoidErrands),
+      );
+      return;
+    }
+
+    updateField(
+      "topPriorities",
+      appendUniqueText(form.topPriorities, quickSelectLightOffDay),
+    );
   }
 
   async function handlePreferencesSubmit(event: FormEvent<HTMLFormElement>) {
@@ -845,26 +890,30 @@ function AppDashboard({
   }
 
   return (
-    <section className="shiftplan-app-theme shiftplan-dark-form min-h-[70vh] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <section className="shiftplan-app-theme shiftplan-dark-form min-h-[70vh] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <p className="text-sm font-semibold uppercase text-teal-700">
             ShiftPlan app
           </p>
-          <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-3xl font-semibold text-slate-950 sm:text-4xl">
                 Welcome{firstName ? `, ${firstName}` : ""}.
               </h1>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Signed in for app preview as {email}.
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Saved preferences are your defaults. This week&apos;s request is
+                only what changed.
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                Signed in as {email}
               </p>
             </div>
             <a
               href="#weekly-request"
               className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
             >
-              Create This Week&apos;s ShiftPlan
+              Start This Week&apos;s Request
             </a>
           </div>
         </div>
@@ -874,8 +923,8 @@ function AppDashboard({
           className="mt-4 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
         >
           {[
-            ["Preferences", "#app-preferences"],
             ["New Request", "#weekly-request"],
+            ["Defaults", "#app-preferences"],
             ["Saved Plans", "#saved-plans"],
             ["Feedback", "#saved-plans"],
           ].map(([label, href]) => (
@@ -889,33 +938,29 @@ function AppDashboard({
           ))}
         </nav>
 
-        <article className="mt-6 rounded-lg border border-teal-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col">
+        <article className="order-1 mt-4 rounded-lg border border-teal-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-700">
                 Private beta
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                How to test ShiftPlan
+              <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                Fast beta flow
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                ShiftPlan is in private beta. Here&apos;s the best way to test it:
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Set defaults once, then only enter what changed this week.
               </p>
             </div>
-            <p className="rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600 lg:max-w-sm">
-              App-generated plans may not be manually reviewed before you see
-              them. Always review and adjust the plan for your real life before
-              relying on it.
+            <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950 lg:max-w-sm">
+              Review dates, shift times, and assumptions before using a plan.
             </p>
           </div>
-          <ol className="mt-5 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-2 lg:grid-cols-3">
+          <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-3">
             {[
-              "Save what ShiftPlan should remember.",
-              "Create this week's request.",
-              "Generate your ShiftPlan.",
-              "Review dates, shift times, appointments, and assumptions.",
-              "Use the plan as a flexible guide during the week.",
-              "Leave feedback under the plan so ShiftPlan can improve.",
+              "Check your saved defaults.",
+              "Add this week's changes.",
+              "Generate, review, and leave feedback.",
             ].map((step, index) => (
               <li key={step} className="flex gap-3 rounded-lg bg-slate-50 p-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-800 text-xs font-semibold text-white">
@@ -927,7 +972,7 @@ function AppDashboard({
           </ol>
         </article>
 
-        <article className="mt-6 rounded-lg border border-slate-200 bg-slate-950 p-5 text-white shadow-sm sm:p-6">
+        <article className="order-5 mt-6 rounded-lg border border-slate-200 bg-slate-950 p-4 text-white shadow-sm sm:p-5">
           <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-200">
@@ -936,9 +981,8 @@ function AppDashboard({
               <h2 className="mt-2 text-xl font-semibold">
                 Use ShiftPlan like an app.
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Want quicker access? Add ShiftPlan to your iPhone Home Screen
-                while the native app is still future roadmap.
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Add ShiftPlan to your iPhone Home Screen for quicker access.
               </p>
             </div>
             <ol className="grid gap-3 text-sm leading-6 text-slate-200 sm:grid-cols-3">
@@ -961,7 +1005,7 @@ function AppDashboard({
           </div>
         </article>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+        <div className="order-4 mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <article
             id="saved-plans"
             className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
@@ -1113,36 +1157,45 @@ function AppDashboard({
 
         <section
           id="app-preferences"
-          className="mt-6 scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
+          className="order-3 mt-6 scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-700">
-                Saved preferences
+                Saved defaults
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                What ShiftPlan should remember
+              <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                What ShiftPlan should remember most weeks
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                These help future plans feel more personalized. Saved
-                preferences never override your submitted weekly schedule or
-                ShiftPlan safety boundaries.
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Saved preferences are your defaults. This week&apos;s request is
+                only what changed.
               </p>
               {!isLoadingPreferences && !preferences ? (
                 <p className="mt-3 rounded-lg border border-dashed border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
-                  No saved preferences yet. Start with the basics ShiftPlan
-                  should remember, like your usual commute, planning style,
-                  meal prep preferences, and recurring responsibilities.
+                  Optional, but useful: add your usual commute, planning style,
+                  meal prep defaults, and recurring responsibilities once.
                 </p>
               ) : null}
             </div>
-            <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-              {isLoadingPreferences
-                ? "Loading"
-                : preferences
-                  ? "Preferences saved"
-                  : "Not saved yet"}
-            </span>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+                {isLoadingPreferences
+                  ? "Loading"
+                  : preferences
+                    ? "Defaults saved"
+                    : "Optional"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPreferencesOpen((current) => !current)}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                aria-expanded={isPreferencesOpen}
+                aria-controls="saved-preferences-form"
+              >
+                {isPreferencesOpen ? "Hide defaults" : "Edit defaults"}
+              </button>
+            </div>
           </div>
 
           {preferencesMessage ? (
@@ -1154,8 +1207,10 @@ function AppDashboard({
             </p>
           ) : null}
 
+          {isPreferencesOpen ? (
           <form
-            className="mt-6 grid gap-5"
+            id="saved-preferences-form"
+            className="mt-5 grid gap-5"
             onSubmit={handlePreferencesSubmit}
             noValidate
           >
@@ -1185,7 +1240,11 @@ function AppDashboard({
                 </select>
               </Field>
 
-              <Field id="usualCommuteTime" label="Usual commute time">
+              <Field
+                id="usualCommuteTime"
+                label="Usual commute"
+                helpText="Example: 25 minutes each way, plus 10 minutes to park."
+              >
                 <input
                   id="usualCommuteTime"
                   value={preferencesForm.usualCommuteTime}
@@ -1253,7 +1312,8 @@ function AppDashboard({
             <div className="grid gap-5 md:grid-cols-2">
               <TextAreaField
                 id="savedMealPrepPreferences"
-                label="Meal prep preferences"
+                label="Usual meal prep"
+                helpText="Example: Prep two grab-and-go meals before the first shift; keep one backup dinner simple."
                 value={preferencesForm.mealPrepPreferences}
                 onChange={(value) =>
                   updatePreferenceField("mealPrepPreferences", value)
@@ -1261,7 +1321,8 @@ function AppDashboard({
               />
               <TextAreaField
                 id="savedWorkoutTrainingPreferences"
-                label="Workout/training preferences"
+                label="Usual workout or training"
+                helpText="Example: Strength on first off day, short walk on workdays if it fits."
                 value={preferencesForm.workoutTrainingPreferences}
                 onChange={(value) =>
                   updatePreferenceField("workoutTrainingPreferences", value)
@@ -1269,7 +1330,8 @@ function AppDashboard({
               />
               <TextAreaField
                 id="savedRecurringResponsibilities"
-                label="Recurring responsibilities"
+                label="Recurring life tasks"
+                helpText="Example: School pickup on confirmed days, laundry weekly, family dinner Sunday."
                 value={preferencesForm.recurringResponsibilities}
                 onChange={(value) =>
                   updatePreferenceField("recurringResponsibilities", value)
@@ -1277,7 +1339,8 @@ function AppDashboard({
               />
               <TextAreaField
                 id="thingsToAvoidAfterWork"
-                label="Things to avoid after work"
+                label="Avoid after work"
+                helpText="Example: Errands, heavy chores, and long planning sessions after 12-hour shifts."
                 value={preferencesForm.thingsToAvoidAfterWork}
                 onChange={(value) =>
                   updatePreferenceField("thingsToAvoidAfterWork", value)
@@ -1287,7 +1350,8 @@ function AppDashboard({
 
             <TextAreaField
               id="planningNotes"
-              label="Planning notes"
+              label="Other defaults"
+              helpText="Example: Keep plans realistic, leave buffer on transition days, and avoid overpacking off days."
               value={preferencesForm.planningNotes}
               onChange={(value) => updatePreferenceField("planningNotes", value)}
             />
@@ -1300,33 +1364,33 @@ function AppDashboard({
               {isSavingPreferences ? "Saving..." : "Save preferences"}
             </button>
           </form>
+          ) : null}
         </section>
 
         <div
           id="weekly-request"
-          className="mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
+          className="order-2 mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
         >
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-700">
-                Weekly request
+                This week
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                Create This Week&apos;s ShiftPlan
+                Create this week&apos;s ShiftPlan
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Save your schedule and priorities for the week, then generate a
-                routine-planning draft from the saved request.
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Add the real schedule and anything different this week. Saved
+                defaults fill in the usual stuff.
               </p>
               {requestReuseMessage ? (
                 <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-950">
                   {requestReuseMessage}
                 </p>
               ) : null}
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-                App-generated AI plans may not be manually reviewed before you
-                see them. Review dates, shift times, appointments, and
-                assumptions before relying on a plan.
+              <p className="mt-3 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
+                Saved preferences are your defaults. This week&apos;s request is
+                only what changed.
               </p>
             </div>
 
@@ -1349,6 +1413,37 @@ function AppDashboard({
               onSubmit={handleWeeklyRequestSubmit}
               noValidate
             >
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  Quick adds
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <QuickSelectButton
+                    label="Use saved commute"
+                    disabled={!preferences?.usual_commute_time}
+                    onClick={() => applyWeeklyHelperChip("commute")}
+                  />
+                  <QuickSelectButton
+                    label="Use saved meal preferences"
+                    disabled={!preferences?.meal_prep_preferences}
+                    onClick={() => applyWeeklyHelperChip("meal-preferences")}
+                  />
+                  <QuickSelectButton
+                    label="Use saved workout preferences"
+                    disabled={!preferences?.workout_training_preferences}
+                    onClick={() => applyWeeklyHelperChip("workout-preferences")}
+                  />
+                  <QuickSelectButton
+                    label="No errands after work"
+                    onClick={() => applyWeeklyHelperChip("no-errands-after-work")}
+                  />
+                  <QuickSelectButton
+                    label="Keep first off day light"
+                    onClick={() => applyWeeklyHelperChip("light-first-off-day")}
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-5 md:grid-cols-2">
                 <Field
                   id="weekStartDate"
@@ -1402,8 +1497,8 @@ function AppDashboard({
 
               <Field
                 id="workSchedule"
-                label="Exact work schedule"
-                helpText="Include days and times, for example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
+                label="This week's work schedule"
+                helpText="Example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
                 error={errors.work_schedule}
               >
                 <textarea
@@ -1419,7 +1514,11 @@ function AppDashboard({
               </Field>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <Field id="commuteTime" label="Commute time">
+                <Field
+                  id="commuteTime"
+                  label="Commute this week"
+                  helpText="Only add this if it changed from your saved default."
+                >
                   <input
                     id="commuteTime"
                     name="commuteTime"
@@ -1458,7 +1557,7 @@ function AppDashboard({
 
               <Field
                 id="mainGoal"
-                label="Main goal for this week"
+                label="What matters most this week?"
                 error={errors.main_goal}
               >
                 <textarea
@@ -1492,13 +1591,15 @@ function AppDashboard({
               <div className="grid gap-5 md:grid-cols-2">
                 <TextAreaField
                   id="mealPrepNeeds"
-                  label="Meal prep needs"
+                  label="Meal changes this week"
+                  helpText="Example: Need lunches for three shifts; no big grocery run until Friday."
                   value={form.mealPrepNeeds}
                   onChange={(value) => updateField("mealPrepNeeds", value)}
                 />
                 <TextAreaField
                   id="workoutTrainingGoals"
-                  label="Workout/training goals"
+                  label="Workout changes this week"
+                  helpText="Example: One short strength session and one walk if the week allows."
                   value={form.workoutTrainingGoals}
                   onChange={(value) =>
                     updateField("workoutTrainingGoals", value)
@@ -1507,18 +1608,21 @@ function AppDashboard({
                 <TextAreaField
                   id="appointments"
                   label="Appointments this week"
+                  helpText="Example: Dentist Friday 10a, haircut Saturday afternoon."
                   value={form.appointments}
                   onChange={(value) => updateField("appointments", value)}
                 />
                 <TextAreaField
                   id="errands"
                   label="Errands this week"
+                  helpText="Example: Groceries, pharmacy pickup, return package."
                   value={form.errands}
                   onChange={(value) => updateField("errands", value)}
                 />
                 <TextAreaField
                   id="familyPersonalResponsibilities"
-                  label="Family/personal responsibilities"
+                  label="People or home responsibilities"
+                  helpText="Example: School event Thursday, family dinner Sunday."
                   value={form.familyPersonalResponsibilities}
                   onChange={(value) =>
                     updateField("familyPersonalResponsibilities", value)
@@ -1526,13 +1630,18 @@ function AppDashboard({
                 />
                 <TextAreaField
                   id="topPriorities"
-                  label="Top 3 priorities this week"
+                  label="Top priorities this week"
+                  helpText="Example: Keep workdays simple, batch errands Friday, prep before first shift."
                   value={form.topPriorities}
                   onChange={(value) => updateField("topPriorities", value)}
                 />
               </div>
 
-              <Field id="anythingToAvoid" label="Anything to avoid">
+              <Field
+                id="anythingToAvoid"
+                label="Anything to avoid this week"
+                helpText="Example: No errands after work; avoid stacking chores on the first off day."
+              >
                 <textarea
                   id="anythingToAvoid"
                   name="anythingToAvoid"
@@ -1674,10 +1783,11 @@ function AppDashboard({
           </section>
         </div>
 
-        <aside className="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700">
+        <aside className="order-6 mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700">
           <p className="font-semibold text-blue-950">Safety note</p>
           <p className="mt-2">{safetyCopy}</p>
         </aside>
+        </div>
       </div>
     </section>
   );
@@ -1689,6 +1799,27 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="font-semibold text-slate-900">{title}</p>
       <p className="mt-2">{body}</p>
     </div>
+  );
+}
+
+function QuickSelectButton({
+  label,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="rounded-full border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+    >
+      {label}
+    </button>
   );
 }
 
@@ -1903,6 +2034,17 @@ function buildMainGoalWithChangeNote(mainGoal: string, changeNote: string) {
     "What changed from the last plan:",
     trimmedChange,
   ].join("\n");
+}
+
+function appendUniqueText(currentValue: string, nextValue: string) {
+  const current = currentValue.trim();
+  const next = nextValue.trim();
+
+  if (!next) return current;
+  if (current.toLowerCase().includes(next.toLowerCase())) return current;
+  if (!current) return next;
+
+  return `${current}\n${next}`;
 }
 
 function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
@@ -2618,16 +2760,18 @@ function Field({
 function TextAreaField({
   id,
   label,
+  helpText,
   value,
   onChange,
 }: {
   id: string;
   label: string;
+  helpText?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <Field id={id} label={label}>
+    <Field id={id} label={label} helpText={helpText}>
       <textarea
         id={id}
         name={id}

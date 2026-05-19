@@ -138,6 +138,7 @@ type AppUsageSummary = {
 
 type WeeklyRequestFormState = {
   weekStartDate: string;
+  weekSummary: string;
   scheduleType: string;
   workSchedule: string;
   commuteTime: string;
@@ -189,6 +190,7 @@ type ChecklistGroup = {
 
 const initialWeeklyRequestForm: WeeklyRequestFormState = {
   weekStartDate: "",
+  weekSummary: "",
   scheduleType: "",
   workSchedule: "",
   commuteTime: "",
@@ -575,6 +577,7 @@ function AppDashboard({
   function handleUseAsStartingPoint(request: WeeklyRequest) {
     setForm({
       weekStartDate: "",
+      weekSummary: "",
       scheduleType: request.schedule_type || "",
       workSchedule: request.work_schedule || "",
       commuteTime: request.commute_time || "",
@@ -720,7 +723,11 @@ function AppDashboard({
           schedule_type: form.scheduleType,
           work_schedule: form.workSchedule,
           commute_time: form.commuteTime,
-          main_goal: buildMainGoalWithChangeNote(form.mainGoal, weeklyChangeNote),
+          main_goal: buildMainGoalWithWeeklyContext(
+            form.mainGoal,
+            form.weekSummary,
+            weeklyChangeNote,
+          ),
           meal_prep_needs: form.mealPrepNeeds,
           workout_training_goals: form.workoutTrainingGoals,
           appointments: form.appointments,
@@ -1431,6 +1438,22 @@ function AppDashboard({
               onSubmit={handleWeeklyRequestSubmit}
               noValidate
             >
+              <Field
+                id="weekSummary"
+                label="Tell ShiftPlan your week"
+                helpText="Short on time? Type a quick summary here, then fill in anything important below."
+              >
+                <textarea
+                  id="weekSummary"
+                  name="weekSummary"
+                  value={form.weekSummary}
+                  onChange={(event) =>
+                    updateField("weekSummary", event.target.value)
+                  }
+                  className="field-control min-h-24"
+                />
+              </Field>
+
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <p className="text-sm font-semibold text-slate-900">
                   Quick adds
@@ -2046,18 +2069,25 @@ function cleanSummaryLine(value: string) {
     .trim();
 }
 
-function buildMainGoalWithChangeNote(mainGoal: string, changeNote: string) {
+function buildMainGoalWithWeeklyContext(
+  mainGoal: string,
+  weekSummary: string,
+  changeNote: string,
+) {
   const trimmedGoal = mainGoal.trim();
+  const trimmedSummary = weekSummary.trim();
   const trimmedChange = changeNote.trim();
+  const contextParts = [trimmedGoal];
 
-  if (!trimmedChange) return trimmedGoal;
+  if (trimmedSummary) {
+    contextParts.push("", "Tell ShiftPlan your week:", trimmedSummary);
+  }
 
-  return [
-    trimmedGoal,
-    "",
-    "What changed from the last plan:",
-    trimmedChange,
-  ].join("\n");
+  if (trimmedChange) {
+    contextParts.push("", "What changed from the last plan:", trimmedChange);
+  }
+
+  return contextParts.join("\n");
 }
 
 function appendUniqueText(currentValue: string, nextValue: string) {

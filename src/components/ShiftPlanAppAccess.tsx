@@ -1177,11 +1177,12 @@ function AppDashboard({
                     First time here?
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                    Make your first ShiftPlan in three steps.
+                    Start with one real week.
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-teal-950">
-                    Start with the real dates and shifts for this week. Defaults
-                    can help later, but the weekly request is the main action.
+                    Create a weekly request first. Saved defaults can help
+                    later, but your exact shifts are the main thing ShiftPlan
+                    needs.
                   </p>
                 </div>
                 <a
@@ -1191,20 +1192,6 @@ function AppDashboard({
                   Start with this week
                 </a>
               </div>
-              <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-800 md:grid-cols-3">
-                {[
-                  "Step 1: Save what ShiftPlan should remember",
-                  "Step 2: Create this week's request",
-                  "Step 3: Generate your first ShiftPlan",
-                ].map((step) => (
-                  <li
-                    key={step}
-                    className="rounded-lg bg-white p-3 font-semibold"
-                  >
-                    {step}
-                  </li>
-                ))}
-              </ol>
             </article>
           ) : null}
 
@@ -1215,10 +1202,10 @@ function AppDashboard({
                 Private beta
               </p>
               <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                Fast beta flow
+                Start here
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Set defaults once, then only enter what changed this week.
+                Use this path the first time you test ShiftPlan.
               </p>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <a
@@ -1228,10 +1215,10 @@ function AppDashboard({
                   Create this week
                 </a>
                 <a
-                  href="#recent-requests"
+                  href="#saved-plans"
                   className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
                 >
-                  Continue from last week
+                  Already used ShiftPlan? View saved plans
                 </a>
               </div>
             </div>
@@ -1241,9 +1228,9 @@ function AppDashboard({
           </div>
           <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-3">
             {[
-              "Check your saved defaults.",
-              "Add this week's changes.",
-              "Generate, review, and leave feedback.",
+              "Save your defaults",
+              "Create this week's request",
+              "Generate and review your plan",
             ].map((step, index) => (
               <li key={step} className="flex gap-3 rounded-lg bg-slate-50 p-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-800 text-xs font-semibold text-white">

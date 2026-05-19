@@ -177,6 +177,17 @@ Run a production build:
 npm run build
 ```
 
+## Codex workflow
+
+ShiftPlan uses lightweight Codex workflow docs for ChatGPT -> Codex handoffs:
+
+- [Task queue](docs/codex-task-queue.md)
+- [Report template](docs/codex-report-template.md)
+- [Workflow guide](docs/codex-workflow.md)
+- [Core rules](docs/codex-skills/shiftplan-core-rules.md)
+
+Codex should read the current task queue and core rules before implementation, make separate commits for separate tasks, and run `npm run lint` and `npm run build` before each commit.
+
 ## Vercel deployment
 
 This app is designed for Vercel, but do not deploy until environment variables and Supabase tables are ready.

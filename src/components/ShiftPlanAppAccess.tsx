@@ -2988,6 +2988,7 @@ function InteractiveChecklist({
     () => createInitialChecklistGroupState(groups),
   );
   const [copyState, setCopyState] = useState<"" | "copied" | "failed">("");
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   if (items.length === 0) {
     return (
@@ -3022,6 +3023,15 @@ function InteractiveChecklist({
 
       return next;
     });
+  }
+
+  function setAllGroupsExpanded(isExpanded: boolean) {
+    setExpandedGroups(
+      groups.reduce<Record<string, boolean>>((state, group) => {
+        state[group.id] = isExpanded;
+        return state;
+      }, {}),
+    );
   }
 
   async function copyChecklist() {
@@ -3062,17 +3072,49 @@ function InteractiveChecklist({
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => void copyChecklist()}
-        className="mt-4 inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-      >
-        {copyState === "failed"
-          ? "Copy failed"
-          : copyState === "copied"
-            ? "Copied"
-            : "Copy Checklist"}
-      </button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setAllGroupsExpanded(true)}
+          className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          onClick={() => setAllGroupsExpanded(false)}
+          className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+        >
+          Collapse all
+        </button>
+        <button
+          type="button"
+          onClick={() => setHideCompleted(true)}
+          disabled={hideCompleted}
+          className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
+        >
+          Hide completed
+        </button>
+        <button
+          type="button"
+          onClick={() => setHideCompleted(false)}
+          disabled={!hideCompleted}
+          className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
+        >
+          Show completed
+        </button>
+        <button
+          type="button"
+          onClick={() => void copyChecklist()}
+          className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+        >
+          {copyState === "failed"
+            ? "Copy failed"
+            : copyState === "copied"
+              ? "Copied"
+              : "Copy Checklist"}
+        </button>
+      </div>
 
       <div className="mt-4 grid gap-2">
         {groups.map((group, groupIndex) => {
@@ -3080,6 +3122,9 @@ function InteractiveChecklist({
             (item) => checkedItems[item.id],
           ).length;
           const isExpanded = expandedGroups[group.id] ?? groupIndex === 0;
+          const visibleItems = hideCompleted
+            ? group.items.filter((item) => !checkedItems[item.id])
+            : group.items;
 
           return (
             <section
@@ -3107,7 +3152,8 @@ function InteractiveChecklist({
 
               {isExpanded ? (
                 <div className="grid gap-2 border-t border-slate-200 bg-white p-3">
-                  {group.items.map((item) => {
+                  {visibleItems.length > 0 ? (
+                    visibleItems.map((item) => {
                     const isChecked = Boolean(checkedItems[item.id]);
 
                     return (
@@ -3136,7 +3182,12 @@ function InteractiveChecklist({
                         </span>
                       </button>
                     );
-                  })}
+                    })
+                  ) : (
+                    <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-500">
+                      Completed items are hidden for this day.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </section>

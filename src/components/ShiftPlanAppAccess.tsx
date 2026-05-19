@@ -579,6 +579,10 @@ function AppDashboard({
     setRequestMessage("");
   }
 
+  function setQuickWeekStartDate(value: string) {
+    updateField("weekStartDate", value);
+  }
+
   function handleUseAsStartingPoint(request: WeeklyRequest) {
     setForm({
       weekStartDate: "",
@@ -1596,6 +1600,40 @@ function AppDashboard({
                       ? `We'll automatically build through ${formatReadableDate(calculatedWeekEndDate)}.`
                       : "Choose the first day of this weekly plan. We'll automatically build through the next 6 days."}
                   </p>
+                  <div
+                    className="mt-3 flex flex-wrap gap-2"
+                    aria-label="Quick week start dates"
+                  >
+                    <QuickSelectButton
+                      label="Today"
+                      onClick={() => setQuickWeekStartDate(getLocalIsoDate())}
+                    />
+                    <QuickSelectButton
+                      label="Next Monday"
+                      onClick={() =>
+                        setQuickWeekStartDate(getUpcomingWeekdayIsoDate(1))
+                      }
+                    />
+                    <QuickSelectButton
+                      label="Next Sunday"
+                      onClick={() =>
+                        setQuickWeekStartDate(getUpcomingWeekdayIsoDate(0))
+                      }
+                    />
+                    <QuickSelectButton
+                      label="Next week"
+                      onClick={() =>
+                        setQuickWeekStartDate(
+                          addDaysToIsoDate(
+                            isValidIsoDate(form.weekStartDate)
+                              ? form.weekStartDate
+                              : getLocalIsoDate(),
+                            7,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
                 </Field>
 
                 <Field
@@ -2192,6 +2230,20 @@ function findChecklistGroupForDate(
 
 function getLocalIsoDate() {
   const date = new Date();
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function getUpcomingWeekdayIsoDate(targetDay: number) {
+  const date = new Date();
+  const todayDay = date.getDay();
+  const daysUntilTarget = (targetDay - todayDay + 7) % 7 || 7;
+
+  date.setDate(date.getDate() + daysUntilTarget);
 
   return [
     date.getFullYear(),

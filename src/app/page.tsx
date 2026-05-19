@@ -11,21 +11,21 @@ const problemPoints = [
 const howItWorksSteps = [
   {
     step: "01",
-    title: "Share the real schedule",
+    title: "Share your schedule",
     description:
-      "Add shifts, commute, responsibilities, appointments, meals, workouts, and the week&apos;s main goal.",
+      "Add your shifts, commute, appointments, meals, workouts, responsibilities, and the week&apos;s main goal.",
   },
   {
     step: "02",
-    title: "Let the week take shape",
+    title: "Add what matters this week",
     description:
-      "ShiftPlan places routines around workdays first, then uses reset days and off-days for the rest.",
+      "Tell ShiftPlan what needs attention, what should stay light, and what you want off your workdays.",
   },
   {
     step: "03",
-    title: "Use a plan that bends",
+    title: "Get a realistic weekly plan",
     description:
-      "Get a simple weekly structure you can review, copy, adjust, and reuse as your schedule changes.",
+      "Review a simple plan you can copy, adjust, reuse, and bend around real life.",
   },
 ];
 
@@ -207,8 +207,8 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl">
           <SectionIntro
             eyebrow="How it works"
-            title="From messy schedule to usable week."
-            description="The flow is intentionally focused: collect practical schedule details, build a useful weekly structure, and keep the output flexible."
+            title="From your schedule to a usable week."
+            description="Start with the week you actually have, add what needs to fit, and get a plan that keeps workdays simple."
             dark
           />
           <div className="mt-10 grid gap-5 md:grid-cols-3">

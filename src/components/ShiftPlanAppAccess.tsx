@@ -554,6 +554,8 @@ function AppDashboard({
     () => hasWeeklyRequestDraftContent(form, weeklyChangeNote),
     [form, weeklyChangeNote],
   );
+  const shouldShowFirstRunPath =
+    !isLoadingRequests && requests.length === 0 && savedPlans.length === 0;
 
   const loadRequests = useCallback(async () => {
     setIsLoadingRequests(true);
@@ -1167,6 +1169,45 @@ function AppDashboard({
         </nav>
 
         <div className="flex flex-col">
+          {shouldShowFirstRunPath ? (
+            <article className="order-0 mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 shadow-sm sm:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase text-teal-800">
+                    First time here?
+                  </p>
+                  <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                    Make your first ShiftPlan in three steps.
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-teal-950">
+                    Start with the real dates and shifts for this week. Defaults
+                    can help later, but the weekly request is the main action.
+                  </p>
+                </div>
+                <a
+                  href="#weekly-request"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                >
+                  Start with this week
+                </a>
+              </div>
+              <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-800 md:grid-cols-3">
+                {[
+                  "Step 1: Save what ShiftPlan should remember",
+                  "Step 2: Create this week's request",
+                  "Step 3: Generate your first ShiftPlan",
+                ].map((step) => (
+                  <li
+                    key={step}
+                    className="rounded-lg bg-white p-3 font-semibold"
+                  >
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </article>
+          ) : null}
+
         <article className="order-1 mt-4 rounded-lg border border-teal-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>

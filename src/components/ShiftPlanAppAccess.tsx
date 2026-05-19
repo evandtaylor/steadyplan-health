@@ -1228,7 +1228,9 @@ function AppDashboard({
               </div>
             </div>
             <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950 lg:max-w-sm">
-              Review dates, shift times, and assumptions before using a plan.
+              Private beta: plans may be imperfect. Dates and times may need
+              adjustment, app-generated plans may not be manually reviewed, and
+              ShiftPlan is lifestyle/routine planning only.
             </p>
           </div>
           <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-3">

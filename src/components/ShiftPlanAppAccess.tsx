@@ -2251,10 +2251,17 @@ function isLongPlanBody(body: string) {
 }
 
 function preparePlanBodyLines(body: string, hideChecklistSection: boolean) {
-  const collapsedLines = collapseRepeatedBlankLines(body.split(/\r?\n/));
+  const displayLines = body
+    .split(/\r?\n/)
+    .filter((line) => !isMarkdownDividerLine(line));
+  const collapsedLines = collapseRepeatedBlankLines(displayLines);
   if (!hideChecklistSection) return collapsedLines;
 
   return removeStaticChecklistSection(collapsedLines);
+}
+
+function isMarkdownDividerLine(value: string) {
+  return /^[-*_]{3,}$/.test(value.trim().replace(/\s+/g, ""));
 }
 
 function removeStaticChecklistSection(lines: string[]) {

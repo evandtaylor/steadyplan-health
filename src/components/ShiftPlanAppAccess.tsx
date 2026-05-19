@@ -280,6 +280,10 @@ const collapsedPlanLineLimit = 52;
 const quickSelectAvoidErrands = "No errands after work.";
 const quickSelectLightOffDay =
   "Keep the first off day light with only essential tasks.";
+const quickSelectBatchErrands = "Batch errands on an off day.";
+const quickSelectSimpleMealPrep =
+  "Simple meal prep before the work stretch.";
+const quickSelectShortWorkouts = "Short workouts only this week.";
 
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
@@ -621,7 +625,10 @@ function AppDashboard({
       | "meal-preferences"
       | "workout-preferences"
       | "no-errands-after-work"
-      | "light-first-off-day",
+      | "light-first-off-day"
+      | "batch-errands"
+      | "simple-meal-prep"
+      | "short-workouts",
   ) {
     if (chip === "commute" && preferences?.usual_commute_time) {
       updateField("commuteTime", preferences.usual_commute_time);
@@ -645,6 +652,27 @@ function AppDashboard({
       updateField(
         "anythingToAvoid",
         appendUniqueText(form.anythingToAvoid, quickSelectAvoidErrands),
+      );
+      return;
+    }
+
+    if (chip === "batch-errands") {
+      updateField("errands", appendUniqueText(form.errands, quickSelectBatchErrands));
+      return;
+    }
+
+    if (chip === "simple-meal-prep") {
+      updateField(
+        "mealPrepNeeds",
+        appendUniqueText(form.mealPrepNeeds, quickSelectSimpleMealPrep),
+      );
+      return;
+    }
+
+    if (chip === "short-workouts") {
+      updateField(
+        "workoutTrainingGoals",
+        appendUniqueText(form.workoutTrainingGoals, quickSelectShortWorkouts),
       );
       return;
     }
@@ -1481,6 +1509,18 @@ function AppDashboard({
                   <QuickSelectButton
                     label="Keep first off day light"
                     onClick={() => applyWeeklyHelperChip("light-first-off-day")}
+                  />
+                  <QuickSelectButton
+                    label="Batch errands on an off day"
+                    onClick={() => applyWeeklyHelperChip("batch-errands")}
+                  />
+                  <QuickSelectButton
+                    label="Simple meal prep before work stretch"
+                    onClick={() => applyWeeklyHelperChip("simple-meal-prep")}
+                  />
+                  <QuickSelectButton
+                    label="Short workouts only this week"
+                    onClick={() => applyWeeklyHelperChip("short-workouts")}
                   />
                 </div>
               </div>

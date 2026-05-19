@@ -1092,6 +1092,8 @@ function AppDashboard({
                   const planRequest = requests.find(
                     (request) => request.id === plan.plan_request_id,
                   );
+                  const hasInteractiveChecklist =
+                    parseChecklistGroups(plan.plan_body).length > 0;
 
                   return (
                     <article
@@ -1169,6 +1171,7 @@ function AppDashboard({
                         <PlanBody
                           body={plan.plan_body}
                           isExpanded={Boolean(expandedPlanIds[plan.id])}
+                          hideChecklistSection={hasInteractiveChecklist}
                         />
                         {isLongPlanBody(plan.plan_body) ? (
                           <button
@@ -2141,8 +2144,16 @@ function appendUniqueText(currentValue: string, nextValue: string) {
   return `${current}\n${next}`;
 }
 
-function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
-  const lines = collapseRepeatedBlankLines(body.split(/\r?\n/));
+function PlanBody({
+  body,
+  isExpanded,
+  hideChecklistSection,
+}: {
+  body: string;
+  isExpanded: boolean;
+  hideChecklistSection: boolean;
+}) {
+  const lines = preparePlanBodyLines(body, hideChecklistSection);
   const visibleLines = isExpanded ? lines : lines.slice(0, collapsedPlanLineLimit);
   const isCollapsed = !isExpanded && lines.length > collapsedPlanLineLimit;
 
@@ -2225,13 +2236,51 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
             Preview shown. Use Show full plan to read the rest.
           </p>
         ) : null}
+        {hideChecklistSection ? (
+          <p className="mt-4 rounded-lg border border-teal-200 bg-white p-3 text-sm font-semibold text-teal-900">
+            Checklist items are shown below as an interactive checklist.
+          </p>
+        ) : null}
       </div>
     </div>
   );
 }
 
 function isLongPlanBody(body: string) {
-  return collapseRepeatedBlankLines(body.split(/\r?\n/)).length > collapsedPlanLineLimit;
+  return preparePlanBodyLines(body, false).length > collapsedPlanLineLimit;
+}
+
+function preparePlanBodyLines(body: string, hideChecklistSection: boolean) {
+  const collapsedLines = collapseRepeatedBlankLines(body.split(/\r?\n/));
+  if (!hideChecklistSection) return collapsedLines;
+
+  return removeStaticChecklistSection(collapsedLines);
+}
+
+function removeStaticChecklistSection(lines: string[]) {
+  const filtered: string[] = [];
+  let isSkippingChecklist = false;
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+
+    if (isChecklistSectionHeading(trimmed)) {
+      isSkippingChecklist = true;
+      return;
+    }
+
+    if (isSkippingChecklist) {
+      if (trimmed && isPlanDisplaySectionHeading(trimmed)) {
+        isSkippingChecklist = false;
+      } else {
+        return;
+      }
+    }
+
+    filtered.push(line);
+  });
+
+  return collapseRepeatedBlankLines(filtered);
 }
 
 function collapseRepeatedBlankLines(lines: string[]) {
@@ -2258,6 +2307,24 @@ function cleanPlanDisplayText(value: string) {
     .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isChecklistSectionHeading(value: string) {
+  const normalized = cleanPlanDisplayText(value)
+    .replace(/^\d+\.\s*/, "")
+    .replace(/:$/, "")
+    .toLowerCase();
+
+  return normalized === "checklist";
+}
+
+function isPlanDisplaySectionHeading(value: string) {
+  const cleaned = cleanPlanDisplayText(value);
+  return (
+    isLikelyPlanHeading(value) ||
+    extractDayLabel(value) !== "" ||
+    (/^\d+\.\s+/.test(cleaned) && cleaned.length < 80)
+  );
 }
 
 function InteractiveChecklist({

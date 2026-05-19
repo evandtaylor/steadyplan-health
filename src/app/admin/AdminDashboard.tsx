@@ -934,6 +934,61 @@ function AppBetaGroup({
                 </div>
               </div>
 
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <AppBetaSignal
+                  label="Generated plans"
+                  value={String(user.saved_plan_count)}
+                  detail={`${user.plans_used_this_month} used this month`}
+                  tone="teal"
+                />
+                <AppBetaSignal
+                  label="Feedback count"
+                  value={String(user.feedback_count)}
+                  detail={
+                    user.latest_feedback
+                      ? `Latest ${formatDate(user.latest_feedback.updated_at)}`
+                      : "No feedback yet"
+                  }
+                  tone={user.feedback_count > 0 ? "blue" : "slate"}
+                />
+                <AppBetaSignal
+                  label="Would use weekly"
+                  value={user.latest_feedback?.would_use_weekly || "-"}
+                  detail="Latest feedback"
+                  tone={
+                    user.latest_feedback?.would_use_weekly.toLowerCase() ===
+                    "yes"
+                      ? "teal"
+                      : "slate"
+                  }
+                />
+                <AppBetaSignal
+                  label="Would pay $9/month"
+                  value={user.latest_feedback?.would_pay_9_month || "-"}
+                  detail="Latest feedback"
+                  tone={
+                    user.latest_feedback?.would_pay_9_month.toLowerCase() ===
+                    "yes"
+                      ? "teal"
+                      : "slate"
+                  }
+                />
+                <AppBetaSignal
+                  label="Latest feedback"
+                  value={
+                    user.latest_feedback
+                      ? `${user.latest_feedback.usefulness_rating} / 5`
+                      : "-"
+                  }
+                  detail={
+                    user.latest_feedback?.what_worked ||
+                    user.latest_feedback?.what_felt_unrealistic ||
+                    "Waiting for tester notes"
+                  }
+                  tone={user.latest_feedback ? "amber" : "slate"}
+                />
+              </div>
+
               <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <AdminField label="Created" value={formatDate(user.created_at)} />
                 <AdminField
@@ -1637,6 +1692,35 @@ function AppBetaPanel({
       <h3 className="text-sm font-semibold uppercase text-slate-500">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
+  );
+}
+
+function AppBetaSignal({
+  label,
+  value,
+  detail,
+  tone = "slate",
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: "slate" | "teal" | "blue" | "amber";
+}) {
+  const toneClasses = {
+    slate: "border-slate-200 bg-white text-slate-800",
+    teal: "border-teal-200 bg-teal-50 text-teal-950",
+    blue: "border-blue-200 bg-blue-50 text-blue-950",
+    amber: "border-amber-200 bg-amber-50 text-amber-950",
+  }[tone];
+
+  return (
+    <div className={`rounded-lg border p-3 ${toneClasses}`}>
+      <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="mt-1 max-h-10 overflow-hidden text-xs leading-5 text-slate-600">
+        {detail}
+      </p>
+    </div>
   );
 }
 

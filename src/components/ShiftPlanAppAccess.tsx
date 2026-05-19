@@ -1320,6 +1320,7 @@ function AppDashboard({
                           events. Review times before relying on it. No
                           automatic reminders are added.
                         </p>
+                        <CalendarExportPreview plan={plan} />
                       </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">
@@ -2312,6 +2313,16 @@ function buildChecklistCopyText(body: string) {
     .join("\n\n");
 }
 
+function buildCalendarPreviewEvents(plan: AppSavedPlan) {
+  return buildPlanDateList(plan.week_start_date, plan.week_end_date).map(
+    (day) => ({
+      date: day.date,
+      title: `ShiftPlan: ${day.weekday} Plan`,
+      timing: "All-day",
+    }),
+  );
+}
+
 function buildPlanFeedbackId(planId: string) {
   return `plan-feedback-${planId}`;
 }
@@ -2646,6 +2657,37 @@ function SavedPlanQuickView({ plan }: { plan: AppSavedPlan }) {
         </p>
       )}
     </section>
+  );
+}
+
+function CalendarExportPreview({ plan }: { plan: AppSavedPlan }) {
+  const events = buildCalendarPreviewEvents(plan);
+
+  if (events.length === 0) return null;
+
+  return (
+    <details className="mt-3 rounded-lg border border-white/10 bg-white/[0.06] p-3">
+      <summary className="cursor-pointer text-sm font-semibold text-teal-100">
+        Preview calendar events
+      </summary>
+      <p className="mt-2 text-xs leading-5 text-slate-300">
+        Review before importing. These are all-day events and no reminders are
+        added.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {events.map((event) => (
+          <div
+            key={`${event.date}-${event.title}`}
+            className="rounded-lg border border-white/10 bg-slate-950/60 p-3"
+          >
+            <p className="text-sm font-semibold text-white">{event.title}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-300">
+              {formatCompactReadableDate(event.date)} - {event.timing}
+            </p>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 

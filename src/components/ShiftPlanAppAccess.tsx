@@ -498,6 +498,7 @@ function AppDashboard({
   const [requests, setRequests] = useState<WeeklyRequest[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [requestMessage, setRequestMessage] = useState("");
+  const [lastSavedRequestId, setLastSavedRequestId] = useState("");
   const [requestReuseMessage, setRequestReuseMessage] = useState("");
   const [weeklyChangeNote, setWeeklyChangeNote] = useState("");
   const [isWeeklyDraftLoaded, setIsWeeklyDraftLoaded] = useState(false);
@@ -698,6 +699,7 @@ function AppDashboard({
     setForm(initialWeeklyRequestForm);
     setWeeklyChangeNote("");
     setErrors({});
+    setLastSavedRequestId("");
     setRequestReuseMessage("");
     setWeeklyDraftMessage("");
     setRequestMessage("Draft cleared on this device.");
@@ -728,6 +730,7 @@ function AppDashboard({
     setRequestReuseMessage(
       "We copied your previous request. Update anything that changed, then save this week's request.",
     );
+    setLastSavedRequestId("");
     window.setTimeout(() => {
       document
         .getElementById("weekly-request")
@@ -776,6 +779,7 @@ function AppDashboard({
     setRequestReuseMessage(
       "We copied this plan's request. Update what changed, then save next week's request.",
     );
+    setLastSavedRequestId("");
     window.setTimeout(() => {
       document
         .getElementById("weekly-request")
@@ -956,6 +960,7 @@ function AppDashboard({
       setForm(initialWeeklyRequestForm);
       setWeeklyChangeNote("");
       setWeeklyDraftMessage("");
+      setLastSavedRequestId(result.request.id);
       setRequestMessage("Weekly request saved.");
       setRequestReuseMessage("");
     } catch {
@@ -1710,11 +1715,24 @@ function AppDashboard({
                 role="status"
               >
                 {requestMessage}
-                {requestMessage === "Weekly request saved." ? (
-                  <span className="mt-2 block">
-                    You can generate a draft from this request below.
-                  </span>
-                ) : null}
+              </div>
+            ) : null}
+
+            {requestMessage === "Weekly request saved." &&
+            lastSavedRequestId ? (
+              <div className="mt-4 rounded-lg border border-teal-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-semibold text-slate-950">
+                  Request saved. Next: generate your ShiftPlan.
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  Your saved request is waiting in the recent requests list.
+                </p>
+                <a
+                  href={`#weekly-request-${lastSavedRequestId}`}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                >
+                  Find the Generate button
+                </a>
               </div>
             ) : null}
 
@@ -2125,6 +2143,7 @@ function AppDashboard({
                 {requests.map((request) => (
                   <article
                     key={request.id}
+                    id={`weekly-request-${request.id}`}
                     className="rounded-lg border border-slate-200 bg-slate-50 p-4"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">

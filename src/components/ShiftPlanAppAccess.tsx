@@ -485,6 +485,7 @@ function AppDashboard({
   >({});
   const [copiedPlanId, setCopiedPlanId] = useState("");
   const [copiedSummaryPlanId, setCopiedSummaryPlanId] = useState("");
+  const [copiedChecklistPlanId, setCopiedChecklistPlanId] = useState("");
   const [downloadedCalendarPlanId, setDownloadedCalendarPlanId] = useState("");
   const [calendarDownloadFailedPlanId, setCalendarDownloadFailedPlanId] =
     useState("");
@@ -875,6 +876,19 @@ function AppDashboard({
     }
   }
 
+  async function handleCopyChecklist(plan: AppSavedPlan) {
+    const checklistText = buildChecklistCopyText(plan.plan_body);
+    if (!checklistText) return;
+
+    try {
+      await navigator.clipboard.writeText(checklistText);
+      setCopiedChecklistPlanId(plan.id);
+      window.setTimeout(() => setCopiedChecklistPlanId(""), 1800);
+    } catch {
+      setCopiedChecklistPlanId("");
+    }
+  }
+
   function handleDownloadCalendar(plan: AppSavedPlan, request?: WeeklyRequest) {
     try {
       const calendarText = buildCalendarFile(plan, request);
@@ -1094,78 +1108,91 @@ function AppDashboard({
                   );
                   const hasInteractiveChecklist =
                     parseChecklistGroups(plan.plan_body).length > 0;
+                  const planTitle = plan.plan_title || "Generated weekly plan";
+                  const planDateRange = formatDateRange(
+                    plan.week_start_date,
+                    plan.week_end_date,
+                  );
 
                   return (
                     <article
                       key={plan.id}
-                      className="overflow-hidden rounded-lg border border-teal-200 bg-white shadow-sm"
+                      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                     >
-                    <div className="border-b border-teal-100 bg-teal-50 p-4 sm:p-5">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
-                            Saved ShiftPlan
-                          </p>
-                          <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                            {formatDateRange(
-                              plan.week_start_date,
-                              plan.week_end_date,
-                            )}
-                          </h3>
-                          <p className="mt-1 text-sm leading-6 text-slate-600">
-                            {plan.plan_title || "Generated weekly plan"}
-                          </p>
+                      <div className="border-b border-slate-800 bg-slate-950 p-4 text-white sm:p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                              Saved ShiftPlan
+                            </p>
+                            <h3 className="mt-2 text-xl font-semibold leading-7 text-white">
+                              {planTitle}
+                            </h3>
+                            <p className="mt-1 text-sm font-semibold text-slate-300">
+                              {planDateRange}
+                            </p>
+                            <p className="mt-3 max-w-2xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50">
+                              AI-generated draft. Review dates, shift times,
+                              appointments, assumptions, and fit before using
+                              it.
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyWeekSummary(plan)}
+                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                            >
+                              {copiedSummaryPlanId === plan.id
+                                ? "Copied"
+                                : "Copy Summary"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyPlan(plan)}
+                              className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300/70 bg-teal-300/15 px-3 py-2 text-sm font-semibold text-teal-50 transition hover:bg-teal-300/25 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                            >
+                              {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyChecklist(plan)}
+                              disabled={!hasInteractiveChecklist}
+                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500 sm:w-fit"
+                            >
+                              {copiedChecklistPlanId === plan.id
+                                ? "Copied"
+                                : "Copy Checklist"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownloadCalendar(plan, planRequest)
+                              }
+                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                            >
+                              {calendarDownloadFailedPlanId === plan.id
+                                ? "Download failed"
+                                : downloadedCalendarPlanId === plan.id
+                                  ? "Downloaded"
+                                  : "Download Calendar"}
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <button
-                            type="button"
-                            onClick={() => void handleCopyWeekSummary(plan)}
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                          >
-                            {copiedSummaryPlanId === plan.id
-                              ? "Copied"
-                              : "Copy Week Summary"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDownloadCalendar(plan, planRequest)
-                            }
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                          >
-                            {calendarDownloadFailedPlanId === plan.id
-                              ? "Download failed"
-                              : downloadedCalendarPlanId === plan.id
-                                ? "Downloaded"
-                                : "Download Calendar"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleCopyPlan(plan)}
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                          >
-                            {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
-                          </button>
-                        </div>
+                        <p className="mt-3 text-xs leading-5 text-slate-400">
+                          Calendar download creates an .ics file you can import
+                          into your calendar. Review times before relying on it.
+                        </p>
                       </div>
-                      <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-sm leading-6 text-amber-950">
-                        AI-generated draft. Review dates, shift times,
-                        appointments, assumptions, and fit before using it.
-                      </p>
-                      <p className="mt-3 text-xs leading-5 text-teal-900">
-                        Calendar download creates an .ics file you can import
-                        into your calendar. Review times before relying on it.
-                      </p>
-                    </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">
                       <section aria-label="Plan content">
                         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <h4 className="text-base font-semibold text-slate-950">
-                            Plan content
+                            Timeline
                           </h4>
                           <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                            Copy or review
+                            Review, then use the checklist
                           </span>
                         </div>
                         <PlanBody
@@ -2067,6 +2094,16 @@ function buildWeekSummary(plan: AppSavedPlan) {
   ].join("\n");
 }
 
+function buildChecklistCopyText(body: string) {
+  return parseChecklistGroups(body)
+    .map((group) => {
+      const groupLines = group.items.map((item) => `[ ] ${item.text}`);
+
+      return [group.label, ...groupLines].join("\n");
+    })
+    .join("\n\n");
+}
+
 function extractPlanSection(body: string, heading: string) {
   const lines = body.split(/\r?\n/);
   const sectionLines: string[] = [];
@@ -2158,55 +2195,94 @@ function PlanBody({
   const isCollapsed = !isExpanded && lines.length > collapsedPlanLineLimit;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700 sm:p-5">
+    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm leading-6 text-slate-200 shadow-inner sm:p-5">
       <div className="mx-auto max-w-3xl">
         {visibleLines.map((line, index) => {
           const trimmed = line.trim();
 
           if (!trimmed) {
-            return <div key={`space-${index}`} className="h-3" />;
+            return <div key={`space-${index}`} className="h-2" />;
+          }
+
+          const dayLabel = extractDayLabel(trimmed);
+          if (dayLabel) {
+            const dayTone = getTimelineDayTone(visibleLines, index);
+
+            return (
+              <div
+                key={`${trimmed}-${index}`}
+                className="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-3 first:mt-0"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h5 className="text-base font-semibold leading-6 text-white">
+                    {dayLabel}
+                  </h5>
+                  <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${dayTone.className}`}>
+                    {dayTone.label}
+                  </span>
+                </div>
+              </div>
+            );
           }
 
           const heading = trimmed.match(/^#{1,4}\s+(.+)$/);
           if (heading) {
+            const headingText = cleanPlanDisplayText(heading[1]);
+            const isImportant = isImportantPlanNote(headingText);
+
             return (
               <h5
                 key={`${trimmed}-${index}`}
-                className="mt-5 text-base font-semibold leading-7 text-slate-950 first:mt-0"
+                className={
+                  isImportant
+                    ? "mt-4 rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold leading-6 text-amber-50 first:mt-0"
+                    : "mt-5 border-t border-slate-800 pt-4 text-base font-semibold leading-7 text-white first:mt-0 first:border-t-0 first:pt-0"
+                }
               >
-                {cleanPlanDisplayText(heading[1])}
+                {headingText}
               </h5>
             );
           }
 
           const checklist = trimmed.match(/^[-*]\s+\[[ xX]\]\s+(.+)$/);
+          const checklistText = checklist
+            ? cleanPlanDisplayText(checklist[1])
+            : "";
           if (checklist) {
             return (
               <div
                 key={`${trimmed}-${index}`}
-                className="mt-2 flex gap-3 rounded-lg bg-white p-3 text-slate-700"
+                className={`mt-2 flex gap-3 rounded-lg border px-3 py-2 ${getTimelineLineTone(checklistText)}`}
               >
-                <span className="mt-1 h-4 w-4 shrink-0 rounded border border-slate-300 bg-slate-50" />
-                <span>{cleanPlanDisplayText(checklist[1])}</span>
+                <span className="mt-1 h-4 w-4 shrink-0 rounded border border-slate-500 bg-slate-900" />
+                <span>{checklistText}</span>
               </div>
             );
           }
 
           const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+          const bulletText = bullet ? cleanPlanDisplayText(bullet[1]) : "";
           if (bullet) {
             return (
-              <p key={`${trimmed}-${index}`} className="mt-2 flex gap-2">
-                <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-700" />
-                <span>{cleanPlanDisplayText(bullet[1])}</span>
+              <p
+                key={`${trimmed}-${index}`}
+                className={`mt-2 flex gap-3 rounded-lg border px-3 py-2 ${getTimelineLineTone(bulletText)}`}
+              >
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300" />
+                <span>{bulletText}</span>
               </p>
             );
           }
 
           const numbered = trimmed.match(/^\d+\.\s+(.+)$/);
+          const numberedText = numbered ? cleanPlanDisplayText(trimmed) : "";
           if (numbered) {
             return (
-              <p key={`${trimmed}-${index}`} className="mt-2">
-                {cleanPlanDisplayText(trimmed)}
+              <p
+                key={`${trimmed}-${index}`}
+                className={`mt-2 rounded-lg border px-3 py-2 ${getTimelineLineTone(numberedText)}`}
+              >
+                {numberedText}
               </p>
             );
           }
@@ -2215,10 +2291,16 @@ function PlanBody({
           const sectionLabel =
             cleanedLine.endsWith(":") && cleanedLine.length < 80 ? cleanedLine : "";
           if (sectionLabel) {
+            const isImportant = isImportantPlanNote(sectionLabel);
+
             return (
               <h5
                 key={`${trimmed}-${index}`}
-                className="mt-5 text-base font-semibold leading-7 text-slate-950 first:mt-0"
+                className={
+                  isImportant
+                    ? "mt-4 rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-semibold leading-6 text-amber-50 first:mt-0"
+                    : "mt-5 border-t border-slate-800 pt-4 text-base font-semibold leading-7 text-white first:mt-0 first:border-t-0 first:pt-0"
+                }
               >
                 {sectionLabel}
               </h5>
@@ -2226,23 +2308,110 @@ function PlanBody({
           }
 
           return (
-            <p key={`${trimmed}-${index}`} className="mt-3">
+            <p
+              key={`${trimmed}-${index}`}
+              className={`mt-2 rounded-lg border px-3 py-2 ${getTimelineLineTone(cleanedLine)}`}
+            >
               {cleanedLine}
             </p>
           );
         })}
         {isCollapsed ? (
-          <p className="mt-4 rounded-lg border border-slate-200 bg-white p-3 text-sm font-semibold text-slate-600">
+          <p className="mt-4 rounded-lg border border-slate-700 bg-slate-900 p-3 text-sm font-semibold text-slate-300">
             Preview shown. Use Show full plan to read the rest.
           </p>
         ) : null}
         {hideChecklistSection ? (
-          <p className="mt-4 rounded-lg border border-teal-200 bg-white p-3 text-sm font-semibold text-teal-900">
+          <p className="mt-4 rounded-lg border border-teal-300/30 bg-teal-300/10 p-3 text-sm font-semibold text-teal-50">
             Checklist items are shown below as an interactive checklist.
           </p>
         ) : null}
       </div>
     </div>
+  );
+}
+
+function getTimelineDayTone(lines: string[], index: number) {
+  const context = lines
+    .slice(index, index + 8)
+    .map(cleanPlanDisplayText)
+    .join(" ");
+
+  if (isShiftTimelineText(context)) {
+    return {
+      label: "Shift day",
+      className: "border border-teal-300/40 bg-teal-300/15 text-teal-50",
+    };
+  }
+
+  if (isResetTimelineText(context)) {
+    return {
+      label: "Off/reset day",
+      className: "border border-sky-300/40 bg-sky-300/15 text-sky-50",
+    };
+  }
+
+  return {
+    label: "Day plan",
+    className: "border border-slate-600 bg-slate-800 text-slate-200",
+  };
+}
+
+function getTimelineLineTone(value: string) {
+  if (isImportantPlanNote(value)) {
+    return "border-amber-300/30 bg-amber-300/10 text-amber-50";
+  }
+
+  if (isShiftTimelineText(value)) {
+    return "border-teal-300/25 bg-teal-300/10 text-slate-100";
+  }
+
+  if (isResetTimelineText(value)) {
+    return "border-sky-300/25 bg-sky-300/10 text-slate-100";
+  }
+
+  return "border-slate-800 bg-slate-900/70 text-slate-200";
+}
+
+function isShiftTimelineText(value: string) {
+  const normalized = value.toLowerCase();
+
+  return (
+    /\b(shift|commute|workday)\b/.test(normalized) ||
+    normalized.includes("work block") ||
+    normalized.includes("before work") ||
+    normalized.includes("after work") ||
+    normalized.includes("pre-shift") ||
+    normalized.includes("post-shift") ||
+    normalized.includes("clock in") ||
+    normalized.includes("clock out")
+  );
+}
+
+function isResetTimelineText(value: string) {
+  const normalized = value.toLowerCase();
+
+  return (
+    normalized.includes("off day") ||
+    normalized.includes("day off") ||
+    normalized.includes("reset") ||
+    normalized.includes("light day") ||
+    normalized.includes("light chore") ||
+    normalized.includes("errand") ||
+    normalized.includes("meal prep")
+  );
+}
+
+function isImportantPlanNote(value: string) {
+  const normalized = cleanPlanDisplayText(value)
+    .replace(/:$/, "")
+    .toLowerCase();
+
+  return (
+    normalized === "important note" ||
+    normalized.startsWith("important note") ||
+    normalized.startsWith("note") ||
+    normalized.includes("lifestyle/routine planning")
   );
 }
 

@@ -362,6 +362,8 @@ export default function Home() {
         </div>
       </section>
 
+      <AppPreviewSection />
+
       <section
         id="pricing"
         className="relative overflow-hidden bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-16 lg:px-8"

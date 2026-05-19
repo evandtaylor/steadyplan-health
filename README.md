@@ -298,8 +298,8 @@ Notes:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` is the public anon key used for client-safe and server route inserts.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and used by the admin read route. Never prefix it with `NEXT_PUBLIC_`, never put it in client components, and never commit `.env.local`.
 - `ADMIN_PASSWORD` protects the simple internal admin page. This is not full authentication.
-- `OPENAI_API_KEY` is server-only and used only by the admin draft generation route. Never prefix it with `NEXT_PUBLIC_`.
-- `OPENAI_MODEL` is optional. If blank, admin draft generation uses the app default model.
+- `OPENAI_API_KEY` is server-only and used by admin draft generation and `/app` plan generation. Never prefix it with `NEXT_PUBLIC_`.
+- `OPENAI_MODEL` is optional. If blank, admin draft generation and `/app` plan generation use the coded fallback model, currently `gpt-5.2`.
 - `STRIPE_SECRET_KEY` is server-only and used by the Stripe webhook route to verify Checkout Session details. Never prefix it with `NEXT_PUBLIC_`.
 - `STRIPE_WEBHOOK_SECRET` is server-only and used to verify Stripe webhook signatures. Create it from the Stripe webhook endpoint settings.
 - `RESEND_API_KEY` is server-only and used to send internal purchase notification emails to `evan@shiftplan.ai`.

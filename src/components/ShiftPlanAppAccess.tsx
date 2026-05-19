@@ -1412,6 +1412,7 @@ function AppDashboard({
                           automatic reminders are added.
                         </p>
                         <CalendarExportPreview plan={plan} />
+                        <GeneratedPlanReviewChecklist />
                       </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">
@@ -2793,6 +2794,32 @@ function CalendarExportPreview({ plan }: { plan: AppSavedPlan }) {
         ))}
       </div>
     </details>
+  );
+}
+
+function GeneratedPlanReviewChecklist() {
+  const reviewItems = [
+    "Check dates",
+    "Check shift times",
+    "Check appointments/errands",
+    "Check assumptions",
+    "Adjust for real life",
+  ];
+
+  return (
+    <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.06] p-3">
+      <p className="text-sm font-semibold text-white">
+        Quick review before using
+      </p>
+      <ul className="mt-2 grid gap-2 text-xs font-semibold leading-5 text-slate-300 sm:grid-cols-2">
+        {reviewItems.map((item) => (
+          <li key={item} className="flex gap-2">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

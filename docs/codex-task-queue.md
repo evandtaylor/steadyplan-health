@@ -6,7 +6,7 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | low | no | Create `agent-mode-test` app access and run one fresh `/app` QA pass | Test generation, saved plan timeline, Today/Next up view, checklist by day, calendar export, and feedback shortcut without creating excessive junk data. |
+| high | manual | low | no | Create `agent-mode-test` app access and run one fresh `/app` QA pass | Test generation, first-run flow, week-start buttons, shift templates, draft autosave, checklist controls, calendar preview/export, next-week reuse, feedback chips, saved plan timeline, Today/Next up view, and feedback shortcut without creating excessive junk data. |
 
 ## Current Phase
 
@@ -30,6 +30,14 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 - iPhone Add to Home Screen guide live.
 - Homepage app preview section live.
 - Saved plan timeline layout live.
+- Week start quick buttons live locally.
+- Shift schedule templates live locally.
+- Weekly request draft autosave live locally.
+- Checklist controls live locally.
+- Calendar export preview live locally.
+- Next-week-from-plan action live locally.
+- Feedback feature chips live locally.
+- First-run app flow live locally.
 
 ## Immediate Manual QA Tasks
 
@@ -41,9 +49,25 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 | high | manual | low | no | Test saved plan Today/Next up view | Confirm the quick view shows the right day when the plan includes today, and falls back cleanly for old plans. |
 | high | manual | low | no | Test calendar export on iPhone | Confirm `.ics` download/import behavior in real Safari. |
 | high | manual | low | no | Test checklist by day on iPhone | Confirm day groups expand/collapse and taps persist well enough for beta. |
+| high | manual | low | no | Test checklist controls on iPhone | Confirm expand all, collapse all, hide completed, and show completed work with grouped checklist progress. |
 | high | manual | low | no | Test feedback shortcut | Confirm "Was this plan useful?" scrolls to the correct saved plan feedback form on mobile. |
+| high | manual | low | no | Test copy buttons on saved plans | Confirm Copy Summary, Copy Plan, and Copy Checklist still work where clipboard access is available. |
+| high | manual | low | no | Test new weekly request helpers | Confirm week-start buttons, shift templates, draft autosave, clear draft, and next-week-from-plan behave as expected. |
 | high | manual | low | no | Gather Emily feedback | Ask whether Phase 2 changes reduced scrolling and made requests faster. |
 | medium | manual | low | no | Invite 2-3 more beta testers | Do this only after fresh `/app` generation, checklist, and calendar QA pass. |
+
+## Phase 2 App Usability Work
+
+| Priority | Type | Risk | SQL Needed | Task | Notes |
+| --- | --- | --- | --- | --- | --- |
+| high | Codex | low | no | Week start quick buttons | Completed locally in `7f63b7e`; manual QA pending. |
+| high | Codex | low | no | Shift schedule templates | Completed locally in `d063ff8`; templates fill the existing work schedule textarea only. |
+| high | Codex | low | no | Weekly request draft autosave | Completed locally in `fc33903`; localStorage only, safety acknowledgment not persisted as checked. |
+| medium | Codex | low | no | Checklist controls | Completed locally in `996281b`; grouped checklist and local checked state preserved. |
+| medium | Codex | low | no | Calendar export preview | Completed locally in `e4b1045`; `.ics` generation remains all-day events without reminders. |
+| medium | Codex | low | no | Plan next week from this | Completed locally in `6adf8d4`; prefill/scroll only, no auto-submit or database change. |
+| medium | Codex | low | no | Feedback feature chips | Completed locally in `3671220`; chips sync into existing additional notes field. |
+| high | Codex | low | no | First-run flow | Completed locally in `edf4fd5`; visible only when no requests or saved plans exist. |
 
 ## Phase 2 Codex Tasks
 
@@ -112,6 +136,14 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `edf4fd5` | Improve ShiftPlan first run app flow | First-run path for brand-new beta users with Start with this week CTA. |
+| `3671220` | Add ShiftPlan feedback feature chips | Feature-ranking chips sync into existing feedback notes. |
+| `6adf8d4` | Add ShiftPlan next week from plan action | Saved plan action scrolls and prefills from associated request data. |
+| `e4b1045` | Add ShiftPlan calendar export preview | Read-only preview of all-day `.ics` event titles and dates. |
+| `996281b` | Add ShiftPlan checklist controls | Expand/collapse and completed-item visibility controls. |
+| `fc33903` | Add ShiftPlan weekly request draft autosave | Device-only localStorage draft restore and clear draft action. |
+| `d063ff8` | Add ShiftPlan shift schedule templates | Editable common work-schedule quick-fill buttons. |
+| `7f63b7e` | Add ShiftPlan week start quick buttons | Quick buttons for Today, Next Monday, Next Sunday, and Next week. |
 | `4c9d6fe` | Add ShiftPlan tester app walkthrough | Tester-facing walkthrough and QA checklist. |
 | `568077d` | Add ShiftPlan social profile copy | Bios, link-in-bio CTAs, pinned post copy, and beta CTAs. |
 | `e890634` | Add ShiftPlan faceless content bank | 20 lifestyle/routine swipe-video concepts. |

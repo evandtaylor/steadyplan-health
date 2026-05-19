@@ -924,6 +924,7 @@ function AppDashboard({
         >
           {[
             ["New Request", "#weekly-request"],
+            ["Reuse Last Week", "#recent-requests"],
             ["Defaults", "#app-preferences"],
             ["Saved Plans", "#saved-plans"],
             ["Feedback", "#saved-plans"],
@@ -951,6 +952,20 @@ function AppDashboard({
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Set defaults once, then only enter what changed this week.
               </p>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <a
+                  href="#weekly-request"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                >
+                  Create this week
+                </a>
+                <a
+                  href="#recent-requests"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                >
+                  Continue from last week
+                </a>
+              </div>
             </div>
             <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950 lg:max-w-sm">
               Review dates, shift times, and assumptions before using a plan.
@@ -1695,10 +1710,16 @@ function AppDashboard({
             </form>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section
+            id="recent-requests"
+            className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
             <h2 className="text-xl font-semibold text-slate-950">
-              Recent weekly requests
+              Continue from a previous week
             </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Reuse a saved request when this week is mostly the same.
+            </p>
             {isLoadingRequests ? (
               <p className="mt-4 text-sm leading-6 text-slate-600">
                 Loading requests...
@@ -1706,7 +1727,7 @@ function AppDashboard({
             ) : requests.length === 0 ? (
               <GuidanceCard
                 title="No weekly requests yet"
-                body="Save what ShiftPlan should remember, then create your first weekly request with exact shift days, priorities, meals, workouts, errands, and appointments."
+                body="Create your first weekly request with exact shift days and anything different this week. Saved defaults can fill in the usual details later."
               />
             ) : (
               <div className="mt-4 grid gap-3">

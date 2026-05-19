@@ -1186,6 +1186,8 @@ function AppDashboard({
                       </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">
+                      <SavedPlanQuickView plan={plan} />
+
                       <section aria-label="Plan content">
                         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <h4 className="text-base font-semibold text-slate-950">
@@ -2104,6 +2106,93 @@ function buildChecklistCopyText(body: string) {
     .join("\n\n");
 }
 
+function buildSavedPlanQuickView(plan: AppSavedPlan) {
+  const today = getLocalIsoDate();
+  const dateList = buildPlanDateList(plan.week_start_date, plan.week_end_date);
+  const fallback = {
+    title: "Next up",
+    dateLabel: "",
+    groupLabel: "",
+    items: [] as ChecklistItem[],
+    moreCount: 0,
+    message: "Open the full plan below.",
+  };
+
+  if (dateList.length === 0) return fallback;
+
+  const todayDay = dateList.find((day) => day.date === today);
+  const upcomingDay = dateList.find((day) => day.date > today);
+  const targetDay = todayDay || upcomingDay;
+
+  if (!targetDay) {
+    return {
+      ...fallback,
+      message:
+        "This saved plan is outside today's date range. Open the full plan below.",
+    };
+  }
+
+  const group = findChecklistGroupForDate(
+    parseChecklistGroups(plan.plan_body),
+    targetDay,
+  );
+  const items = group?.items.slice(0, 4) || [];
+
+  if (!group || items.length === 0) {
+    return {
+      ...fallback,
+      title: todayDay ? "Today" : "Next up",
+      dateLabel: formatCompactReadableDate(targetDay.date),
+      groupLabel: "",
+      message: "Open the full plan below.",
+    };
+  }
+
+  return {
+    title: todayDay ? "Today" : "Next up",
+    dateLabel: formatCompactReadableDate(targetDay.date),
+    groupLabel: group.label,
+    items,
+    moreCount: group.items.length - items.length,
+    message: "",
+  };
+}
+
+function findChecklistGroupForDate(
+  groups: ChecklistGroup[],
+  day: { date: string; weekday: string },
+) {
+  const weekdayKey = normalizeChecklistKey(day.weekday);
+
+  return groups.find(
+    (group) =>
+      group.label !== "General" &&
+      normalizeChecklistKey(group.label).startsWith(weekdayKey),
+  );
+}
+
+function getLocalIsoDate() {
+  const date = new Date();
+
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatCompactReadableDate(value: string) {
+  const date = parseDateInput(value);
+  if (!date) return value;
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 function extractPlanSection(body: string, heading: string) {
   const lines = body.split(/\r?\n/);
   const sectionLines: string[] = [];
@@ -2179,6 +2268,56 @@ function appendUniqueText(currentValue: string, nextValue: string) {
   if (!current) return next;
 
   return `${current}\n${next}`;
+}
+
+function SavedPlanQuickView({ plan }: { plan: AppSavedPlan }) {
+  const quickView = buildSavedPlanQuickView(plan);
+
+  return (
+    <section
+      aria-label={quickView.title}
+      className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-white shadow-sm"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+            {quickView.title}
+          </p>
+          <h4 className="mt-1 text-base font-semibold leading-6 text-white">
+            {quickView.dateLabel || "Quick view"}
+          </h4>
+        </div>
+        {quickView.groupLabel ? (
+          <span className="w-fit rounded-full border border-teal-300/30 bg-teal-300/10 px-3 py-1 text-xs font-semibold text-teal-50">
+            {quickView.groupLabel}
+          </span>
+        ) : null}
+      </div>
+
+      {quickView.items.length > 0 ? (
+        <div className="mt-3 grid gap-2">
+          {quickView.items.map((item) => (
+            <p
+              key={item.id}
+              className="flex gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm leading-6 text-slate-100"
+            >
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300" />
+              <span>{item.text}</span>
+            </p>
+          ))}
+          {quickView.moreCount > 0 ? (
+            <p className="text-xs font-semibold text-slate-400">
+              +{quickView.moreCount} more in the checklist below.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="mt-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm leading-6 text-slate-300">
+          {quickView.message}
+        </p>
+      )}
+    </section>
+  );
 }
 
 function PlanBody({

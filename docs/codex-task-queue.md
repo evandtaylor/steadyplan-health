@@ -6,7 +6,7 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | low | no | Create `agent-mode-test` app access and run one fresh `/app` QA pass | Test generation, first-run flow, week-start buttons, shift templates, draft autosave, checklist controls, calendar preview/export, next-week reuse, feedback chips, saved plan timeline, Today/Next up view, and feedback shortcut without creating excessive junk data. |
+| high | manual | low | no | Create `agent-mode-test` app access and run one fresh `/app` QA pass | Test generation, first-run flow, start here card, request saved next step, week-start buttons, shift templates, draft autosave, checklist controls, calendar preview/export, next-week reuse, feedback chips, review checklist, saved plan timeline, Today/Next up view, and feedback shortcut without creating excessive junk data. |
 
 ## Current Phase
 
@@ -30,14 +30,20 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 - iPhone Add to Home Screen guide live.
 - Homepage app preview section live.
 - Saved plan timeline layout live.
-- Week start quick buttons live locally.
-- Shift schedule templates live locally.
-- Weekly request draft autosave live locally.
-- Checklist controls live locally.
-- Calendar export preview live locally.
-- Next-week-from-plan action live locally.
-- Feedback feature chips live locally.
-- First-run app flow live locally.
+- Week start quick buttons live.
+- Shift schedule templates live.
+- Weekly request draft autosave live.
+- Checklist controls live.
+- Calendar export preview live.
+- Next-week-from-plan action live.
+- Feedback feature chips live.
+- First-run app flow live.
+- Start here card completed locally.
+- Request saved next-step card completed locally.
+- Generated plan review checklist completed locally.
+- Calendar export detail polish completed locally.
+- Plan feedback reminder completed locally.
+- Compact beta limitations note completed locally.
 
 ## Immediate Manual QA Tasks
 
@@ -53,6 +59,7 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 | high | manual | low | no | Test feedback shortcut | Confirm "Was this plan useful?" scrolls to the correct saved plan feedback form on mobile. |
 | high | manual | low | no | Test copy buttons on saved plans | Confirm Copy Summary, Copy Plan, and Copy Checklist still work where clipboard access is available. |
 | high | manual | low | no | Test new weekly request helpers | Confirm week-start buttons, shift templates, draft autosave, clear draft, and next-week-from-plan behave as expected. |
+| high | manual | low | no | Test beta readiness polish | Confirm Start here, request saved next step, generated plan review checklist, feedback reminder, and beta limitations note are clear on mobile. |
 | high | manual | low | no | Gather Emily feedback | Ask whether Phase 2 changes reduced scrolling and made requests faster. |
 | medium | manual | low | no | Invite 2-3 more beta testers | Do this only after fresh `/app` generation, checklist, and calendar QA pass. |
 
@@ -68,6 +75,20 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 | medium | Codex | low | no | Plan next week from this | Completed locally in `6adf8d4`; prefill/scroll only, no auto-submit or database change. |
 | medium | Codex | low | no | Feedback feature chips | Completed locally in `3671220`; chips sync into existing additional notes field. |
 | high | Codex | low | no | First-run flow | Completed locally in `edf4fd5`; visible only when no requests or saved plans exist. |
+| high | Codex | low | no | Start here card | Completed locally in `cf9e502`; compact three-step beta path with saved plans jump. |
+| high | Codex | low | no | Request saved next step | Completed locally in `c24414a`; points users to the saved request Generate button. |
+| medium | Codex | low | no | Generated plan review checklist | Completed locally in `309e96d`; informational only, no saved plan data changes. |
+| medium | Codex | low | no | Calendar export detail polish | Completed locally in `4645bd4`; clearer filename and event descriptions, no sync or reminders. |
+| medium | Codex | low | no | Plan feedback reminder | Completed locally in `ed38c67`; adds helper copy and feedback jump action. |
+| medium | Codex | low | no | Beta limitations note | Completed locally in `23f30bf`; compact private beta expectation copy. |
+
+## Phase 2 Beta Readiness Documentation
+
+| Priority | Type | Risk | SQL Needed | Task | Notes |
+| --- | --- | --- | --- | --- | --- |
+| high | Codex | low | no | Tester-facing known limitations | Completed locally in `d3bc8c5`; documents AI draft, `.ics`, local checklist, access, and not-now items. |
+| high | Codex | low | no | Manual QA results template | Completed locally in `fa937b7`; structured report template for phone/computer QA. |
+| high | Codex | low | no | Phase 2 exit criteria | Completed locally in `fa297f1`; defines when to move into Phase 3 planning. |
 
 ## Phase 2 Codex Tasks
 
@@ -136,6 +157,15 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `fa297f1` | Add ShiftPlan Phase 2 exit criteria | Defines private beta exit metrics and Phase 3 triggers. |
+| `fa937b7` | Add ShiftPlan manual QA results template | Structured template for manual QA findings. |
+| `d3bc8c5` | Add ShiftPlan beta known limitations | Tester-facing limitations and issue reporting guidance. |
+| `23f30bf` | Clarify ShiftPlan app beta limitations | Compact in-app beta limitations note. |
+| `ed38c67` | Add ShiftPlan plan feedback reminder | Saved plan feedback reminder and jump action. |
+| `4645bd4` | Polish ShiftPlan calendar export details | Clearer `.ics` filename and event descriptions. |
+| `309e96d` | Add ShiftPlan generated plan review checklist | Informational review checklist near saved plans. |
+| `c24414a` | Add ShiftPlan request saved next step | Post-save card points to the recent request Generate action. |
+| `cf9e502` | Add ShiftPlan app start here card | Compact beta tester path near top of `/app`. |
 | `edf4fd5` | Improve ShiftPlan first run app flow | First-run path for brand-new beta users with Start with this week CTA. |
 | `3671220` | Add ShiftPlan feedback feature chips | Feature-ranking chips sync into existing feedback notes. |
 | `6adf8d4` | Add ShiftPlan next week from plan action | Saved plan action scrolls and prefills from associated request data. |

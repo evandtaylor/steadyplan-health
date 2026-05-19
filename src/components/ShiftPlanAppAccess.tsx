@@ -2142,7 +2142,7 @@ function appendUniqueText(currentValue: string, nextValue: string) {
 }
 
 function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
-  const lines = body.split(/\r?\n/);
+  const lines = collapseRepeatedBlankLines(body.split(/\r?\n/));
   const visibleLines = isExpanded ? lines : lines.slice(0, collapsedPlanLineLimit);
   const isCollapsed = !isExpanded && lines.length > collapsedPlanLineLimit;
 
@@ -2163,7 +2163,7 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
                 key={`${trimmed}-${index}`}
                 className="mt-5 text-base font-semibold leading-7 text-slate-950 first:mt-0"
               >
-                {heading[1]}
+                {cleanPlanDisplayText(heading[1])}
               </h5>
             );
           }
@@ -2176,7 +2176,7 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
                 className="mt-2 flex gap-3 rounded-lg bg-white p-3 text-slate-700"
               >
                 <span className="mt-1 h-4 w-4 shrink-0 rounded border border-slate-300 bg-slate-50" />
-                <span>{checklist[1]}</span>
+                <span>{cleanPlanDisplayText(checklist[1])}</span>
               </div>
             );
           }
@@ -2186,7 +2186,7 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
             return (
               <p key={`${trimmed}-${index}`} className="mt-2 flex gap-2">
                 <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-700" />
-                <span>{bullet[1]}</span>
+                <span>{cleanPlanDisplayText(bullet[1])}</span>
               </p>
             );
           }
@@ -2195,13 +2195,14 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
           if (numbered) {
             return (
               <p key={`${trimmed}-${index}`} className="mt-2">
-                {trimmed}
+                {cleanPlanDisplayText(trimmed)}
               </p>
             );
           }
 
+          const cleanedLine = cleanPlanDisplayText(trimmed);
           const sectionLabel =
-            trimmed.endsWith(":") && trimmed.length < 80 ? trimmed : "";
+            cleanedLine.endsWith(":") && cleanedLine.length < 80 ? cleanedLine : "";
           if (sectionLabel) {
             return (
               <h5
@@ -2215,7 +2216,7 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
 
           return (
             <p key={`${trimmed}-${index}`} className="mt-3">
-              {trimmed}
+              {cleanedLine}
             </p>
           );
         })}
@@ -2230,7 +2231,33 @@ function PlanBody({ body, isExpanded }: { body: string; isExpanded: boolean }) {
 }
 
 function isLongPlanBody(body: string) {
-  return body.split(/\r?\n/).length > collapsedPlanLineLimit;
+  return collapseRepeatedBlankLines(body.split(/\r?\n/)).length > collapsedPlanLineLimit;
+}
+
+function collapseRepeatedBlankLines(lines: string[]) {
+  const collapsed: string[] = [];
+  let previousWasBlank = false;
+
+  lines.forEach((line) => {
+    const isBlank = line.trim() === "";
+    if (isBlank && previousWasBlank) return;
+
+    collapsed.push(line);
+    previousWasBlank = isBlank;
+  });
+
+  return collapsed;
+}
+
+function cleanPlanDisplayText(value: string) {
+  return value
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/`(.*?)`/g, "$1")
+    .replace(/\[(.*?)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function InteractiveChecklist({

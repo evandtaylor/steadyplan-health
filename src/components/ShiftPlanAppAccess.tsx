@@ -1413,6 +1413,19 @@ function AppDashboard({
                         </p>
                         <CalendarExportPreview plan={plan} />
                         <GeneratedPlanReviewChecklist />
+                        <div className="mt-3 flex flex-col gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-xs font-semibold leading-5 text-amber-50">
+                            After you use this plan, leave feedback below so
+                            ShiftPlan can improve.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => scrollToPlanFeedback(plan.id)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-amber-300/50 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-300/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
+                          >
+                            Jump to feedback
+                          </button>
+                        </div>
                       </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">

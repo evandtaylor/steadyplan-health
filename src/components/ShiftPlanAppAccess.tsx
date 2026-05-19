@@ -285,6 +285,33 @@ const quickSelectSimpleMealPrep =
   "Simple meal prep before the work stretch.";
 const quickSelectShortWorkouts = "Short workouts only this week.";
 
+const shiftScheduleTemplates = [
+  {
+    label: "3x12 days: Mon/Tue/Wed 7a-7p",
+    value: "Monday 7a-7p\nTuesday 7a-7p\nWednesday 7a-7p",
+  },
+  {
+    label: "3x12 days: Wed/Thu/Fri 7a-7p",
+    value: "Wednesday 7a-7p\nThursday 7a-7p\nFriday 7a-7p",
+  },
+  {
+    label: "3x12 nights: Mon/Tue/Wed 7p-7a",
+    value: "Monday 7p-7a\nTuesday 7p-7a\nWednesday 7p-7a",
+  },
+  {
+    label: "3x12 nights: Wed/Thu/Fri 7p-7a",
+    value: "Wednesday 7p-7a\nThursday 7p-7a\nFriday 7p-7a",
+  },
+  {
+    label: "4x10s",
+    value: "Monday 7a-5p\nTuesday 7a-5p\nWednesday 7a-5p\nThursday 7a-5p",
+  },
+  {
+    label: "Custom / clear",
+    value: "",
+  },
+];
+
 export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [email, setEmail] = useState(initialAccess?.email || "");
   const [accessCode, setAccessCode] = useState("");
@@ -581,6 +608,10 @@ function AppDashboard({
 
   function setQuickWeekStartDate(value: string) {
     updateField("weekStartDate", value);
+  }
+
+  function applyShiftScheduleTemplate(value: string) {
+    updateField("workSchedule", value);
   }
 
   function handleUseAsStartingPoint(request: WeeklyRequest) {
@@ -1667,6 +1698,25 @@ function AppDashboard({
                 helpText="Example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
                 error={errors.work_schedule}
               >
+                <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Quick-fill a common pattern
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Pick a template, then edit the exact days and times below.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {shiftScheduleTemplates.map((template) => (
+                      <QuickSelectButton
+                        key={template.label}
+                        label={template.label}
+                        onClick={() =>
+                          applyShiftScheduleTemplate(template.value)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
                 <textarea
                   id="workSchedule"
                   name="workSchedule"

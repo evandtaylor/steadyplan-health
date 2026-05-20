@@ -203,6 +203,9 @@ type WorkoutPlanBuilderState = {
   includeFocus: string;
   avoidOrModify: string;
   currentRoutineNotes: string;
+  workoutDetailLevel: string;
+  thisWeekTrainingTarget: string;
+  noWorkoutTimingRules: string[];
   workoutsWantedThisWeek: string;
   availableDays: string;
   unavailableDays: string;
@@ -282,6 +285,9 @@ const initialWorkoutPlanBuilderForm: WorkoutPlanBuilderState = {
   includeFocus: "",
   avoidOrModify: "",
   currentRoutineNotes: "",
+  workoutDetailLevel: "",
+  thisWeekTrainingTarget: "",
+  noWorkoutTimingRules: [],
   workoutsWantedThisWeek: "",
   availableDays: "",
   unavailableDays: "",
@@ -412,6 +418,31 @@ const workoutIntensityOptions = [
   "Keep workdays light",
 ];
 
+const workoutDetailLevelOptions = [
+  "Just place workouts on my schedule",
+  "Give me a simple session outline",
+  "Give me a detailed checklist-style workout",
+];
+
+const workoutTrainingTargetOptions = [
+  "1 workout",
+  "2 workouts",
+  "3 workouts",
+  "4 workouts",
+  "5+ workouts",
+  "Keep it light this week",
+  "Maintain only",
+];
+
+const workoutNoScheduleOptions = [
+  "No workouts after shifts",
+  "No hard workouts before shifts",
+  "No workouts on first off day",
+  "Off days only",
+  "Weekends only",
+  "Before work only",
+];
+
 const futureFeatureOptions = [
   "Interactive checklist",
   "Add to calendar",
@@ -425,12 +456,11 @@ const futureFeatureOptions = [
 ];
 
 const workoutFeedbackOptions = [
-  "Workout placement felt realistic",
-  "Workouts were too much",
-  "Workouts were too little",
-  "Workouts were about right",
-  "Workday workouts fit",
-  "Off-day workouts fit better",
+  "Too much",
+  "Too little",
+  "Good",
+  "Wrong days",
+  "Wrong intensity",
 ];
 
 const safetyCopy =
@@ -990,7 +1020,8 @@ function AppDashboard({
       | "equipmentAvailable"
       | "preferredWorkoutTypes"
       | "bestTrainingTimes"
-      | "workdayTrainingRules",
+      | "workdayTrainingRules"
+      | "noWorkoutTimingRules",
     value: string,
   ) {
     setWorkoutPlanBuilderForm((current) => {
@@ -2697,11 +2728,15 @@ function WorkoutPlanBuilderCard({
       | "equipmentAvailable"
       | "preferredWorkoutTypes"
       | "bestTrainingTimes"
-      | "workdayTrainingRules",
+      | "workdayTrainingRules"
+      | "noWorkoutTimingRules",
     value: string,
   ) => void;
   onApply: () => void;
 }) {
+  const profileSummaryItems = buildTrainingProfileSummaryItems(form);
+  const hasProfileSummary = profileSummaryItems.length > 0;
+
   return (
     <details className="rounded-lg border border-teal-200 bg-teal-50 p-4">
       <summary className="cursor-pointer list-none rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
@@ -2949,6 +2984,34 @@ function WorkoutPlanBuilderCard({
               onChange={(value) => onFieldChange("currentRoutineNotes", value)}
             />
           </div>
+
+          {hasProfileSummary ? (
+            <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-semibold text-teal-950">
+                  Training Profile Summary
+                </p>
+                <span className="w-fit rounded-lg bg-white px-2 py-1 text-xs font-semibold uppercase text-teal-800 ring-1 ring-teal-200">
+                  Saved-default preview
+                </span>
+              </div>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                {profileSummaryItems.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-teal-100 bg-white p-3"
+                  >
+                    <dt className="text-xs font-semibold uppercase text-teal-800">
+                      {item.label}
+                    </dt>
+                    <dd className="mt-1 text-sm leading-6 text-slate-700">
+                      {item.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -2958,6 +3021,31 @@ function WorkoutPlanBuilderCard({
           <p className="mt-1 text-sm leading-6 text-slate-600">
             Tell ShiftPlan what training should look like this week.
           </p>
+
+          <div className="mt-4 grid gap-4">
+            <WorkoutSingleSelectChipGroup
+              label="How detailed should workouts be?"
+              options={workoutDetailLevelOptions}
+              selectedValue={form.workoutDetailLevel}
+              onSelect={(value) => onFieldChange("workoutDetailLevel", value)}
+            />
+            <WorkoutSingleSelectChipGroup
+              label="This week's training target"
+              options={workoutTrainingTargetOptions}
+              selectedValue={form.thisWeekTrainingTarget}
+              onSelect={(value) =>
+                onFieldChange("thisWeekTrainingTarget", value)
+              }
+            />
+            <WorkoutChipGroup
+              label="Do not schedule workouts here"
+              options={workoutNoScheduleOptions}
+              selectedValues={form.noWorkoutTimingRules}
+              onToggle={(value) =>
+                onToggleOption("noWorkoutTimingRules", value)
+              }
+            />
+          </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <TextAreaField
@@ -3069,6 +3157,36 @@ function WorkoutChipGroup({
             label={option}
             selected={selectedValues.includes(option)}
             onClick={() => onToggle(option)}
+          />
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function WorkoutSingleSelectChipGroup({
+  label,
+  options,
+  selectedValue,
+  onSelect,
+}: {
+  label: string;
+  options: string[];
+  selectedValue: string;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-semibold text-slate-800">
+        {label}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <SelectableChipButton
+            key={option}
+            label={option}
+            selected={selectedValue === option}
+            onClick={() => onSelect(selectedValue === option ? "" : option)}
           />
         ))}
       </div>
@@ -3512,6 +3630,31 @@ function buildMainGoalWithWeeklyContext(
   return contextParts.join("\n");
 }
 
+function buildTrainingProfileSummaryItems(form: WorkoutPlanBuilderState) {
+  const mainGoal =
+    form.mainGoal === "Other"
+      ? form.otherGoal.trim() || "Other"
+      : form.mainGoal;
+  const equipment = [
+    ...form.equipmentAvailable.filter((item) => item !== "Other"),
+    form.equipmentAvailable.includes("Other") && form.otherEquipment.trim()
+      ? `Other: ${form.otherEquipment.trim()}`
+      : "",
+  ].filter(Boolean);
+
+  return [
+    ["Goal", mainGoal],
+    ["Experience", form.experienceLevel],
+    ["Split", form.preferredSplit],
+    ["Equipment", equipment.join(", ")],
+    ["Session length", form.sessionLength],
+    ["Workday rules", form.workdayTrainingRules.join(", ")],
+    ["Intensity", form.intensityPreference],
+  ]
+    .map(([label, value]) => ({ label, value: value.trim() }))
+    .filter((item) => item.value);
+}
+
 function buildWorkoutProfileDetails(form: WorkoutPlanBuilderState) {
   const mainGoal =
     form.mainGoal === "Other"
@@ -3553,6 +3696,9 @@ function buildWorkoutProfileDetails(form: WorkoutPlanBuilderState) {
 
 function buildWorkoutWeekDetails(form: WorkoutPlanBuilderState) {
   return [
+    ["Workout detail level", form.workoutDetailLevel],
+    ["This week's training target", form.thisWeekTrainingTarget],
+    ["Do not schedule workouts here", form.noWorkoutTimingRules.join(", ")],
     ["Workouts wanted this week", form.workoutsWantedThisWeek],
     ["Available days", form.availableDays],
     ["Unavailable days", form.unavailableDays],
@@ -3585,15 +3731,21 @@ function buildWorkoutPlanBuilderSummary(form: WorkoutPlanBuilderState) {
   if (profileDetails.length === 0 && weekDetails.length === 0) return "";
 
   return [
-    "Training profile:",
+    "Training plan for this ShiftPlan:",
+    "",
+    "Reusable training profile:",
     ...(profileDetails.length > 0
       ? profileDetails
       : ["- No saved training profile details provided."]),
     "",
-    "This week workout plan:",
+    "This week's workout plan:",
     ...(weekDetails.length > 0
       ? weekDetails
       : ["- Use the training profile as general guidance this week."]),
+    "",
+    "Placement request:",
+    "- Fit workouts into the weekly timeline around exact shifts, commute, appointments, errands, and responsibilities.",
+    "- Add workout tasks to the plan checklist when useful.",
     "- Planning boundary: general workout placement and routine planning only; adjust for real life.",
   ].join("\n");
 }
@@ -4839,10 +4991,10 @@ function PlanFeedbackForm({
         </div>
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm font-semibold text-blue-950">
-            Did the workout placement feel realistic?
+            Was the workout placement realistic?
           </p>
           <p className="mt-2 text-sm leading-6 text-blue-900">
-            Tap what fits. Were workouts too much, too little, or about right?
+            Tap what fits. Your answer stays editable in Additional notes.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {workoutFeedbackOptions.map((option) => {

@@ -103,6 +103,14 @@ export async function POST(request: Request) {
     return createAccessCode(supabaseRestUrl, headers, payload);
   }
 
+  if (action === "update") {
+    return updateAccessCode(supabaseRestUrl, headers, payload);
+  }
+
+  if (action === "reset_code") {
+    return resetAccessCode(supabaseRestUrl, headers, payload);
+  }
+
   if (action === "set_active") {
     return setAccessCodeActive(supabaseRestUrl, headers, payload);
   }
@@ -262,6 +270,214 @@ async function createAccessCode(
   }
 }
 
+async function updateAccessCode(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  payload: AdminAppAccessCodeRequest,
+) {
+  const id = typeof payload.id === "string" ? payload.id.trim() : "";
+  const codeLabel = cleanText(payload.code_label);
+  const notes = cleanText(payload.notes);
+  const maxGenerationsPerMonth = parseRequiredLimit(
+    payload.max_generations_per_month,
+  );
+  const maxGenerationsPerDay = parseRequiredLimit(
+    payload.max_generations_per_day,
+  );
+  const expiresAt = parseOptionalDateTime(payload.expires_at);
+
+  if (!id) {
+    return NextResponse.json(
+      { message: "Choose an app access code to update." },
+      { status: 400 },
+    );
+  }
+
+  if (typeof payload.is_active !== "boolean") {
+    return NextResponse.json(
+      { message: "Choose whether the app access code is active." },
+      { status: 400 },
+    );
+  }
+
+  if (maxGenerationsPerMonth === null || maxGenerationsPerDay === null) {
+    return NextResponse.json(
+      { message: "Generation limits must be zero or greater." },
+      { status: 400 },
+    );
+  }
+
+  if (expiresAt === "invalid") {
+    return NextResponse.json(
+      { message: "Enter a valid expiration date or leave it blank." },
+      { status: 400 },
+    );
+  }
+
+  const query = new URLSearchParams({
+    id: `eq.${id}`,
+    select: appAccessCodeAdminColumns,
+  });
+
+  try {
+    const response = await fetch(`${supabaseRestUrl}/app_access_codes?${query}`, {
+      method: "PATCH",
+      headers: {
+        ...headers,
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        code_label: codeLabel || null,
+        is_active: payload.is_active,
+        expires_at: expiresAt || null,
+        max_generations_per_month: maxGenerationsPerMonth,
+        max_generations_per_day: maxGenerationsPerDay,
+        notes: notes || null,
+      }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { message: "Could not update the app access code right now." },
+        { status: 502 },
+      );
+    }
+
+    const rows = (await response.json()) as AppAccessCodeAdmin[];
+    const accessCode = rows[0];
+
+    if (!accessCode) {
+      return NextResponse.json(
+        { message: "App access code was not found." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { accessCode, message: "Access code details updated." },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { message: "Could not reach Supabase right now." },
+      { status: 502 },
+    );
+  }
+}
+
+async function resetAccessCode(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  payload: AdminAppAccessCodeRequest,
+) {
+  const id = typeof payload.id === "string" ? payload.id.trim() : "";
+  const accessCode = normalizeAccessCode(payload.access_code);
+
+  if (!id) {
+    return NextResponse.json(
+      { message: "Choose an app access code to reset." },
+      { status: 400 },
+    );
+  }
+
+  if (!accessCode) {
+    return NextResponse.json(
+      { message: "Enter the new access code before resetting it." },
+      { status: 400 },
+    );
+  }
+
+  const lookupQuery = new URLSearchParams({
+    id: `eq.${id}`,
+    select: "id,email",
+    limit: "1",
+  });
+
+  try {
+    const lookupResponse = await fetch(
+      `${supabaseRestUrl}/app_access_codes?${lookupQuery}`,
+      {
+        headers,
+        cache: "no-store",
+      },
+    );
+
+    if (!lookupResponse.ok) {
+      return NextResponse.json(
+        { message: "Could not load the app access code before resetting it." },
+        { status: 502 },
+      );
+    }
+
+    const matchingRows = (await lookupResponse.json()) as {
+      id: string;
+      email: string;
+    }[];
+    const existingAccessCode = matchingRows[0];
+
+    if (!existingAccessCode) {
+      return NextResponse.json(
+        { message: "App access code was not found." },
+        { status: 404 },
+      );
+    }
+
+    const updateQuery = new URLSearchParams({
+      id: `eq.${id}`,
+      select: appAccessCodeAdminColumns,
+    });
+    const codeHash = hashAppAccessCode(
+      normalizeAppEmail(existingAccessCode.email),
+      accessCode,
+    );
+
+    const updateResponse = await fetch(
+      `${supabaseRestUrl}/app_access_codes?${updateQuery}`,
+      {
+        method: "PATCH",
+        headers: {
+          ...headers,
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify({ code_hash: codeHash }),
+        cache: "no-store",
+      },
+    );
+
+    if (!updateResponse.ok) {
+      return NextResponse.json(
+        { message: "Could not reset the app access code right now." },
+        { status: 502 },
+      );
+    }
+
+    const rows = (await updateResponse.json()) as AppAccessCodeAdmin[];
+    const updatedAccessCode = rows[0];
+
+    if (!updatedAccessCode) {
+      return NextResponse.json(
+        { message: "App access code was not found." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        accessCode: updatedAccessCode,
+        message:
+          "Access code reset. Save this code now. ShiftPlan does not store raw access codes.",
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { message: "Could not reach Supabase right now." },
+      { status: 502 },
+    );
+  }
+}
+
 async function setAccessCodeActive(
   supabaseRestUrl: string,
   headers: Record<string, string>,
@@ -334,6 +550,16 @@ function cleanText(value: unknown) {
 
 function parseLimit(value: unknown, fallback: number) {
   if (value === undefined || value === null || value === "") return fallback;
+  const parsed =
+    typeof value === "number" ? value : Number.parseInt(String(value), 10);
+
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+
+  return parsed;
+}
+
+function parseRequiredLimit(value: unknown) {
+  if (value === undefined || value === null || value === "") return null;
   const parsed =
     typeof value === "number" ? value : Number.parseInt(String(value), 10);
 

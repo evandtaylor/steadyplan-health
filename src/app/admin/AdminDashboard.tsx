@@ -294,6 +294,15 @@ type AppAccessCodeAdminResponse = {
   accessCode?: AppAccessCodeAdmin;
 };
 
+type AppAccessCodeEditForm = {
+  codeLabel: string;
+  monthlyLimit: string;
+  dailyLimit: string;
+  expiresAt: string;
+  notes: string;
+  isActive: boolean;
+};
+
 const groups: { id: AdminGroup; label: string }[] = [
   { id: "free", label: "Free Reset / Beta" },
   { id: "custom", label: "Custom Plan" },
@@ -1254,6 +1263,10 @@ function AppAccessCodeManager({
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState("");
+  const [editForms, setEditForms] = useState<
+    Record<string, AppAccessCodeEditForm>
+  >({});
+  const [resetCodes, setResetCodes] = useState<Record<string, string>>({});
   const [latestInvite, setLatestInvite] = useState<{
     email: string;
     accessCode: string;
@@ -1262,6 +1275,35 @@ function AppAccessCodeManager({
   const [inviteCopyState, setInviteCopyState] = useState<
     "" | "copied" | "failed"
   >("");
+
+  function getEditForm(accessCode: AppAccessCodeAdmin) {
+    return editForms[accessCode.id] || createAppAccessCodeEditForm(accessCode);
+  }
+
+  function updateEditForm(
+    accessCode: AppAccessCodeAdmin,
+    field: keyof AppAccessCodeEditForm,
+    value: string | boolean,
+  ) {
+    setEditForms((currentForms) => ({
+      ...currentForms,
+      [accessCode.id]: {
+        ...(currentForms[accessCode.id] ||
+          createAppAccessCodeEditForm(accessCode)),
+        [field]: value,
+      },
+    }));
+    setMessage("");
+  }
+
+  function updateResetCode(accessCodeId: string, value: string) {
+    setResetCodes((currentCodes) => ({
+      ...currentCodes,
+      [accessCodeId]: value,
+    }));
+    setMessage("");
+    setInviteCopyState("");
+  }
 
   async function handleCreateAccessCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1343,6 +1385,118 @@ function AppAccessCodeManager({
     }
   }
 
+  async function handleSaveAccessCodeEdit(
+    event: FormEvent<HTMLFormElement>,
+    accessCode: AppAccessCodeAdmin,
+  ) {
+    event.preventDefault();
+    const editForm = getEditForm(accessCode);
+
+    setUpdatingId(accessCode.id);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/admin/app-access-codes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          action: "update",
+          id: accessCode.id,
+          code_label: editForm.codeLabel,
+          max_generations_per_month: editForm.monthlyLimit,
+          max_generations_per_day: editForm.dailyLimit,
+          expires_at: editForm.expiresAt,
+          notes: editForm.notes,
+          is_active: editForm.isActive,
+        }),
+      });
+      const result = (await response.json()) as AppAccessCodeAdminResponse;
+
+      if (!response.ok || !result.accessCode) {
+        setMessage(result.message || "Could not update the app access code.");
+        return;
+      }
+
+      const updatedAccessCode = result.accessCode;
+      onAccessCodeSaved(updatedAccessCode);
+      setEditForms((currentForms) => ({
+        ...currentForms,
+        [updatedAccessCode.id]: createAppAccessCodeEditForm(updatedAccessCode),
+      }));
+      setMessage(result.message || "Access code details updated.");
+    } catch {
+      setMessage("Could not reach the app access code route right now.");
+    } finally {
+      setUpdatingId("");
+    }
+  }
+
+  async function handleResetAccessCode(
+    event: FormEvent<HTMLFormElement>,
+    accessCode: AppAccessCodeAdmin,
+  ) {
+    event.preventDefault();
+    const nextRawCode = (resetCodes[accessCode.id] || "").trim();
+
+    if (!nextRawCode) {
+      setMessage("Enter a new access code before resetting.");
+      return;
+    }
+
+    setUpdatingId(accessCode.id);
+    setMessage("");
+    setLatestInvite(null);
+    setInviteCopyState("");
+
+    try {
+      const response = await fetch("/api/admin/app-access-codes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          password,
+          action: "reset_code",
+          id: accessCode.id,
+          access_code: nextRawCode,
+        }),
+      });
+      const result = (await response.json()) as AppAccessCodeAdminResponse;
+
+      if (!response.ok || !result.accessCode) {
+        setMessage(result.message || "Could not reset the app access code.");
+        return;
+      }
+
+      const updatedAccessCode = result.accessCode;
+      onAccessCodeSaved(updatedAccessCode);
+      setEditForms((currentForms) => ({
+        ...currentForms,
+        [updatedAccessCode.id]: createAppAccessCodeEditForm(updatedAccessCode),
+      }));
+      setLatestInvite({
+        email: updatedAccessCode.email,
+        accessCode: nextRawCode,
+        codeLabel: updatedAccessCode.code_label || "",
+      });
+      setResetCodes((currentCodes) => ({
+        ...currentCodes,
+        [accessCode.id]: "",
+      }));
+      setMessage(
+        result.message ||
+          "Access code reset. Save this code now. ShiftPlan does not store raw access codes.",
+      );
+    } catch {
+      setMessage("Could not reach the app access code route right now.");
+    } finally {
+      setUpdatingId("");
+    }
+  }
+
   async function handleAccessCodeActiveChange(
     accessCode: AppAccessCodeAdmin,
     isActive: boolean,
@@ -1370,7 +1524,12 @@ function AppAccessCodeManager({
         return;
       }
 
-      onAccessCodeSaved(result.accessCode);
+      const updatedAccessCode = result.accessCode;
+      onAccessCodeSaved(updatedAccessCode);
+      setEditForms((currentForms) => ({
+        ...currentForms,
+        [updatedAccessCode.id]: createAppAccessCodeEditForm(updatedAccessCode),
+      }));
       setMessage(isActive ? "Access code reactivated." : "Access code deactivated.");
     } catch {
       setMessage("Could not reach the app access code route right now.");
@@ -1600,79 +1759,302 @@ function AppAccessCodeManager({
           ) : null}
         </form>
 
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+          <p className="font-semibold">Access code security</p>
+          <p className="mt-1">
+            Existing access codes cannot be viewed after creation because only
+            a secure hash is stored. To give someone a new code, reset it and
+            save the new code immediately.
+          </p>
+        </div>
+
         {accessCodes.length === 0 ? (
           <EmptyState message="No app access codes yet." />
         ) : (
           <div className="grid gap-3">
-            {accessCodes.map((accessCode) => (
-              <article
-                key={accessCode.id}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-              >
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="break-all font-semibold text-slate-950">
-                      {accessCode.email}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {accessCode.code_label || "No label"}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span
-                      className={`w-fit rounded-lg px-3 py-1 text-sm font-semibold ${
-                        accessCode.is_active
-                          ? "bg-teal-50 text-teal-800"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      {accessCode.is_active ? "Active" : "Inactive"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void handleAccessCodeActiveChange(
-                          accessCode,
-                          !accessCode.is_active,
-                        )
-                      }
-                      disabled={updatingId === accessCode.id}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400"
-                    >
-                      {updatingId === accessCode.id
-                        ? "Saving..."
-                        : accessCode.is_active
-                          ? "Deactivate"
-                          : "Activate"}
-                    </button>
-                  </div>
-                </div>
+            {accessCodes.map((accessCode) => {
+              const editForm = getEditForm(accessCode);
+              const resetCode = resetCodes[accessCode.id] || "";
 
-                <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <AdminField
-                    label="Created"
-                    value={formatDate(accessCode.created_at)}
-                  />
-                  <AdminField
-                    label="Monthly limit"
-                    value={String(accessCode.max_generations_per_month)}
-                  />
-                  <AdminField
-                    label="Daily limit"
-                    value={String(accessCode.max_generations_per_day)}
-                  />
-                  <AdminField
-                    label="Expires"
-                    value={
-                      accessCode.expires_at
-                        ? formatDate(accessCode.expires_at)
-                        : "-"
-                    }
-                  />
-                  <AdminField label="Notes" value={accessCode.notes || "-"} />
-                </dl>
-              </article>
-            ))}
+              return (
+                <article
+                  key={accessCode.id}
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="break-all font-semibold text-slate-950">
+                        {accessCode.email}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {accessCode.code_label || "No label"}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Email changes require creating a new access code or
+                        resetting the code for that email.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span
+                        className={`w-fit rounded-lg px-3 py-1 text-sm font-semibold ${
+                          accessCode.is_active
+                            ? "bg-teal-50 text-teal-800"
+                            : "bg-slate-200 text-slate-700"
+                        }`}
+                      >
+                        {accessCode.is_active ? "Active" : "Inactive"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleAccessCodeActiveChange(
+                            accessCode,
+                            !accessCode.is_active,
+                          )
+                        }
+                        disabled={updatingId === accessCode.id}
+                        className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-slate-400"
+                      >
+                        {updatingId === accessCode.id
+                          ? "Saving..."
+                          : accessCode.is_active
+                            ? "Deactivate"
+                            : "Activate"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <AdminField
+                      label="Created"
+                      value={formatDate(accessCode.created_at)}
+                    />
+                    <AdminField
+                      label="Monthly limit"
+                      value={String(accessCode.max_generations_per_month)}
+                    />
+                    <AdminField
+                      label="Daily limit"
+                      value={String(accessCode.max_generations_per_day)}
+                    />
+                    <AdminField
+                      label="Expires"
+                      value={
+                        accessCode.expires_at
+                          ? formatDate(accessCode.expires_at)
+                          : "-"
+                      }
+                    />
+                    <AdminField label="Notes" value={accessCode.notes || "-"} />
+                  </dl>
+
+                  <details className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+                      Edit details or replace access code
+                    </summary>
+
+                    <form
+                      className="mt-4 grid gap-4"
+                      onSubmit={(event) =>
+                        void handleSaveAccessCodeEdit(event, accessCode)
+                      }
+                    >
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <div>
+                          <label
+                            htmlFor={`appAccessEmail-${accessCode.id}`}
+                            className="mb-2 block text-sm font-semibold text-slate-800"
+                          >
+                            Email not editable
+                          </label>
+                          <input
+                            id={`appAccessEmail-${accessCode.id}`}
+                            value={accessCode.email}
+                            readOnly
+                            className="field-control bg-slate-100 text-slate-600"
+                          />
+                          <p className="mt-2 text-xs leading-5 text-slate-500">
+                            Email is part of the access-code hash. Create a new
+                            access code for a different email.
+                          </p>
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`appAccessLabel-${accessCode.id}`}
+                            className="mb-2 block text-sm font-semibold text-slate-800"
+                          >
+                            Label
+                          </label>
+                          <input
+                            id={`appAccessLabel-${accessCode.id}`}
+                            type="text"
+                            value={editForm.codeLabel}
+                            onChange={(event) =>
+                              updateEditForm(
+                                accessCode,
+                                "codeLabel",
+                                event.target.value,
+                              )
+                            }
+                            className="field-control"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`appAccessMonthlyLimit-${accessCode.id}`}
+                            className="mb-2 block text-sm font-semibold text-slate-800"
+                          >
+                            Monthly limit
+                          </label>
+                          <input
+                            id={`appAccessMonthlyLimit-${accessCode.id}`}
+                            type="number"
+                            min="0"
+                            value={editForm.monthlyLimit}
+                            onChange={(event) =>
+                              updateEditForm(
+                                accessCode,
+                                "monthlyLimit",
+                                event.target.value,
+                              )
+                            }
+                            className="field-control"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`appAccessDailyLimit-${accessCode.id}`}
+                            className="mb-2 block text-sm font-semibold text-slate-800"
+                          >
+                            Daily limit
+                          </label>
+                          <input
+                            id={`appAccessDailyLimit-${accessCode.id}`}
+                            type="number"
+                            min="0"
+                            value={editForm.dailyLimit}
+                            onChange={(event) =>
+                              updateEditForm(
+                                accessCode,
+                                "dailyLimit",
+                                event.target.value,
+                              )
+                            }
+                            className="field-control"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor={`appAccessExpiresAt-${accessCode.id}`}
+                            className="mb-2 block text-sm font-semibold text-slate-800"
+                          >
+                            Expires at optional
+                          </label>
+                          <input
+                            id={`appAccessExpiresAt-${accessCode.id}`}
+                            type="datetime-local"
+                            value={editForm.expiresAt}
+                            onChange={(event) =>
+                              updateEditForm(
+                                accessCode,
+                                "expiresAt",
+                                event.target.value,
+                              )
+                            }
+                            className="field-control"
+                          />
+                        </div>
+                        <label className="flex h-fit w-fit items-center gap-2 self-end text-sm font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={editForm.isActive}
+                            onChange={(event) =>
+                              updateEditForm(
+                                accessCode,
+                                "isActive",
+                                event.target.checked,
+                              )
+                            }
+                            className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+                          />
+                          Active
+                        </label>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor={`appAccessNotes-${accessCode.id}`}
+                          className="mb-2 block text-sm font-semibold text-slate-800"
+                        >
+                          Notes
+                        </label>
+                        <textarea
+                          id={`appAccessNotes-${accessCode.id}`}
+                          value={editForm.notes}
+                          onChange={(event) =>
+                            updateEditForm(
+                              accessCode,
+                              "notes",
+                              event.target.value,
+                            )
+                          }
+                          className="field-control min-h-20"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={updatingId === accessCode.id}
+                        className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+                      >
+                        {updatingId === accessCode.id
+                          ? "Saving..."
+                          : "Save details"}
+                      </button>
+                    </form>
+
+                    <form
+                      className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4"
+                      onSubmit={(event) =>
+                        void handleResetAccessCode(event, accessCode)
+                      }
+                    >
+                      <div>
+                        <label
+                          htmlFor={`appAccessResetCode-${accessCode.id}`}
+                          className="mb-2 block text-sm font-semibold text-amber-950"
+                        >
+                          Replace access code
+                        </label>
+                        <p className="mb-2 text-sm leading-6 text-amber-950">
+                          Enter a new raw code manually. ShiftPlan will hash it
+                          and will not store or show the raw code later.
+                        </p>
+                        <input
+                          id={`appAccessResetCode-${accessCode.id}`}
+                          type="text"
+                          value={resetCode}
+                          onChange={(event) =>
+                            updateResetCode(accessCode.id, event.target.value)
+                          }
+                          className="field-control"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={updatingId === accessCode.id || !resetCode.trim()}
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+                      >
+                        {updatingId === accessCode.id
+                          ? "Replacing..."
+                          : "Replace access code"}
+                      </button>
+                    </form>
+                  </details>
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
@@ -3098,6 +3480,29 @@ function buildBetaInviteMessage({
     "",
     "Thank you for testing and being honest about what works, what feels off, and what should improve next.",
   ].join("\n");
+}
+
+function createAppAccessCodeEditForm(
+  accessCode: AppAccessCodeAdmin,
+): AppAccessCodeEditForm {
+  return {
+    codeLabel: accessCode.code_label || "",
+    monthlyLimit: String(accessCode.max_generations_per_month),
+    dailyLimit: String(accessCode.max_generations_per_day),
+    expiresAt: formatDateTimeLocalInput(accessCode.expires_at),
+    notes: accessCode.notes || "",
+    isActive: accessCode.is_active,
+  };
+}
+
+function formatDateTimeLocalInput(value: string | null) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
 }
 
 function buildAiPrompt(

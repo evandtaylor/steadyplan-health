@@ -215,6 +215,15 @@ type WorkoutPlanBuilderState = {
   saveAsDefault: boolean;
 };
 
+type AppCommandView =
+  | "dashboard"
+  | "create"
+  | "workout"
+  | "plans"
+  | "checklist"
+  | "feedback"
+  | "defaults";
+
 type ChecklistItem = {
   id: string;
   text: string;
@@ -721,6 +730,7 @@ function AppDashboard({
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [activeView, setActiveView] = useState<AppCommandView>("dashboard");
   const [generatingRequestId, setGeneratingRequestId] = useState("");
   const [generationMessages, setGenerationMessages] = useState<
     Record<string, string>
@@ -754,6 +764,8 @@ function AppDashboard({
     () => requests.flatMap((request) => (request.saved_plan ? [request.saved_plan] : [])),
     [requests],
   );
+  const latestSavedPlan = savedPlans[0] || null;
+  const pendingRequest = requests.find((request) => !request.saved_plan) || null;
   const hasWeeklyDraftContent = useMemo(
     () => hasWeeklyRequestDraftContent(form, weeklyChangeNote),
     [form, weeklyChangeNote],
@@ -765,6 +777,22 @@ function AppDashboard({
   const hasWorkoutPlanBuilderContent = Boolean(workoutPlanBuilderSummary);
   const shouldShowFirstRunPath =
     !isLoadingRequests && requests.length === 0 && savedPlans.length === 0;
+  const latestPlanQuickView = latestSavedPlan
+    ? buildSavedPlanQuickView(latestSavedPlan)
+    : null;
+  const trainingSummaryItems = buildTrainingProfileSummaryItems(
+    workoutPlanBuilderForm,
+  );
+
+  function openAppView(view: AppCommandView, targetId?: string) {
+    setActiveView(view);
+    window.setTimeout(() => {
+      const target = targetId
+        ? document.getElementById(targetId)
+        : document.getElementById("app-command-views");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
 
   const loadRequests = useCallback(async () => {
     setIsLoadingRequests(true);
@@ -939,6 +967,7 @@ function AppDashboard({
       "We copied your previous request. Update anything that changed, then save this week's request.",
     );
     setLastSavedRequestId("");
+    setActiveView("create");
     window.setTimeout(() => {
       document
         .getElementById("weekly-request")
@@ -951,6 +980,7 @@ function AppDashboard({
       setRequestReuseMessage(
         "This saved plan does not have request details available. Start a new weekly request and copy over anything still useful.",
       );
+      setActiveView("create");
       window.setTimeout(() => {
         document
           .getElementById("weekly-request")
@@ -988,6 +1018,7 @@ function AppDashboard({
       "We copied this plan's request. Update what changed, then save next week's request.",
     );
     setLastSavedRequestId("");
+    setActiveView("create");
     window.setTimeout(() => {
       document
         .getElementById("weekly-request")
@@ -1503,9 +1534,12 @@ function AppDashboard({
   }
 
   function scrollToPlanFeedback(planId: string) {
-    document
-      .getElementById(buildPlanFeedbackId(planId))
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveView("feedback");
+    window.setTimeout(() => {
+      document
+        .getElementById(buildPlanFeedbackId(planId))
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   function handleFeedbackSaved(planId: string, feedback: AppPlanFeedback) {
@@ -1527,55 +1561,288 @@ function AppDashboard({
   return (
     <section className="shiftplan-app-theme shiftplan-dark-form min-h-[70vh] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-sm font-semibold uppercase text-teal-700">
-            ShiftPlan app
-          </p>
-          <div className="mt-2 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold text-slate-950 sm:text-4xl">
-                Welcome{firstName ? `, ${firstName}` : ""}.
-              </h1>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Saved preferences are your defaults. This week&apos;s request is
-                only what changed.
+        <div className="rounded-2xl border border-white/10 bg-slate-950 p-5 text-white shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold uppercase text-teal-300">
+                ShiftPlan Command Center
               </p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
+              <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
+                {firstName
+                  ? `${firstName}'s week around shifts`
+                  : "Your week around your shifts"}
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Saved defaults stay reusable. This week&apos;s request is only
+                what changed.
+              </p>
+              <p className="mt-3 truncate text-xs font-semibold text-slate-400">
                 Signed in as {email}
               </p>
             </div>
-            <a
-              href="#weekly-request"
-              className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-            >
-              Start This Week&apos;s Request
-            </a>
+            <div className="grid gap-2 sm:min-w-56">
+              <div className="rounded-xl border border-teal-300/30 bg-teal-300/10 px-4 py-3">
+                <p className="text-xs font-semibold uppercase text-teal-200">
+                  Plans used this month
+                </p>
+                <p className="mt-1 text-2xl font-semibold text-white">
+                  {usage.month_used} / {usage.month_limit}
+                </p>
+              </div>
+              <p className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-xs leading-5 text-slate-300">
+                Today: {usage.day_used} of {usage.day_limit} generations used.
+              </p>
+            </div>
           </div>
         </div>
 
         <nav
-          aria-label="App dashboard shortcuts"
-          className="mt-4 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+          aria-label="ShiftPlan app views"
+          className="sticky top-0 z-10 mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-sm backdrop-blur"
         >
           {[
-            ["New Request", "#weekly-request"],
-            ["Reuse Last Week", "#recent-requests"],
-            ["Defaults", "#app-preferences"],
-            ["Saved Plans", "#saved-plans"],
-            ["Feedback", "#saved-plans"],
-          ].map(([label, href]) => (
-            <a
+            ["dashboard", "Dashboard"],
+            ["create", "Create"],
+            ["workout", "Workout"],
+            ["plans", "Plans"],
+            ["checklist", "Checklist"],
+            ["feedback", "Feedback"],
+            ["defaults", "Defaults"],
+          ].map(([view, label]) => (
+            <button
               key={label}
-              href={href}
-              className="shrink-0 rounded-lg bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-teal-50 hover:text-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              type="button"
+              onClick={() => openAppView(view as AppCommandView)}
+              className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+                activeView === view
+                  ? "bg-teal-300 text-slate-950"
+                  : "bg-white/[0.06] text-slate-200 hover:bg-white/[0.12]"
+              }`}
             >
               {label}
-            </a>
+            </button>
           ))}
         </nav>
 
-        <div className="flex flex-col">
-          {shouldShowFirstRunPath ? (
+        <div id="app-command-views" className="scroll-mt-24">
+          {activeView === "dashboard" ? (
+            <div className="mt-5 grid gap-5">
+              <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+                <article className="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-white shadow-sm">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold uppercase text-teal-300">
+                        {latestPlanQuickView?.title || "Today / Next Up"}
+                      </p>
+                      <h2 className="mt-2 text-2xl font-semibold">
+                        {latestSavedPlan
+                          ? latestSavedPlan.plan_title || "Latest ShiftPlan"
+                          : "Create your first ShiftPlan"}
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openAppView(latestSavedPlan ? "plans" : "create")
+                      }
+                      className="inline-flex w-full items-center justify-center rounded-xl bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:w-fit"
+                    >
+                      {latestSavedPlan ? "Open plan" : "Start this week"}
+                    </button>
+                  </div>
+                  {latestPlanQuickView ? (
+                    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.06] p-4">
+                      <p className="text-sm leading-6 text-slate-300">
+                        {latestPlanQuickView.message}
+                      </p>
+                      {latestPlanQuickView.items.length > 0 ? (
+                        <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-200">
+                          {latestPlanQuickView.items.slice(0, 4).map((item) => (
+                            <li key={item.id} className="flex gap-2">
+                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300" />
+                              <span>{item.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-3 text-sm leading-6 text-slate-400">
+                          Open the full plan below.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.06] p-4 text-sm leading-6 text-slate-300">
+                      Create your first ShiftPlan to see today&apos;s schedule
+                      here.
+                    </p>
+                  )}
+                </article>
+
+                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-semibold uppercase text-teal-700">
+                    Primary actions
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {pendingRequest ? (
+                      <CommandActionCard
+                        title="Generate your ShiftPlan"
+                        body={formatDateRange(
+                          pendingRequest.week_start_date,
+                          pendingRequest.week_end_date,
+                        )}
+                        tone="teal"
+                        onClick={() =>
+                          openAppView(
+                            "create",
+                            `weekly-request-${pendingRequest.id}`,
+                          )
+                        }
+                      />
+                    ) : null}
+                    {hasWeeklyDraftContent ? (
+                      <CommandActionCard
+                        title="Continue draft"
+                        body="Pick up the weekly request saved on this device."
+                        tone="teal"
+                        onClick={() => openAppView("create", "weekly-request")}
+                      />
+                    ) : null}
+                    <CommandActionCard
+                      title="Create this week's ShiftPlan"
+                      body="Add exact shifts and what changed."
+                      tone="teal"
+                      onClick={() => openAppView("create", "weekly-request")}
+                    />
+                    {latestSavedPlan ? (
+                      <CommandActionCard
+                        title="View latest plan"
+                        body={formatDateRange(
+                          latestSavedPlan.week_start_date,
+                          latestSavedPlan.week_end_date,
+                        )}
+                        tone="blue"
+                        onClick={() => openAppView("plans", "saved-plans")}
+                      />
+                    ) : null}
+                    <CommandActionCard
+                      title="Workout Plan Builder"
+                      body="Build training around your shifts, then apply it to this week."
+                      tone="indigo"
+                      onClick={() => openAppView("workout", "workout-builder")}
+                    />
+                    <CommandActionCard
+                      title="Checklist"
+                      body="Open the day-by-day interactive checklist."
+                      tone="blue"
+                      onClick={() => openAppView("checklist")}
+                    />
+                    <CommandActionCard
+                      title="Leave feedback"
+                      body="Tell ShiftPlan what worked and what felt off."
+                      tone="amber"
+                      onClick={() => openAppView("feedback")}
+                    />
+                  </div>
+                </article>
+              </section>
+
+              <section className="grid gap-4 md:grid-cols-3">
+                <CommandStatusCard
+                  label="Weekly requests"
+                  value={String(requests.length)}
+                  detail={
+                    pendingRequest
+                      ? "One request is ready to generate."
+                      : "Create or reuse a request when the week changes."
+                  }
+                  tone="teal"
+                />
+                <CommandStatusCard
+                  label="Saved plans"
+                  value={String(savedPlans.length)}
+                  detail={
+                    latestSavedPlan
+                      ? formatDateRange(
+                          latestSavedPlan.week_start_date,
+                          latestSavedPlan.week_end_date,
+                        )
+                      : "No saved plans yet."
+                  }
+                  tone="blue"
+                />
+                <CommandStatusCard
+                  label="Training"
+                  value={
+                    hasWorkoutPlanBuilderContent ||
+                    preferences?.workout_training_preferences
+                      ? "Ready"
+                      : "Optional"
+                  }
+                  detail={
+                    trainingSummaryItems.length > 0
+                      ? trainingSummaryItems
+                          .slice(0, 2)
+                          .map((item) => item.value)
+                          .join(" • ")
+                      : "Use the workout tab when training matters this week."
+                  }
+                  tone="indigo"
+                />
+              </section>
+
+              {shouldShowFirstRunPath ? (
+                <article className="rounded-2xl border border-teal-200 bg-teal-50 p-4 shadow-sm sm:p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold uppercase text-teal-800">
+                        First time here?
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                        Start with one real week.
+                      </h2>
+                      <ol className="mt-3 grid gap-2 text-sm leading-6 text-teal-950 sm:grid-cols-3">
+                        {[
+                          "Save your defaults",
+                          "Create this week's request",
+                          "Generate and review your plan",
+                        ].map((step, index) => (
+                          <li
+                            key={step}
+                            className="rounded-xl border border-teal-200 bg-white p-3"
+                          >
+                            <span className="text-xs font-semibold uppercase text-teal-700">
+                              Step {index + 1}
+                            </span>
+                            <span className="mt-1 block font-semibold">
+                              {step}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openAppView("create", "weekly-request")}
+                      className="inline-flex w-full items-center justify-center rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                    >
+                      Start with this week
+                    </button>
+                  </div>
+                </article>
+              ) : null}
+
+              <article className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-sm">
+                <p className="font-semibold">Private beta</p>
+                <p className="mt-1">
+                  Plans may be imperfect. Review dates, times, assumptions, and
+                  fit before using. ShiftPlan is lifestyle/routine planning only.
+                </p>
+              </article>
+            </div>
+          ) : null}
+
+        <div className={activeView === "dashboard" ? "hidden" : "flex flex-col"}>
+          {activeView === "create" && shouldShowFirstRunPath ? (
             <article className="order-0 mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 shadow-sm sm:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -1601,7 +1868,7 @@ function AppDashboard({
             </article>
           ) : null}
 
-        <article className="order-1 mt-4 rounded-lg border border-teal-200 bg-white p-4 shadow-sm sm:p-5">
+        <article className="hidden">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-700">
@@ -1650,7 +1917,7 @@ function AppDashboard({
           </ol>
         </article>
 
-        <article className="order-5 mt-6 rounded-lg border border-slate-200 bg-slate-950 p-4 text-white shadow-sm sm:p-5">
+        <article className="hidden">
           <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div>
               <p className="text-sm font-semibold uppercase text-teal-200">
@@ -1683,7 +1950,13 @@ function AppDashboard({
           </div>
         </article>
 
-        <div className="order-4 mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+        <div
+          className={
+            activeView === "plans"
+              ? "order-4 mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]"
+              : "hidden"
+          }
+        >
           <article
             id="saved-plans"
             className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
@@ -1886,7 +2159,11 @@ function AppDashboard({
 
         <section
           id="app-preferences"
-          className="order-3 mt-6 scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          className={
+            activeView === "defaults"
+              ? "order-3 mt-6 scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+              : "hidden"
+          }
         >
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
@@ -2099,9 +2376,55 @@ function AppDashboard({
           ) : null}
         </section>
 
+        {activeView === "workout" ? (
+          <section
+            id="workout-builder"
+            className="order-2 mt-6 scroll-mt-28 rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase text-indigo-700">
+                  Workout Plan Builder
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                  Training around your shifts
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Build the training details once, then apply them to this
+                  week&apos;s request without refilling the whole form.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAppView("create", "workoutTrainingGoals")}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-900 transition hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 sm:w-fit"
+              >
+                Open weekly workout field
+              </button>
+            </div>
+            <WorkoutPlanBuilderCard
+              form={workoutPlanBuilderForm}
+              message={workoutPlanBuilderMessage}
+              isApplying={isApplyingWorkoutPlanBuilder}
+              hasSummary={hasWorkoutPlanBuilderContent}
+              onFieldChange={updateWorkoutPlanBuilderField}
+              onToggleOption={toggleWorkoutPlanBuilderOption}
+              onApply={() =>
+                void handleApplyWorkoutPlanBuilder(
+                  workoutPlanBuilderForm.saveAsDefault,
+                )
+              }
+            />
+          </section>
+        ) : null}
+
         <div
           id="weekly-request"
-          className="order-2 mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
+          className={
+            activeView === "create"
+              ? "order-2 mt-6 grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-start"
+              : "hidden"
+          }
         >
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <div>
@@ -2273,20 +2596,6 @@ function AppDashboard({
                   />
                 </div>
               </div>
-
-              <WorkoutPlanBuilderCard
-                form={workoutPlanBuilderForm}
-                message={workoutPlanBuilderMessage}
-                isApplying={isApplyingWorkoutPlanBuilder}
-                hasSummary={hasWorkoutPlanBuilderContent}
-                onFieldChange={updateWorkoutPlanBuilderField}
-                onToggleOption={toggleWorkoutPlanBuilderOption}
-                onApply={() =>
-                  void handleApplyWorkoutPlanBuilder(
-                    workoutPlanBuilderForm.saveAsDefault,
-                  )
-                }
-              />
 
               <div className="grid gap-5 md:grid-cols-2">
                 <Field
@@ -2686,6 +2995,103 @@ function AppDashboard({
             )}
           </section>
         </div>
+        </div>
+
+        {activeView === "checklist" ? (
+          <section className="order-4 mt-6 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase text-blue-700">
+                  Checklist
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                  Day-by-day action list
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Use the latest saved plan&apos;s interactive checklist without
+                  digging through the full timeline.
+                </p>
+              </div>
+              {latestSavedPlan ? (
+                <button
+                  type="button"
+                  onClick={() => openAppView("plans", "saved-plans")}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-fit"
+                >
+                  Open full plan
+                </button>
+              ) : null}
+            </div>
+            {latestSavedPlan ? (
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="font-semibold text-slate-950">
+                  {latestSavedPlan.plan_title || "Latest ShiftPlan"}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {formatDateRange(
+                    latestSavedPlan.week_start_date,
+                    latestSavedPlan.week_end_date,
+                  )}
+                </p>
+                <InteractiveChecklist
+                  planId={latestSavedPlan.id}
+                  planBody={latestSavedPlan.plan_body}
+                />
+              </div>
+            ) : (
+              <GuidanceCard
+                title="No checklist yet"
+                body="Generate a ShiftPlan first. Its checklist will show here by day."
+              />
+            )}
+          </section>
+        ) : null}
+
+        {activeView === "feedback" ? (
+          <section className="order-4 mt-6 rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
+            <div>
+              <p className="text-sm font-semibold uppercase text-amber-700">
+                Feedback
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                Help tune ShiftPlan
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Tell ShiftPlan what felt realistic, what missed, and whether
+                workout placement made sense.
+              </p>
+            </div>
+            {savedPlans.length === 0 ? (
+              <GuidanceCard
+                title="No generated plans to review yet"
+                body="Generate a ShiftPlan first, then come back here to leave feedback."
+              />
+            ) : (
+              <div className="mt-5 grid gap-4">
+                {savedPlans.map((plan) => (
+                  <article
+                    key={plan.id}
+                    id={buildPlanFeedbackId(plan.id)}
+                    className="scroll-mt-28 rounded-xl border border-amber-100 bg-amber-50/60 p-4"
+                  >
+                    <p className="text-sm font-semibold text-amber-950">
+                      {plan.plan_title || "Generated weekly plan"}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-amber-800">
+                      {formatDateRange(plan.week_start_date, plan.week_end_date)}
+                    </p>
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                      <PlanFeedbackForm
+                        plan={plan}
+                        onFeedbackSaved={handleFeedbackSaved}
+                      />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
 
         <aside className="order-6 mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700">
           <p className="font-semibold text-blue-950">Safety note</p>
@@ -2703,6 +3109,63 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="font-semibold text-slate-900">{title}</p>
       <p className="mt-2">{body}</p>
     </div>
+  );
+}
+
+function CommandActionCard({
+  title,
+  body,
+  tone,
+  onClick,
+}: {
+  title: string;
+  body: string;
+  tone: "teal" | "blue" | "indigo" | "amber";
+  onClick: () => void;
+}) {
+  const toneClass = {
+    teal: "border-teal-200 bg-teal-50 text-teal-950 hover:bg-teal-100",
+    blue: "border-blue-200 bg-blue-50 text-blue-950 hover:bg-blue-100",
+    indigo:
+      "border-indigo-200 bg-indigo-50 text-indigo-950 hover:bg-indigo-100",
+    amber: "border-amber-200 bg-amber-50 text-amber-950 hover:bg-amber-100",
+  }[tone];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-teal-500 ${toneClass}`}
+    >
+      <span className="block text-sm font-semibold">{title}</span>
+      <span className="mt-1 block text-xs leading-5 opacity-80">{body}</span>
+    </button>
+  );
+}
+
+function CommandStatusCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: "teal" | "blue" | "indigo";
+}) {
+  const toneClass = {
+    teal: "border-teal-200 bg-teal-50 text-teal-950",
+    blue: "border-blue-200 bg-blue-50 text-blue-950",
+    indigo: "border-indigo-200 bg-indigo-50 text-indigo-950",
+  }[tone];
+
+  return (
+    <article className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
+      <p className="text-xs font-semibold uppercase opacity-75">{label}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <p className="mt-2 text-sm leading-6 opacity-80">{detail}</p>
+    </article>
   );
 }
 

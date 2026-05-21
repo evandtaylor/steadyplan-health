@@ -6,7 +6,7 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | low | no | Create `agent-mode-test` app access and run one fresh `/app` QA pass | Test generation, first-run flow, start here card, request saved next step, week-start buttons, shift templates, draft autosave, checklist controls, calendar preview/export, next-week reuse, feedback chips, review checklist, saved plan timeline, Today/Next up view, and feedback shortcut without creating excessive junk data. |
+| high | manual | low | no | Create `agent-mode-test` app access and run one fresh simplified `/app` QA pass | Test Home/Create/Plan/Settings, primary Generate flow, simplified Create flow, Advanced details, workout optional flow, saved plan timeline, checklist, calendar preview/export, feedback, and AI output without creating excessive junk data. |
 
 ## Current Phase
 
@@ -44,6 +44,12 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 - Calendar export detail polish completed locally.
 - Plan feedback reminder completed locally.
 - Compact beta limitations note completed locally.
+- Command Center simplification completed locally.
+- Simplified Create flow completed locally.
+- Simplified saved Plan view completed locally.
+- Simplified customer-side AI output format completed locally.
+- Simple mode labels completed locally.
+- Redundant app UI cleanup completed locally.
 
 ## Immediate Manual QA Tasks
 
@@ -60,6 +66,7 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 | high | manual | low | no | Test copy buttons on saved plans | Confirm Copy Summary, Copy Plan, and Copy Checklist still work where clipboard access is available. |
 | high | manual | low | no | Test new weekly request helpers | Confirm week-start buttons, shift templates, draft autosave, clear draft, and next-week-from-plan behave as expected. |
 | high | manual | low | no | Test beta readiness polish | Confirm Start here, request saved next step, generated plan review checklist, feedback reminder, and beta limitations note are clear on mobile. |
+| high | manual | low | no | Test simplified Command Center flow | Confirm Home has one clear next action, Create is short above the fold, Plan leads with Today/checklist/timeline, and Settings holds optional defaults/workouts. |
 | high | manual | low | no | Gather Emily feedback | Ask whether Phase 2 changes reduced scrolling and made requests faster. |
 | medium | manual | low | no | Invite 2-3 more beta testers | Do this only after fresh `/app` generation, checklist, and calendar QA pass. |
 
@@ -90,20 +97,34 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 | high | Codex | low | no | Manual QA results template | Completed locally in `fa937b7`; structured report template for phone/computer QA. |
 | high | Codex | low | no | Phase 2 exit criteria | Completed locally in `fa297f1`; defines when to move into Phase 3 planning. |
 
+## Phase 2 Simplification Work
+
+| Priority | Type | Risk | SQL Needed | Task | Notes |
+| --- | --- | --- | --- | --- | --- |
+| high | Codex | low | no | Simplify `/app` copy globally | Completed locally in `835b6cd`; shorter app copy with safety boundaries preserved. |
+| high | Codex | low | no | Clarify Home next action | Completed locally in `ef2ea55`; one state-driven primary CTA and compact current-week status. |
+| high | Codex | low | no | Simplify Create flow | Completed locally in `64387fb`; top flow emphasizes summary, week start, exact schedule, safety, and save/generate. |
+| high | Codex | low | no | Make Generate step obvious | Completed locally in `29d377b`; post-save card points directly to Generate. |
+| medium | Codex | low | no | Simplify Workout placement | Completed locally in `828c0e2`; workout builder is optional with quick/detailed/skip paths. |
+| high | Codex | low | no | Simplify Plan view | Completed locally in `74d5f46`; Today/checklist/timeline lead and secondary actions are grouped. |
+| high | Codex | low | no | Simplify app AI output format | Completed locally in `1d62441`; customer-side prompt now requests a shorter app-ready timeline/checklist format. |
+| medium | Codex | low | no | Add simple mode labels | Completed locally in `0cf0f85`; Required, Optional, Advanced, and Saved default labels added sparingly. |
+| medium | Codex | low | no | Clean up redundant app UI | Completed locally in `0c97c3f`; duplicate first-run, feedback, iPhone, and helper clutter reduced. |
+
 ## Phase 2 Codex Tasks
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
 | high | Codex | medium | no | Fix any date-input friction found during live QA | Keep native date input unless QA shows a concrete issue; avoid schema changes. |
 | high | Codex | low | no | Improve mobile weekly request layout | Make form sections easier to scan on iPhone; keep exact shifts required. |
-| high | Codex | low | no | Refine generated timeline prompt after fresh QA | Customer-side `/app` prompt only unless shared code makes that unsafe. |
+| high | Codex | low | no | Refine generated timeline prompt after fresh QA | Current simplification completed locally in `1d62441`; use one fresh generated plan before another prompt pass. |
 | medium | Codex | low | no | Polish saved plan Today/Next up view after QA | Display-only tweaks based on mobile QA; preserve saved plan data and checklist extraction. |
 | medium | Codex | low | no | Improve quick chips based on tester wording | Chips should fill existing fields only and remain editable. |
 | medium | Codex | low | no | Add compact saved-plan filters or ordering if needed | No schema change; use existing saved plan data. |
 | medium | Codex | low | no | Improve beta feedback prompts | Keep short; capture usefulness, friction, and willingness to use weekly. |
 | medium | Codex | low | no | Refine calendar export after iPhone QA | Preserve `.ics` export, avoid sync/reminders, and do not invent exact times. |
 | medium | Codex | low | no | Improve checklist completed-state clarity | Preserve grouped checklist behavior and copy/export buttons. |
-| medium | Codex | low | no | Reduce remaining copy clutter in `/app` | Keep safety language, but shorten repeated helper text where possible. |
+| medium | Codex | low | no | Fix top friction issue from Emily retest | Wait for updated tester feedback; keep the next pass small and evidence-based. |
 | low | Codex | low | no | Add small mobile QA notes after tester sessions | Documentation-only updates to the mobile QA checklist. |
 
 ## Phase 2 Website Tasks
@@ -157,6 +178,15 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `0c97c3f` | Clean up ShiftPlan app redundant UI | Removes duplicate helper cards/prompts and collapses low-priority guidance. |
+| `0cf0f85` | Add ShiftPlan simple mode labels | Adds Required, Optional, Advanced, and Saved default labels where helpful. |
+| `1d62441` | Simplify ShiftPlan app AI output format | Shorter app-ready customer-side prompt structure. |
+| `74d5f46` | Simplify ShiftPlan plan view | Prioritizes Today, checklist progress, timeline, and grouped actions. |
+| `828c0e2` | Simplify ShiftPlan workout placement | Makes workouts optional with quick/detailed/skip paths. |
+| `29d377b` | Make ShiftPlan generate step obvious | Post-save UI makes Generate the dominant next step. |
+| `64387fb` | Simplify ShiftPlan create flow | Moves quick chips/details lower and clarifies exact schedule example. |
+| `ef2ea55` | Clarify ShiftPlan app home next action | Home uses one clear state-driven primary CTA. |
+| `835b6cd` | Simplify ShiftPlan app copy | Shorter, more direct `/app` copy. |
 | `fa297f1` | Add ShiftPlan Phase 2 exit criteria | Defines private beta exit metrics and Phase 3 triggers. |
 | `fa937b7` | Add ShiftPlan manual QA results template | Structured template for manual QA findings. |
 | `d3bc8c5` | Add ShiftPlan beta known limitations | Tester-facing limitations and issue reporting guidance. |

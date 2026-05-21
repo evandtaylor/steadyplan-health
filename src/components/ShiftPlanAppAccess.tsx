@@ -2087,13 +2087,15 @@ function AppDashboard({
               ) : null}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
-                {isLoadingPreferences
-                  ? "Loading"
-                  : preferences
-                    ? "Defaults saved"
-                    : "Optional"}
-              </span>
+              {isLoadingPreferences ? (
+                <span className="w-fit rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+                  Loading
+                </span>
+              ) : preferences ? (
+                <SimpleModeBadge label="Saved default" />
+              ) : (
+                <SimpleModeBadge label="Optional" />
+              )}
               <button
                 type="button"
                 onClick={() => setIsPreferencesOpen((current) => !current)}
@@ -2432,6 +2434,7 @@ function AppDashboard({
               <Field
                 id="weekSummary"
                 label="Tell ShiftPlan your week"
+                badge="Optional"
                 helpText="Short on time? Type the messy version here."
               >
                 <textarea
@@ -2449,6 +2452,7 @@ function AppDashboard({
                 <Field
                   id="weekStartDate"
                   label="Week start date"
+                  badge="Required"
                   error={errors.week_start_date}
                 >
                   <input
@@ -2510,6 +2514,7 @@ function AppDashboard({
               <Field
                 id="workSchedule"
                 label="This week's work schedule"
+                badge="Required"
                 helpText="Example: Wed 7a-7p, Thu 7a-7p, Fri 7a-7p."
                 error={errors.work_schedule}
               >
@@ -2545,16 +2550,18 @@ function AppDashboard({
               </Field>
 
               <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                  Add details
+                <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                  <span>Add details</span>
+                  <SimpleModeBadge label="Advanced" />
                 </summary>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   Add only what matters this week.
                 </p>
 
                 <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Quick adds
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                    <span>Quick adds</span>
+                    <SimpleModeBadge label="Optional" />
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <QuickSelectButton
@@ -2803,8 +2810,9 @@ function AppDashboard({
               </details>
 
               <details className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-indigo-950">
-                  Add workouts this week
+                <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm font-semibold text-indigo-950">
+                  <span>Add workouts this week</span>
+                  <SimpleModeBadge label="Optional" />
                 </summary>
                 <p className="mt-2 text-sm leading-6 text-indigo-900">
                   Optional. Use this when training belongs in the plan.
@@ -2893,7 +2901,10 @@ function AppDashboard({
 
               <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <legend className="px-1 text-sm font-semibold text-slate-800">
-                  Safety acknowledgment
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span>Safety acknowledgment</span>
+                    <SimpleModeBadge label="Required" />
+                  </span>
                 </legend>
                 <label className="mt-2 flex cursor-pointer gap-3 text-sm leading-6 text-slate-700">
                   <input
@@ -5420,12 +5431,14 @@ function FeedbackSelect({
 function Field({
   id,
   label,
+  badge,
   helpText,
   error,
   children,
 }: {
   id: string;
   label: string;
+  badge?: "Required" | "Optional" | "Advanced" | "Saved default";
   helpText?: string;
   error?: string;
   children: React.ReactNode;
@@ -5434,9 +5447,10 @@ function Field({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-semibold text-slate-800"
+        className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-800"
       >
-        {label}
+        <span>{label}</span>
+        {badge ? <SimpleModeBadge label={badge} /> : null}
       </label>
       {helpText ? (
         <p className="mb-2 text-sm leading-6 text-slate-500">{helpText}</p>
@@ -5452,18 +5466,20 @@ function Field({
 function TextAreaField({
   id,
   label,
+  badge,
   helpText,
   value,
   onChange,
 }: {
   id: string;
   label: string;
+  badge?: "Required" | "Optional" | "Advanced" | "Saved default";
   helpText?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
   return (
-    <Field id={id} label={label} helpText={helpText}>
+    <Field id={id} label={label} badge={badge} helpText={helpText}>
       <textarea
         id={id}
         name={id}
@@ -5472,6 +5488,27 @@ function TextAreaField({
         className="field-control min-h-24"
       />
     </Field>
+  );
+}
+
+function SimpleModeBadge({
+  label,
+}: {
+  label: "Required" | "Optional" | "Advanced" | "Saved default";
+}) {
+  const toneClass = {
+    Required: "border-teal-200 bg-teal-50 text-teal-800",
+    Optional: "border-slate-200 bg-slate-50 text-slate-600",
+    Advanced: "border-indigo-200 bg-indigo-50 text-indigo-800",
+    "Saved default": "border-blue-200 bg-blue-50 text-blue-800",
+  }[label];
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase ${toneClass}`}
+    >
+      {label}
+    </span>
   );
 }
 

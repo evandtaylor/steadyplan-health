@@ -2382,14 +2382,14 @@ function AppDashboard({
               </div>
             ) : null}
 
-            {requestMessage === "Weekly request saved." &&
+            {requestMessage.startsWith("Weekly request saved") &&
             lastSavedRequestId ? (
-              <div className="mt-4 rounded-lg border border-teal-200 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-slate-950">
-                  Request saved. Next: generate your ShiftPlan.
+              <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-4 shadow-sm">
+                <p className="text-base font-semibold text-teal-950">
+                  Request saved. Generate your ShiftPlan now.
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Generate now, or edit the request below.
+                  This uses the request you just saved.
                 </p>
                 <button
                   type="button"
@@ -2399,12 +2399,18 @@ function AppDashboard({
                     !lastSavedRequest ||
                     !canGenerateRequest(lastSavedRequest, usage)
                   }
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+                  className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
                 >
                   {generatingRequestId === lastSavedRequestId
                     ? "Generating..."
                     : "Generate your ShiftPlan"}
                 </button>
+                {lastSavedRequest && !canGenerateRequest(lastSavedRequest, usage) ? (
+                  <p className="mt-3 text-sm leading-6 text-amber-800">
+                    Your generation limit is reached. The saved request is ready
+                    when you can generate again.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

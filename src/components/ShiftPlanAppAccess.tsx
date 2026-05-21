@@ -2444,91 +2444,6 @@ function AppDashboard({
                 />
               </Field>
 
-              <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                  Quick adds
-                </summary>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <QuickSelectButton
-                    label="Use saved commute"
-                    disabled={!preferences?.usual_commute_time}
-                    onClick={() => applyWeeklyHelperChip("commute")}
-                  />
-                  <QuickSelectButton
-                    label="Use saved meal preferences"
-                    disabled={!preferences?.meal_prep_preferences}
-                    onClick={() => applyWeeklyHelperChip("meal-preferences")}
-                  />
-                  <QuickSelectButton
-                    label="Use my training profile"
-                    disabled={!preferences?.workout_training_preferences}
-                    onClick={() => applyWeeklyHelperChip("workout-preferences")}
-                  />
-                  <QuickSelectButton
-                    label="Use this training plan"
-                    disabled={
-                      !hasWorkoutPlanBuilderContent ||
-                      isApplyingWorkoutPlanBuilder
-                    }
-                    onClick={() => void handleApplyWorkoutPlanBuilder(false)}
-                  />
-                  <QuickSelectButton
-                    label="No errands after work"
-                    onClick={() => applyWeeklyHelperChip("no-errands-after-work")}
-                  />
-                  <QuickSelectButton
-                    label="Off-day workouts only"
-                    onClick={() => applyWeeklyHelperChip("off-day-workouts")}
-                  />
-                  <QuickSelectButton
-                    label="Short workday movement only"
-                    onClick={() =>
-                      applyWeeklyHelperChip("short-workday-movement")
-                    }
-                  />
-                  <QuickSelectButton
-                    label="2 strength + 2 cardio"
-                    onClick={() =>
-                      applyWeeklyHelperChip("two-strength-two-cardio")
-                    }
-                  />
-                  <QuickSelectButton
-                    label="Keep workdays light"
-                    onClick={() => applyWeeklyHelperChip("keep-workdays-light")}
-                  />
-                  <QuickSelectButton
-                    label="Keep first off day light"
-                    onClick={() => applyWeeklyHelperChip("light-first-off-day")}
-                  />
-                  <QuickSelectButton
-                    label="No workouts after shifts"
-                    onClick={() =>
-                      applyWeeklyHelperChip("no-workouts-after-shifts")
-                    }
-                  />
-                  <QuickSelectButton
-                    label="Batch errands on an off day"
-                    onClick={() => applyWeeklyHelperChip("batch-errands")}
-                  />
-                  <QuickSelectButton
-                    label="Simple meal prep before work stretch"
-                    onClick={() => applyWeeklyHelperChip("simple-meal-prep")}
-                  />
-                  <QuickSelectButton
-                    label="Short sessions this week"
-                    onClick={() =>
-                      applyWeeklyHelperChip("short-sessions-this-week")
-                    }
-                  />
-                  <QuickSelectButton
-                    label="Prioritize consistency over intensity"
-                    onClick={() =>
-                      applyWeeklyHelperChip("prioritize-consistency")
-                    }
-                  />
-                </div>
-              </details>
-
               <div className="grid gap-5">
                 <Field
                   id="weekStartDate"
@@ -2594,7 +2509,7 @@ function AppDashboard({
               <Field
                 id="workSchedule"
                 label="This week's work schedule"
-                helpText="Example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
+                helpText="Example: Wed 7a-7p, Thu 7a-7p, Fri 7a-7p."
                 error={errors.work_schedule}
               >
                 <details className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -2630,11 +2545,96 @@ function AppDashboard({
 
               <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <summary className="cursor-pointer text-sm font-semibold text-slate-900">
-                  Advanced details
+                  Add details
                 </summary>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   Add only what matters this week.
                 </p>
+
+                <div className="mt-4 rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-sm font-semibold text-slate-900">
+                    Quick adds
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <QuickSelectButton
+                      label="Use saved commute"
+                      disabled={!preferences?.usual_commute_time}
+                      onClick={() => applyWeeklyHelperChip("commute")}
+                    />
+                    <QuickSelectButton
+                      label="Use saved meal preferences"
+                      disabled={!preferences?.meal_prep_preferences}
+                      onClick={() => applyWeeklyHelperChip("meal-preferences")}
+                    />
+                    <QuickSelectButton
+                      label="Use my training profile"
+                      disabled={!preferences?.workout_training_preferences}
+                      onClick={() => applyWeeklyHelperChip("workout-preferences")}
+                    />
+                    <QuickSelectButton
+                      label="Use this training plan"
+                      disabled={
+                        !hasWorkoutPlanBuilderContent ||
+                        isApplyingWorkoutPlanBuilder
+                      }
+                      onClick={() => void handleApplyWorkoutPlanBuilder(false)}
+                    />
+                    <QuickSelectButton
+                      label="No errands after work"
+                      onClick={() => applyWeeklyHelperChip("no-errands-after-work")}
+                    />
+                    <QuickSelectButton
+                      label="Off-day workouts only"
+                      onClick={() => applyWeeklyHelperChip("off-day-workouts")}
+                    />
+                    <QuickSelectButton
+                      label="Short workday movement only"
+                      onClick={() =>
+                        applyWeeklyHelperChip("short-workday-movement")
+                      }
+                    />
+                    <QuickSelectButton
+                      label="2 strength + 2 cardio"
+                      onClick={() =>
+                        applyWeeklyHelperChip("two-strength-two-cardio")
+                      }
+                    />
+                    <QuickSelectButton
+                      label="Keep workdays light"
+                      onClick={() => applyWeeklyHelperChip("keep-workdays-light")}
+                    />
+                    <QuickSelectButton
+                      label="Keep first off day light"
+                      onClick={() => applyWeeklyHelperChip("light-first-off-day")}
+                    />
+                    <QuickSelectButton
+                      label="No workouts after shifts"
+                      onClick={() =>
+                        applyWeeklyHelperChip("no-workouts-after-shifts")
+                      }
+                    />
+                    <QuickSelectButton
+                      label="Batch errands on an off day"
+                      onClick={() => applyWeeklyHelperChip("batch-errands")}
+                    />
+                    <QuickSelectButton
+                      label="Simple meal prep before work stretch"
+                      onClick={() => applyWeeklyHelperChip("simple-meal-prep")}
+                    />
+                    <QuickSelectButton
+                      label="Short sessions this week"
+                      onClick={() =>
+                        applyWeeklyHelperChip("short-sessions-this-week")
+                      }
+                    />
+                    <QuickSelectButton
+                      label="Prioritize consistency over intensity"
+                      onClick={() =>
+                        applyWeeklyHelperChip("prioritize-consistency")
+                      }
+                    />
+                  </div>
+                </div>
 
                 <div className="mt-4 grid gap-5 md:grid-cols-2">
                   <Field

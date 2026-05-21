@@ -592,11 +592,11 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
             Private beta access
           </p>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-5xl">
-            Open your ShiftPlan app workspace.
+            Open ShiftPlan.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            ShiftPlan is in private beta. Use the email and access code you
-            were given to open your weekly planning workspace.
+            Use your beta email and access code to plan this week around your
+            shifts.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -620,9 +620,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
               Have beta access? Log in
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Enter the exact email and access code from your ShiftPlan beta
-              invite. Access codes are private and not the same as a public
-              account.
+              Enter the email and code from your invite.
             </p>
           </div>
 
@@ -679,7 +677,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
               disabled={isSubmitting}
               className="inline-flex w-full items-center justify-center rounded-lg bg-teal-700 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              {isSubmitting ? "Checking access..." : "Open app preview"}
+              {isSubmitting ? "Checking access..." : "Open ShiftPlan"}
             </button>
           </form>
         </div>
@@ -1655,8 +1653,7 @@ function AppDashboard({
                   : "Your week around your shifts"}
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Saved defaults stay reusable. This week&apos;s request is only
-                what changed.
+                Add what changed this week. Keep defaults in Settings.
               </p>
               <p className="mt-3 truncate text-xs font-semibold text-slate-400">
                 Signed in as {email}
@@ -1665,14 +1662,14 @@ function AppDashboard({
             <div className="grid gap-2 sm:min-w-56">
               <div className="rounded-xl border border-teal-300/30 bg-teal-300/10 px-4 py-3">
                 <p className="text-xs font-semibold uppercase text-teal-200">
-                  Plans used this month
+                  Plans this month
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-white">
                   {usage.month_used} / {usage.month_limit}
                 </p>
               </div>
               <p className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-xs leading-5 text-slate-300">
-                Today: {usage.day_used} of {usage.day_limit} generations used.
+                Today: {usage.day_used} / {usage.day_limit} plans used.
               </p>
             </div>
           </div>
@@ -1866,8 +1863,8 @@ function AppDashboard({
               <article className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-sm">
                 <p className="font-semibold">Private beta</p>
                 <p className="mt-1">
-                  Plans may be imperfect. Review dates, times, assumptions, and
-                  fit before using. ShiftPlan is lifestyle/routine planning only.
+                  Plans are drafts. Review dates, times, and fit before using.
+                  Lifestyle/routine planning only.
                 </p>
               </article>
             </div>
@@ -1912,13 +1909,13 @@ function AppDashboard({
             className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
           >
             <h2 className="text-xl font-semibold text-slate-950">
-              Plans used this month
+              Plans this month
             </h2>
             <p className="mt-4 text-4xl font-semibold text-teal-800">
               {usage.month_used} / {usage.month_limit}
             </p>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Plans generated today: {usage.day_used} of {usage.day_limit}
+              Today: {usage.day_used} / {usage.day_limit} plans used
             </p>
             {usage.monthly_limit_reached || usage.daily_limit_reached ? (
               <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
@@ -1969,9 +1966,8 @@ function AppDashboard({
                               {planDateRange}
                             </p>
                             <p className="mt-3 max-w-2xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50">
-                              AI-generated draft. Review dates, shift times,
-                              appointments, assumptions, and fit before using
-                              it.
+                              AI-generated draft. Check dates, shift times, and
+                              fit before using.
                             </p>
                           </div>
                           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
@@ -2033,16 +2029,14 @@ function AppDashboard({
                           </div>
                         </div>
                         <p className="mt-3 text-xs leading-5 text-slate-400">
-                          Downloads an .ics file with all-day ShiftPlan plan
-                          events. Review times before relying on it. No
-                          automatic reminders are added.
+                          Downloads an .ics file. Review before importing. No
+                          reminders are added.
                         </p>
                         <CalendarExportPreview plan={plan} />
                         <GeneratedPlanReviewChecklist />
                         <div className="mt-3 flex flex-col gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-xs font-semibold leading-5 text-amber-50">
-                            After you use this plan, leave feedback below so
-                            ShiftPlan can improve.
+                            After you use this plan, leave feedback below.
                           </p>
                           <button
                             type="button"
@@ -2121,16 +2115,15 @@ function AppDashboard({
                 Saved defaults
               </p>
               <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                What ShiftPlan should remember most weeks
+                Your saved defaults
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Saved preferences are your defaults. This week&apos;s request is
-                only what changed.
+                Keep the details ShiftPlan can reuse most weeks.
               </p>
               {!isLoadingPreferences && !preferences ? (
                 <p className="mt-3 rounded-lg border border-dashed border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
-                  Optional, but useful: add your usual commute, planning style,
-                  meal prep defaults, and recurring responsibilities once.
+                  Optional: add your usual commute, meals, workouts, and repeat
+                  responsibilities once.
                 </p>
               ) : null}
             </div>
@@ -2340,8 +2333,8 @@ function AppDashboard({
                   Training around your shifts
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Optional: save how you like to train, then apply it to a
-                  weekly request when workouts matter.
+                  Optional: save how you train, then use it when workouts matter
+                  this week.
                 </p>
               </div>
               <button
@@ -2404,8 +2397,7 @@ function AppDashboard({
                 Tell ShiftPlan your week
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Start with the short version: what your shifts are and what
-                matters this week.
+                Add your shifts and the few things that changed.
               </p>
               {requestReuseMessage ? (
                 <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-950">
@@ -2413,8 +2405,7 @@ function AppDashboard({
                 </p>
               ) : null}
               <p className="mt-3 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
-                Defaults are optional. Exact shifts are the main thing
-                ShiftPlan needs.
+                Your defaults are already remembered. Exact shifts matter most.
               </p>
             </div>
 
@@ -2434,7 +2425,7 @@ function AppDashboard({
                   Request saved. Next: generate your ShiftPlan.
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  You can generate it now, or edit the saved request below.
+                  Generate now, or edit the request below.
                 </p>
                 <button
                   type="button"
@@ -2476,7 +2467,7 @@ function AppDashboard({
               <Field
                 id="weekSummary"
                 label="Tell ShiftPlan your week"
-                helpText="Short on time? Type a quick summary here, then fill in anything important below."
+                helpText="Short on time? Type the messy version here."
               >
                 <textarea
                   id="weekSummary"
@@ -2678,8 +2669,7 @@ function AppDashboard({
                   Advanced details
                 </summary>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Optional fields help ShiftPlan personalize the week. Defaults
-                  will be used when these are blank.
+                  Add only what matters this week.
                 </p>
 
                 <div className="mt-4 grid gap-5 md:grid-cols-2">
@@ -2852,8 +2842,7 @@ function AppDashboard({
                   Add workouts this week
                 </summary>
                 <p className="mt-2 text-sm leading-6 text-indigo-900">
-                  Optional. Use this if training should be part of this
-                  week&apos;s ShiftPlan.
+                  Optional. Use this when training belongs in the plan.
                 </p>
                 <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
                   <WorkoutPlanBuilderCard
@@ -2920,10 +2909,10 @@ function AppDashboard({
             className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
           >
             <h2 className="text-xl font-semibold text-slate-950">
-              Continue from a previous week
+              Saved requests
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Reuse a saved request when this week is mostly the same.
+              Reuse one when this week is mostly the same.
             </p>
             {isLoadingRequests ? (
               <p className="mt-4 text-sm leading-6 text-slate-600">
@@ -2972,9 +2961,7 @@ function AppDashboard({
                       <div className="mt-4 rounded-lg border border-teal-200 bg-white p-3 text-sm leading-6 text-teal-950">
                         <p className="font-semibold">Generated plan saved.</p>
                         <p>
-                          Review it in Saved plans, then check dates, times,
-                          assumptions, and anything that does not fit your real
-                          life.
+                          Review it in Plan, then check dates, times, and fit.
                         </p>
                       </div>
                     ) : (
@@ -2993,8 +2980,7 @@ function AppDashboard({
                             : "Generate My ShiftPlan"}
                         </button>
                         <p className="text-xs font-semibold uppercase text-slate-500">
-                          AI draft may not be manually reviewed. Check dates,
-                          times, and assumptions.
+                          Draft plan. Check dates and times.
                         </p>
                       </div>
                     )}
@@ -5219,12 +5205,12 @@ function PlanFeedbackForm({
     >
       <div>
         <h4 className="text-base font-semibold text-slate-950">
-          Give feedback on this plan
+          Give feedback
         </h4>
         <p className="mt-1 text-sm leading-6 text-slate-600">
           {plan.feedback
-            ? "Feedback is saved. You can update it after using or reviewing this plan."
-            : "No feedback saved yet. After reviewing the plan, leave quick notes so future versions can improve."}
+            ? "Feedback is saved. You can update it anytime."
+            : "A few notes help tune future plans."}
         </p>
       </div>
 
@@ -5315,7 +5301,7 @@ function PlanFeedbackForm({
             Which future features matter most?
           </p>
           <p className="mt-2 text-sm leading-6 text-teal-900">
-            Tap any that matter. Your picks stay editable in Additional notes.
+            Tap any that matter. You can edit the notes below.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {futureFeatureOptions.map((feature) => {
@@ -5344,7 +5330,7 @@ function PlanFeedbackForm({
             Was the workout placement realistic?
           </p>
           <p className="mt-2 text-sm leading-6 text-blue-900">
-            Tap what fits. Your answer stays editable in Additional notes.
+            Tap what fits. You can edit the notes below.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {workoutFeedbackOptions.map((option) => {

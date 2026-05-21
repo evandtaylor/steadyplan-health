@@ -218,10 +218,7 @@ type WorkoutPlanBuilderState = {
 type AppCommandView =
   | "dashboard"
   | "create"
-  | "workout"
   | "plans"
-  | "checklist"
-  | "feedback"
   | "defaults";
 
 type ChecklistItem = {
@@ -780,10 +777,15 @@ function AppDashboard({
   const latestPlanQuickView = latestSavedPlan
     ? buildSavedPlanQuickView(latestSavedPlan)
     : null;
-  const trainingSummaryItems = buildTrainingProfileSummaryItems(
-    workoutPlanBuilderForm,
-  );
-
+  const latestChecklistItemCount = latestSavedPlan
+    ? parseChecklistGroups(latestSavedPlan.plan_body).reduce(
+        (count, group) => count + group.items.length,
+        0,
+      )
+    : 0;
+  const lastSavedRequest = lastSavedRequestId
+    ? requests.find((request) => request.id === lastSavedRequestId) || null
+    : null;
   function openAppView(view: AppCommandView, targetId?: string) {
     setActiveView(view);
     window.setTimeout(() => {
@@ -1345,6 +1347,23 @@ function AppDashboard({
     event.preventDefault();
     if (isSavingRequest) return;
 
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as
+      | HTMLButtonElement
+      | null;
+    const shouldGenerateAfterSave =
+      submitter?.dataset.intent === "save-generate";
+    const requestScheduleType =
+      form.scheduleType ||
+      preferences?.typical_shift_type ||
+      "Mixed/irregular";
+    const requestPreferredPlanStyle =
+      form.preferredPlanStyle || preferences?.preferred_plan_style || "Simple";
+    const requestMainGoal =
+      form.mainGoal ||
+      (form.weekSummary
+        ? "Build this week's plan from the summary below."
+        : "Build a realistic weekly plan around my submitted shifts.");
+
     setIsSavingRequest(true);
     setRequestMessage("");
     setErrors({});
@@ -1357,11 +1376,11 @@ function AppDashboard({
         },
         body: JSON.stringify({
           week_start_date: form.weekStartDate,
-          schedule_type: form.scheduleType,
+          schedule_type: requestScheduleType,
           work_schedule: form.workSchedule,
           commute_time: form.commuteTime,
           main_goal: buildMainGoalWithWeeklyContext(
-            form.mainGoal,
+            requestMainGoal,
             form.weekSummary,
             weeklyChangeNote,
           ),
@@ -1373,7 +1392,7 @@ function AppDashboard({
             form.familyPersonalResponsibilities,
           top_priorities: form.topPriorities,
           anything_to_avoid: form.anythingToAvoid,
-          preferred_plan_style: form.preferredPlanStyle,
+          preferred_plan_style: requestPreferredPlanStyle,
           safety_acknowledged: form.safetyAcknowledged,
         }),
       });
@@ -1393,8 +1412,19 @@ function AppDashboard({
       setWeeklyChangeNote("");
       setWeeklyDraftMessage("");
       setLastSavedRequestId(result.request.id);
-      setRequestMessage("Weekly request saved.");
       setRequestReuseMessage("");
+      if (shouldGenerateAfterSave) {
+        if (canGenerateRequest(result.request, usage)) {
+          setRequestMessage("Weekly request saved. Generating your ShiftPlan...");
+          void handleGeneratePlan(result.request.id);
+        } else {
+          setRequestMessage(
+            "Weekly request saved. Your current generation limit has been reached.",
+          );
+        }
+      } else {
+        setRequestMessage("Weekly request saved.");
+      }
     } catch {
       setRequestMessage("Could not save weekly request right now.");
     } finally {
@@ -1457,6 +1487,12 @@ function AppDashboard({
         ...current,
         [planRequestId]: "ShiftPlan generated and saved.",
       }));
+      setActiveView("plans");
+      window.setTimeout(() => {
+        document
+          .getElementById("saved-plans")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
     } catch {
       setGenerationMessages((current) => ({
         ...current,
@@ -1534,7 +1570,7 @@ function AppDashboard({
   }
 
   function scrollToPlanFeedback(planId: string) {
-    setActiveView("feedback");
+    setActiveView("plans");
     window.setTimeout(() => {
       document
         .getElementById(buildPlanFeedbackId(planId))
@@ -1557,6 +1593,52 @@ function AppDashboard({
       ),
     );
   }
+
+  const homePrimaryAction = pendingRequest
+    ? {
+        eyebrow: "Ready to generate",
+        title: "Generate your ShiftPlan",
+        body: formatDateRange(
+          pendingRequest.week_start_date,
+          pendingRequest.week_end_date,
+        ),
+        buttonLabel:
+          generatingRequestId === pendingRequest.id
+            ? "Generating..."
+            : "Generate plan",
+        disabled:
+          Boolean(generatingRequestId) || !canGenerateRequest(pendingRequest, usage),
+        onClick: () => void handleGeneratePlan(pendingRequest.id),
+      }
+    : hasWeeklyDraftContent
+      ? {
+          eyebrow: "Draft saved",
+          title: "Continue your draft",
+          body: "Pick up the weekly request saved on this device.",
+          buttonLabel: "Continue draft",
+          disabled: false,
+          onClick: () => openAppView("create", "weekly-request"),
+        }
+      : latestSavedPlan
+        ? {
+            eyebrow: "Plan ready",
+            title: "Open Today / Checklist",
+            body: formatDateRange(
+              latestSavedPlan.week_start_date,
+              latestSavedPlan.week_end_date,
+            ),
+            buttonLabel: "Open plan",
+            disabled: false,
+            onClick: () => openAppView("plans", "saved-plans"),
+          }
+        : {
+            eyebrow: "Start here",
+            title: "Tell ShiftPlan your week",
+            body: "Add your shifts and the few things that matter this week.",
+            buttonLabel: "Start this week",
+            disabled: false,
+            onClick: () => openAppView("create", "weekly-request"),
+          };
 
   return (
     <section className="shiftplan-app-theme shiftplan-dark-form min-h-[70vh] px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -1601,13 +1683,10 @@ function AppDashboard({
           className="sticky top-0 z-10 mt-4 flex gap-2 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/95 p-2 shadow-sm backdrop-blur"
         >
           {[
-            ["dashboard", "Dashboard"],
+            ["dashboard", "Home"],
             ["create", "Create"],
-            ["workout", "Workout"],
-            ["plans", "Plans"],
-            ["checklist", "Checklist"],
-            ["feedback", "Feedback"],
-            ["defaults", "Defaults"],
+            ["plans", "Plan"],
+            ["defaults", "Settings"],
           ].map(([view, label]) => (
             <button
               key={label}
@@ -1628,27 +1707,53 @@ function AppDashboard({
           {activeView === "dashboard" ? (
             <div className="mt-5 grid gap-5">
               <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+                <article className="rounded-2xl border border-teal-300/30 bg-slate-950 p-5 text-white shadow-sm">
+                  <p className="text-sm font-semibold uppercase text-teal-300">
+                    {homePrimaryAction.eyebrow}
+                  </p>
+                  <h2 className="mt-2 text-3xl font-semibold leading-tight">
+                    {homePrimaryAction.title}
+                  </h2>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    {homePrimaryAction.body}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={homePrimaryAction.onClick}
+                    disabled={homePrimaryAction.disabled}
+                    className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-teal-300 px-5 py-3 text-base font-semibold text-slate-950 transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-300 sm:w-fit"
+                  >
+                    {homePrimaryAction.buttonLabel}
+                  </button>
+                  {pendingRequest && !canGenerateRequest(pendingRequest, usage) ? (
+                    <p className="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm leading-6 text-amber-50">
+                      Your current generation limit is reached. You can still
+                      review saved plans and edit requests.
+                    </p>
+                  ) : null}
+                </article>
+
                 <article className="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-white shadow-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold uppercase text-teal-300">
+                      <p className="text-sm font-semibold uppercase text-blue-300">
                         {latestPlanQuickView?.title || "Today / Next Up"}
                       </p>
                       <h2 className="mt-2 text-2xl font-semibold">
                         {latestSavedPlan
                           ? latestSavedPlan.plan_title || "Latest ShiftPlan"
-                          : "Create your first ShiftPlan"}
+                          : "Your plan will appear here"}
                       </h2>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openAppView(latestSavedPlan ? "plans" : "create")
-                      }
-                      className="inline-flex w-full items-center justify-center rounded-xl bg-teal-300 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:w-fit"
-                    >
-                      {latestSavedPlan ? "Open plan" : "Start this week"}
-                    </button>
+                    {latestSavedPlan ? (
+                      <button
+                        type="button"
+                        onClick={() => openAppView("plans", "saved-plans")}
+                        className="inline-flex w-full items-center justify-center rounded-xl border border-blue-300/30 bg-blue-300/10 px-4 py-2 text-sm font-semibold text-blue-50 transition hover:bg-blue-300/20 focus:outline-none focus:ring-2 focus:ring-blue-300 sm:w-fit"
+                      >
+                        Open plan
+                      </button>
+                    ) : null}
                   </div>
                   {latestPlanQuickView ? (
                     <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.06] p-4">
@@ -1659,7 +1764,7 @@ function AppDashboard({
                         <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-200">
                           {latestPlanQuickView.items.slice(0, 4).map((item) => (
                             <li key={item.id} className="flex gap-2">
-                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-300" />
+                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300" />
                               <span>{item.text}</span>
                             </li>
                           ))}
@@ -1677,83 +1782,18 @@ function AppDashboard({
                     </p>
                   )}
                 </article>
-
-                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm font-semibold uppercase text-teal-700">
-                    Primary actions
-                  </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {pendingRequest ? (
-                      <CommandActionCard
-                        title="Generate your ShiftPlan"
-                        body={formatDateRange(
-                          pendingRequest.week_start_date,
-                          pendingRequest.week_end_date,
-                        )}
-                        tone="teal"
-                        onClick={() =>
-                          openAppView(
-                            "create",
-                            `weekly-request-${pendingRequest.id}`,
-                          )
-                        }
-                      />
-                    ) : null}
-                    {hasWeeklyDraftContent ? (
-                      <CommandActionCard
-                        title="Continue draft"
-                        body="Pick up the weekly request saved on this device."
-                        tone="teal"
-                        onClick={() => openAppView("create", "weekly-request")}
-                      />
-                    ) : null}
-                    <CommandActionCard
-                      title="Create this week's ShiftPlan"
-                      body="Add exact shifts and what changed."
-                      tone="teal"
-                      onClick={() => openAppView("create", "weekly-request")}
-                    />
-                    {latestSavedPlan ? (
-                      <CommandActionCard
-                        title="View latest plan"
-                        body={formatDateRange(
-                          latestSavedPlan.week_start_date,
-                          latestSavedPlan.week_end_date,
-                        )}
-                        tone="blue"
-                        onClick={() => openAppView("plans", "saved-plans")}
-                      />
-                    ) : null}
-                    <CommandActionCard
-                      title="Workout Plan Builder"
-                      body="Build training around your shifts, then apply it to this week."
-                      tone="indigo"
-                      onClick={() => openAppView("workout", "workout-builder")}
-                    />
-                    <CommandActionCard
-                      title="Checklist"
-                      body="Open the day-by-day interactive checklist."
-                      tone="blue"
-                      onClick={() => openAppView("checklist")}
-                    />
-                    <CommandActionCard
-                      title="Leave feedback"
-                      body="Tell ShiftPlan what worked and what felt off."
-                      tone="amber"
-                      onClick={() => openAppView("feedback")}
-                    />
-                  </div>
-                </article>
               </section>
 
               <section className="grid gap-4 md:grid-cols-3">
                 <CommandStatusCard
-                  label="Weekly requests"
-                  value={String(requests.length)}
+                  label="Current request"
+                  value={pendingRequest ? "Ready" : requests.length ? "Saved" : "None"}
                   detail={
                     pendingRequest
                       ? "One request is ready to generate."
-                      : "Create or reuse a request when the week changes."
+                      : requests.length
+                        ? "Use a saved request as a starting point."
+                        : "Tell ShiftPlan your week to start."
                   }
                   tone="teal"
                 />
@@ -1771,22 +1811,14 @@ function AppDashboard({
                   tone="blue"
                 />
                 <CommandStatusCard
-                  label="Training"
-                  value={
-                    hasWorkoutPlanBuilderContent ||
-                    preferences?.workout_training_preferences
-                      ? "Ready"
-                      : "Optional"
-                  }
+                  label="Checklist"
+                  value={latestChecklistItemCount ? String(latestChecklistItemCount) : "None"}
                   detail={
-                    trainingSummaryItems.length > 0
-                      ? trainingSummaryItems
-                          .slice(0, 2)
-                          .map((item) => item.value)
-                          .join(" • ")
-                      : "Use the workout tab when training matters this week."
+                    latestChecklistItemCount
+                      ? "Checklist items are ready in Plan."
+                      : "Generate a plan to create checklist items."
                   }
-                  tone="indigo"
+                  tone="blue"
                 />
               </section>
 
@@ -1802,9 +1834,9 @@ function AppDashboard({
                       </h2>
                       <ol className="mt-3 grid gap-2 text-sm leading-6 text-teal-950 sm:grid-cols-3">
                         {[
-                          "Save your defaults",
-                          "Create this week's request",
-                          "Generate and review your plan",
+                          "Tell ShiftPlan your week",
+                          "Generate the plan",
+                          "Follow Today / Checklist",
                         ].map((step, index) => (
                           <li
                             key={step}
@@ -1867,88 +1899,6 @@ function AppDashboard({
               </div>
             </article>
           ) : null}
-
-        <article className="hidden">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase text-teal-700">
-                Private beta
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                Start here
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Use this path the first time you test ShiftPlan.
-              </p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <a
-                  href="#weekly-request"
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                >
-                  Create this week
-                </a>
-                <a
-                  href="#saved-plans"
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                >
-                  Already used ShiftPlan? View saved plans
-                </a>
-              </div>
-            </div>
-            <p className="rounded-lg bg-amber-50 p-3 text-sm leading-6 text-amber-950 lg:max-w-sm">
-              Private beta: plans may be imperfect. Dates and times may need
-              adjustment, app-generated plans may not be manually reviewed, and
-              ShiftPlan is lifestyle/routine planning only.
-            </p>
-          </div>
-          <ol className="mt-4 grid gap-3 text-sm leading-6 text-slate-700 md:grid-cols-3">
-            {[
-              "Save your defaults",
-              "Create this week's request",
-              "Generate and review your plan",
-            ].map((step, index) => (
-              <li key={step} className="flex gap-3 rounded-lg bg-slate-50 p-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-800 text-xs font-semibold text-white">
-                  {index + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </article>
-
-        <article className="hidden">
-          <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-            <div>
-              <p className="text-sm font-semibold uppercase text-teal-200">
-                iPhone quick access
-              </p>
-              <h2 className="mt-2 text-xl font-semibold">
-                Use ShiftPlan like an app.
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Add ShiftPlan to your iPhone Home Screen for quicker access.
-              </p>
-            </div>
-            <ol className="grid gap-3 text-sm leading-6 text-slate-200 sm:grid-cols-3">
-              {["Open in Safari", "Tap Share", "Tap Add to Home Screen"].map(
-                (step, index) => (
-                  <li
-                    key={step}
-                    className="rounded-lg border border-white/10 bg-white/[0.06] p-3"
-                  >
-                    <span className="text-xs font-semibold uppercase text-teal-200">
-                      Step {index + 1}
-                    </span>
-                    <span className="mt-1 block font-semibold text-white">
-                      {step}
-                    </span>
-                  </li>
-                ),
-              )}
-            </ol>
-          </div>
-        </article>
 
         <div
           className={
@@ -2376,7 +2326,7 @@ function AppDashboard({
           ) : null}
         </section>
 
-        {activeView === "workout" ? (
+        {activeView === "defaults" ? (
           <section
             id="workout-builder"
             className="order-2 mt-6 scroll-mt-28 rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6"
@@ -2390,16 +2340,16 @@ function AppDashboard({
                   Training around your shifts
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Build the training details once, then apply them to this
-                  week&apos;s request without refilling the whole form.
+                  Optional: save how you like to train, then apply it to a
+                  weekly request when workouts matter.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => openAppView("create", "workoutTrainingGoals")}
+                onClick={() => openAppView("create", "weekly-request")}
                 className="inline-flex w-full items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-900 transition hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-400 sm:w-fit"
               >
-                Open weekly workout field
+                Open weekly request
               </button>
             </div>
             <WorkoutPlanBuilderCard
@@ -2418,6 +2368,25 @@ function AppDashboard({
           </section>
         ) : null}
 
+        {activeView === "defaults" ? (
+          <section className="order-3 mt-6 grid gap-4 md:grid-cols-2">
+            <article className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950 shadow-sm">
+              <p className="font-semibold">Private beta</p>
+              <p className="mt-2">
+                Plans may be imperfect. Review dates, times, assumptions, and
+                fit before using. ShiftPlan is lifestyle/routine planning only.
+              </p>
+            </article>
+            <article className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-700 shadow-sm">
+              <p className="font-semibold text-slate-950">Use it like an app</p>
+              <p className="mt-2">
+                On iPhone, open ShiftPlan in Safari, tap Share, then tap Add to
+                Home Screen.
+              </p>
+            </article>
+          </section>
+        ) : null}
+
         <div
           id="weekly-request"
           className={
@@ -2432,11 +2401,11 @@ function AppDashboard({
                 This week
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                Create this week&apos;s ShiftPlan
+                Tell ShiftPlan your week
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Add the real schedule and anything different this week. Saved
-                defaults fill in the usual stuff.
+                Start with the short version: what your shifts are and what
+                matters this week.
               </p>
               {requestReuseMessage ? (
                 <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-950">
@@ -2444,8 +2413,8 @@ function AppDashboard({
                 </p>
               ) : null}
               <p className="mt-3 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm leading-6 text-teal-950">
-                Saved preferences are your defaults. This week&apos;s request is
-                only what changed.
+                Defaults are optional. Exact shifts are the main thing
+                ShiftPlan needs.
               </p>
             </div>
 
@@ -2465,14 +2434,22 @@ function AppDashboard({
                   Request saved. Next: generate your ShiftPlan.
                 </p>
                 <p className="mt-1 text-sm leading-6 text-slate-600">
-                  Your saved request is waiting in the recent requests list.
+                  You can generate it now, or edit the saved request below.
                 </p>
-                <a
-                  href={`#weekly-request-${lastSavedRequestId}`}
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
+                <button
+                  type="button"
+                  onClick={() => void handleGeneratePlan(lastSavedRequestId)}
+                  disabled={
+                    Boolean(generatingRequestId) ||
+                    !lastSavedRequest ||
+                    !canGenerateRequest(lastSavedRequest, usage)
+                  }
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
                 >
-                  Find the Generate button
-                </a>
+                  {generatingRequestId === lastSavedRequestId
+                    ? "Generating..."
+                    : "Generate your ShiftPlan"}
+                </button>
               </div>
             ) : null}
 
@@ -2512,10 +2489,10 @@ function AppDashboard({
                 />
               </Field>
 
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-900">
+              <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
                   Quick adds
-                </p>
+                </summary>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <QuickSelectButton
                     label="Use saved commute"
@@ -2595,9 +2572,9 @@ function AppDashboard({
                     }
                   />
                 </div>
-              </div>
+              </details>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-5">
                 <Field
                   id="weekStartDate"
                   label="Week start date"
@@ -2657,29 +2634,6 @@ function AppDashboard({
                   </div>
                 </Field>
 
-                <Field
-                  id="scheduleType"
-                  label="Schedule type"
-                  error={errors.schedule_type}
-                >
-                  <select
-                    id="scheduleType"
-                    name="scheduleType"
-                    value={form.scheduleType}
-                    onChange={(event) =>
-                      updateField("scheduleType", event.target.value)
-                    }
-                    className="field-control"
-                    required
-                  >
-                    <option value="">Choose one</option>
-                    {scheduleTypeOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
               </div>
 
               <Field
@@ -2688,10 +2642,10 @@ function AppDashboard({
                 helpText="Example: Monday 7a-7p, Tuesday 7a-7p, Wednesday 7a-7p."
                 error={errors.work_schedule}
               >
-                <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-sm font-semibold text-slate-900">
+                <details className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-900">
                     Quick-fill a common pattern
-                  </p>
+                  </summary>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Pick a template, then edit the exact days and times below.
                   </p>
@@ -2706,7 +2660,7 @@ function AppDashboard({
                       />
                     ))}
                   </div>
-                </div>
+                </details>
                 <textarea
                   id="workSchedule"
                   name="workSchedule"
@@ -2719,7 +2673,64 @@ function AppDashboard({
                 />
               </Field>
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <details className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                  Advanced details
+                </summary>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Optional fields help ShiftPlan personalize the week. Defaults
+                  will be used when these are blank.
+                </p>
+
+                <div className="mt-4 grid gap-5 md:grid-cols-2">
+                  <Field
+                    id="scheduleType"
+                    label="Schedule type"
+                    error={errors.schedule_type}
+                  >
+                    <select
+                      id="scheduleType"
+                      name="scheduleType"
+                      value={form.scheduleType}
+                      onChange={(event) =>
+                        updateField("scheduleType", event.target.value)
+                      }
+                      className="field-control"
+                    >
+                      <option value="">Use saved/default</option>
+                      {scheduleTypeOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field
+                    id="preferredPlanStyle"
+                    label="Preferred plan style"
+                    error={errors.preferred_plan_style}
+                  >
+                    <select
+                      id="preferredPlanStyle"
+                      name="preferredPlanStyle"
+                      value={form.preferredPlanStyle}
+                      onChange={(event) =>
+                        updateField("preferredPlanStyle", event.target.value)
+                      }
+                      className="field-control"
+                    >
+                      <option value="">Use saved/default</option>
+                      {planStyleOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <Field
                   id="commuteTime"
                   label="Commute this week"
@@ -2736,29 +2747,6 @@ function AppDashboard({
                   />
                 </Field>
 
-                <Field
-                  id="preferredPlanStyle"
-                  label="Preferred plan style"
-                  error={errors.preferred_plan_style}
-                >
-                  <select
-                    id="preferredPlanStyle"
-                    name="preferredPlanStyle"
-                    value={form.preferredPlanStyle}
-                    onChange={(event) =>
-                      updateField("preferredPlanStyle", event.target.value)
-                    }
-                    className="field-control"
-                    required
-                  >
-                    <option value="">Choose one</option>
-                    {planStyleOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
               </div>
 
               <Field
@@ -2774,7 +2762,6 @@ function AppDashboard({
                     updateField("mainGoal", event.target.value)
                   }
                   className="field-control min-h-24"
-                  required
                 />
               </Field>
 
@@ -2858,6 +2845,32 @@ function AppDashboard({
                   className="field-control min-h-24"
                 />
               </Field>
+              </details>
+
+              <details className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                <summary className="cursor-pointer text-sm font-semibold text-indigo-950">
+                  Add workouts this week
+                </summary>
+                <p className="mt-2 text-sm leading-6 text-indigo-900">
+                  Optional. Use this if training should be part of this
+                  week&apos;s ShiftPlan.
+                </p>
+                <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
+                  <WorkoutPlanBuilderCard
+                    form={workoutPlanBuilderForm}
+                    message={workoutPlanBuilderMessage}
+                    isApplying={isApplyingWorkoutPlanBuilder}
+                    hasSummary={hasWorkoutPlanBuilderContent}
+                    onFieldChange={updateWorkoutPlanBuilderField}
+                    onToggleOption={toggleWorkoutPlanBuilderOption}
+                    onApply={() =>
+                      void handleApplyWorkoutPlanBuilder(
+                        workoutPlanBuilderForm.saveAsDefault,
+                      )
+                    }
+                  />
+                </div>
+              </details>
 
               <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <legend className="px-1 text-sm font-semibold text-slate-800">
@@ -2885,17 +2898,18 @@ function AppDashboard({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button
                   type="submit"
+                  data-intent="save-generate"
                   disabled={isSavingRequest}
                   className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-base font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
                 >
-                  {isSavingRequest ? "Saving..." : "Save This Week's Request"}
+                  {isSavingRequest ? "Saving..." : "Save and generate"}
                 </button>
                 <button
-                  type="button"
-                  disabled
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-slate-100 px-5 py-3 text-base font-semibold text-slate-500 sm:w-fit"
+                  type="submit"
+                  disabled={isSavingRequest}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
                 >
-                  Generate from saved request
+                  {isSavingRequest ? "Saving..." : "Save request only"}
                 </button>
               </div>
             </form>
@@ -2997,102 +3011,6 @@ function AppDashboard({
         </div>
         </div>
 
-        {activeView === "checklist" ? (
-          <section className="order-4 mt-6 rounded-2xl border border-blue-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold uppercase text-blue-700">
-                  Checklist
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                  Day-by-day action list
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Use the latest saved plan&apos;s interactive checklist without
-                  digging through the full timeline.
-                </p>
-              </div>
-              {latestSavedPlan ? (
-                <button
-                  type="button"
-                  onClick={() => openAppView("plans", "saved-plans")}
-                  className="inline-flex w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-fit"
-                >
-                  Open full plan
-                </button>
-              ) : null}
-            </div>
-            {latestSavedPlan ? (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="font-semibold text-slate-950">
-                  {latestSavedPlan.plan_title || "Latest ShiftPlan"}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  {formatDateRange(
-                    latestSavedPlan.week_start_date,
-                    latestSavedPlan.week_end_date,
-                  )}
-                </p>
-                <InteractiveChecklist
-                  planId={latestSavedPlan.id}
-                  planBody={latestSavedPlan.plan_body}
-                />
-              </div>
-            ) : (
-              <GuidanceCard
-                title="No checklist yet"
-                body="Generate a ShiftPlan first. Its checklist will show here by day."
-              />
-            )}
-          </section>
-        ) : null}
-
-        {activeView === "feedback" ? (
-          <section className="order-4 mt-6 rounded-2xl border border-amber-200 bg-white p-5 shadow-sm sm:p-6">
-            <div>
-              <p className="text-sm font-semibold uppercase text-amber-700">
-                Feedback
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold text-slate-950">
-                Help tune ShiftPlan
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Tell ShiftPlan what felt realistic, what missed, and whether
-                workout placement made sense.
-              </p>
-            </div>
-            {savedPlans.length === 0 ? (
-              <GuidanceCard
-                title="No generated plans to review yet"
-                body="Generate a ShiftPlan first, then come back here to leave feedback."
-              />
-            ) : (
-              <div className="mt-5 grid gap-4">
-                {savedPlans.map((plan) => (
-                  <article
-                    key={plan.id}
-                    id={buildPlanFeedbackId(plan.id)}
-                    className="scroll-mt-28 rounded-xl border border-amber-100 bg-amber-50/60 p-4"
-                  >
-                    <p className="text-sm font-semibold text-amber-950">
-                      {plan.plan_title || "Generated weekly plan"}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-amber-800">
-                      {formatDateRange(plan.week_start_date, plan.week_end_date)}
-                    </p>
-                    <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                      <PlanFeedbackForm
-                        plan={plan}
-                        onFeedbackSaved={handleFeedbackSaved}
-                      />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        ) : null}
-
         <aside className="order-6 mt-6 rounded-lg border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700">
           <p className="font-semibold text-blue-950">Safety note</p>
           <p className="mt-2">{safetyCopy}</p>
@@ -3109,37 +3027,6 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="font-semibold text-slate-900">{title}</p>
       <p className="mt-2">{body}</p>
     </div>
-  );
-}
-
-function CommandActionCard({
-  title,
-  body,
-  tone,
-  onClick,
-}: {
-  title: string;
-  body: string;
-  tone: "teal" | "blue" | "indigo" | "amber";
-  onClick: () => void;
-}) {
-  const toneClass = {
-    teal: "border-teal-200 bg-teal-50 text-teal-950 hover:bg-teal-100",
-    blue: "border-blue-200 bg-blue-50 text-blue-950 hover:bg-blue-100",
-    indigo:
-      "border-indigo-200 bg-indigo-50 text-indigo-950 hover:bg-indigo-100",
-    amber: "border-amber-200 bg-amber-50 text-amber-950 hover:bg-amber-100",
-  }[tone];
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-teal-500 ${toneClass}`}
-    >
-      <span className="block text-sm font-semibold">{title}</span>
-      <span className="mt-1 block text-xs leading-5 opacity-80">{body}</span>
-    </button>
   );
 }
 

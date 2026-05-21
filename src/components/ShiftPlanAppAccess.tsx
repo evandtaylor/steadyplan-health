@@ -718,6 +718,9 @@ function AppDashboard({
     useState("");
   const [isApplyingWorkoutPlanBuilder, setIsApplyingWorkoutPlanBuilder] =
     useState(false);
+  const [createWorkoutMode, setCreateWorkoutMode] = useState<
+    "idle" | "quick" | "detailed" | "skipped"
+  >("idle");
   const [preferencesErrors, setPreferencesErrors] = useState<
     Record<string, string>
   >({});
@@ -2814,21 +2817,86 @@ function AppDashboard({
                 <p className="mt-2 text-sm leading-6 text-indigo-900">
                   Optional. Use this when training belongs in the plan.
                 </p>
-                <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
-                  <WorkoutPlanBuilderCard
-                    form={workoutPlanBuilderForm}
-                    message={workoutPlanBuilderMessage}
-                    isApplying={isApplyingWorkoutPlanBuilder}
-                    hasSummary={hasWorkoutPlanBuilderContent}
-                    onFieldChange={updateWorkoutPlanBuilderField}
-                    onToggleOption={toggleWorkoutPlanBuilderOption}
-                    onApply={() =>
-                      void handleApplyWorkoutPlanBuilder(
-                        workoutPlanBuilderForm.saveAsDefault,
-                      )
-                    }
-                  />
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  {[
+                    ["quick", "Quick workout plan"],
+                    ["detailed", "Detailed workout builder"],
+                    ["skipped", "Skip"],
+                  ].map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() =>
+                        setCreateWorkoutMode(
+                          mode as "quick" | "detailed" | "skipped",
+                        )
+                      }
+                      className={`rounded-lg border px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        createWorkoutMode === mode
+                          ? "border-indigo-600 bg-indigo-700 text-white"
+                          : "border-indigo-200 bg-white text-indigo-950 hover:bg-indigo-100"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
+
+                {createWorkoutMode === "quick" ? (
+                  <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
+                    <p className="text-sm font-semibold text-indigo-950">
+                      Quick workout plan
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <QuickSelectButton
+                        label="2 strength + 2 cardio"
+                        onClick={() =>
+                          applyWeeklyHelperChip("two-strength-two-cardio")
+                        }
+                      />
+                      <QuickSelectButton
+                        label="Off-day workouts only"
+                        onClick={() => applyWeeklyHelperChip("off-day-workouts")}
+                      />
+                      <QuickSelectButton
+                        label="Short sessions this week"
+                        onClick={() =>
+                          applyWeeklyHelperChip("short-sessions-this-week")
+                        }
+                      />
+                      <QuickSelectButton
+                        label="No workouts after shifts"
+                        onClick={() =>
+                          applyWeeklyHelperChip("no-workouts-after-shifts")
+                        }
+                      />
+                    </div>
+                  </div>
+                ) : null}
+
+                {createWorkoutMode === "detailed" ? (
+                  <div className="mt-4 rounded-lg border border-indigo-100 bg-white p-4">
+                    <WorkoutPlanBuilderCard
+                      form={workoutPlanBuilderForm}
+                      message={workoutPlanBuilderMessage}
+                      isApplying={isApplyingWorkoutPlanBuilder}
+                      hasSummary={hasWorkoutPlanBuilderContent}
+                      onFieldChange={updateWorkoutPlanBuilderField}
+                      onToggleOption={toggleWorkoutPlanBuilderOption}
+                      onApply={() =>
+                        void handleApplyWorkoutPlanBuilder(
+                          workoutPlanBuilderForm.saveAsDefault,
+                        )
+                      }
+                    />
+                  </div>
+                ) : null}
+
+                {createWorkoutMode === "skipped" ? (
+                  <p className="mt-4 rounded-lg border border-indigo-100 bg-white p-3 text-sm leading-6 text-indigo-950">
+                    Skipped for this week. You can add workouts later if needed.
+                  </p>
+                ) : null}
               </details>
 
               <fieldset className="rounded-lg border border-slate-200 bg-slate-50 p-4">

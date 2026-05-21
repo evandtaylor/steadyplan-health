@@ -2,6 +2,19 @@
 
 Phase 3 planning document for long-range schedule capture and weekly ShiftPlan generation.
 
+Founder decisions recorded on May 21, 2026:
+
+- Master Schedule should eventually become a top-level Schedule tab.
+- In the first private beta pass, introduce it as a simple Schedule section/view before it becomes the main input layer.
+- Schedule events should use soft archive and restore, not hard delete.
+- Admin visibility should be read-only at first.
+- Private beta Master Schedule can use the current `app_users` and access-code system.
+- Public Master Schedule should wait for real auth/Supabase Auth.
+- Google Calendar sync and Apple Calendar sync are out of scope for v0.
+- Complex recurrence is out of scope for v0.
+- Master Schedule v0 should support add event, edit event, archive/restore event, upcoming events list, week filter, and generate weekly ShiftPlan from events.
+- No runtime code or SQL should be implemented from this spec until a separate implementation task is approved.
+
 ## 1. Product Concept
 
 ShiftPlan Master Schedule is a future planning layer that lets a user enter known commitments weeks or months ahead, then generate a weekly ShiftPlan from those saved schedule events instead of rebuilding the same context every week.
@@ -20,6 +33,8 @@ The Master Schedule should become the source of truth for dated obligations:
 - Other known commitments.
 
 The weekly ShiftPlan remains the main output. The Master Schedule does not replace the weekly plan. It gives the weekly plan better inputs.
+
+Founder direction: Master Schedule should eventually become a top-level Schedule tab and the primary long-range input layer for recurring ShiftPlan use. The initial private beta should introduce it more gently as a simple Schedule section/view so the product can validate event entry and weekly generation from events before reorganizing the whole app around it.
 
 ## 2. Why This Matters
 
@@ -133,12 +148,14 @@ Validation notes:
 
 MVP scope for first implementation:
 
-- Add a Master Schedule area inside the existing private beta `/app`.
-- Let beta users add, edit, and archive/delete manual schedule events.
+- Add a Master Schedule area inside the existing private beta `/app` as a simple Schedule section/view.
+- Let beta users add, edit, archive, and restore manual schedule events.
 - Support the ten event categories listed above.
 - Support date, optional start/end time, all-day, notes, and source.
-- Show a simple upcoming-events list and a selected-week view.
-- Let the weekly request flow pull schedule events for the selected week.
+- Show a simple upcoming-events list.
+- Add a week filter so users can review events for the week they want to generate.
+- Let the weekly request/generation flow pull schedule events for the selected week.
+- Generate a weekly ShiftPlan from reviewed Master Schedule events.
 - Keep exact work shifts required before generation.
 - Preserve manual review before AI generation.
 - Save generated plans using the existing `app_saved_plans` flow.
@@ -146,12 +163,23 @@ MVP scope for first implementation:
 - Keep `.ics` export as download only.
 - Keep existing access-code app session model until a separate auth phase.
 
+Explicit v0 capabilities:
+
+- Add event.
+- Edit event.
+- Archive event.
+- Restore archived event.
+- Upcoming events list.
+- Week filter.
+- Generate weekly ShiftPlan from events.
+
 ## 9. What Not To Build Yet
 
 Do not build these in the Master Schedule MVP:
 
 - Supabase Auth.
 - Public account creation.
+- Public Master Schedule before real auth/Supabase Auth.
 - Stripe changes, paid/free tiers, subscription gating, or billing portal.
 - Changes to paid/manual/admin fulfillment.
 - Google Calendar sync.
@@ -159,7 +187,7 @@ Do not build these in the Master Schedule MVP:
 - Calendar import.
 - Native iOS app.
 - Push notifications or reminders.
-- Recurring event engine.
+- Recurring event engine or complex recurrence.
 - Drag-and-drop calendar UI.
 - Multi-user family/team calendars.
 - Shared schedules.
@@ -200,17 +228,21 @@ Recommended checks and indexes:
 - Add index on `(app_user_id, archived_at, event_date)` if using soft archive.
 - Consider a check that `end_time > start_time` when both are present and `all_day = false`.
 
-MVP should use soft archive or delete consistently. Soft archive is safer for beta because it reduces accidental data loss during product learning.
+Founder decision: v0 should use soft archive and restore rather than hard delete. Soft archive is safer for beta because it reduces accidental data loss during product learning and gives support a recovery path if a tester archives the wrong event.
 
 ## 11. RLS And Security Considerations
 
 The current app uses private beta access-code sessions and server-side Supabase REST calls with service role credentials. That means:
 
+- Private beta Master Schedule can use the current `app_users` and access-code system.
+- Public Master Schedule should wait for real auth/Supabase Auth.
 - Supabase service role keys must remain server-side only.
 - Client code must never receive service role credentials.
 - API routes must verify the existing `/app` access session before reading or writing schedule events.
 - Every schedule event query must filter by the current `app_user_id`.
-- Admin routes should not gain access to Master Schedule events unless a founder-facing need is explicitly defined.
+- Admin visibility should be read-only at first.
+- Admin routes should not create, edit, archive, or restore user schedule events in v0.
+- Admin routes should not expose detailed Master Schedule events unless a founder-facing support or QA need is explicitly defined.
 - RLS should be enabled on the future table even if MVP access is through service-role API routes.
 - Grants should stay narrow, matching existing app tables: service role can select/insert/update, while public anon access should not read events directly.
 
@@ -259,7 +291,7 @@ The simplified Command Center should stay simple. Recommended navigation:
 - Plan: keep saved weekly plans, Today/Next Up, checklist, calendar export, and feedback.
 - Settings: keep saved preferences and workout defaults.
 
-Avoid making Schedule the first screen until repeat use proves it is more important than weekly generation. For Phase 3 MVP, Home should still answer "what do I do next?"
+Founder decision: Schedule should eventually become a top-level tab. In the first private beta implementation, it can be introduced as a simple Schedule section/view before it becomes the main input layer. Avoid making Schedule the first screen until repeat use proves it is more important than weekly generation. For Phase 3 MVP, Home should still answer "what do I do next?"
 
 ## 14. How This Affects Saved Preferences And Workout Builder
 
@@ -352,7 +384,7 @@ Risk controls:
 
 - Start with simple manual single events.
 - Keep review-before-generation.
-- Keep recurrence, sync, reminders, and import parked.
+- Keep complex recurrence, calendar sync, reminders, and import parked.
 - Keep prompt formatting structured and limited to the selected week.
 - Add privacy helper copy near notes fields.
 
@@ -360,24 +392,25 @@ Risk controls:
 
 Phase 3A - Spec and design:
 
-- Finalize founder decisions.
-- Confirm navigation placement.
+- Founder decisions recorded in this spec.
+- Treat Schedule as an eventual top-level tab, introduced first as a simple Schedule section/view.
 - Confirm event category labels.
-- Confirm whether events should soft-archive or hard-delete.
-- Confirm whether admin can see schedule events.
+- Use soft archive and restore instead of hard delete.
+- Keep admin visibility read-only at first.
 
 Phase 3B - Data model:
 
 - Add `app_schedule_events` migration only after approval.
 - Add server helpers or API routes for event list/create/update/archive.
-- Keep access-code session verification.
+- Use the current `app_users` and access-code session model for private beta.
+- Wait for Supabase Auth before public Master Schedule.
 - Keep service role server-side.
 
 Phase 3C - Basic Master Schedule UI:
 
-- Add Schedule view inside `/app`.
-- Add event form and upcoming-events list.
-- Add selected-week event preview.
+- Add simple Schedule section/view inside `/app`.
+- Add event form, edit flow, archive/restore actions, and upcoming-events list.
+- Add selected-week filter and event preview.
 - Keep the UI compact and mobile-first.
 
 Phase 3D - Weekly request integration:
@@ -386,6 +419,7 @@ Phase 3D - Weekly request integration:
 - Keep the weekly request review step.
 - Add prompt section for "Master Schedule events for this week."
 - Save generated plans through the current generation path.
+- Keep Google/Apple Calendar sync and complex recurrence out of v0.
 
 Phase 3E - QA and beta learning:
 
@@ -434,15 +468,17 @@ Constraints:
 - Preserve paid/manual fulfillment and Stripe.
 - Do not add Supabase Auth.
 - Do not add public account creation.
-- Do not add calendar sync, reminders, push notifications, native iOS, or recurrence.
+- Do not add calendar sync, reminders, push notifications, native iOS, or complex recurrence.
 - Keep service role server-side only.
 - Keep exact work shifts required for generation.
 - Keep generation review-before-submit.
+- Use soft archive and restore instead of hard delete.
+- Keep admin visibility read-only if schedule events are exposed in admin at all.
 
 Build:
 1. Add an approved Supabase migration for app_schedule_events.
-2. Add private-beta app API routes for list/create/update/archive schedule events, scoped to the current app_user_id.
-3. Add a compact Schedule view inside /app for manual event entry and upcoming events.
+2. Add private-beta app API routes for list/create/update/archive/restore schedule events, scoped to the current app_user_id.
+3. Add a compact Schedule section/view inside /app for manual event entry, editing, archive/restore, upcoming events, and week filtering.
 4. Add selected-week event loading to the weekly request flow without removing manual fields.
 5. Update generation prompt to include Master Schedule events for the selected week.
 6. Keep checklist and calendar export behavior unchanged.
@@ -456,10 +492,20 @@ Report files changed, runtime behavior, SQL added, lint/build result, and manual
 
 ## 20. Manual Questions For Founder Before Implementation
 
-- Should the Master Schedule MVP be shown as a separate `/app` tab called Schedule, or nested inside Create?
-- Should users be able to edit/delete events immediately, or should MVP support add-only plus archive?
-- Should deleted events be soft-archived for beta recovery?
-- Should founder/admin ever see user schedule events, or should they stay user-only unless support access is explicitly added?
+Answered founder decisions:
+
+- Master Schedule should eventually become a top-level Schedule tab.
+- Initial private beta can introduce Master Schedule as a simple Schedule section/view before it becomes the main input layer.
+- Users should be able to add, edit, archive, and restore events in v0.
+- Events should be soft-archived for beta recovery instead of hard-deleted.
+- Admin visibility should be read-only at first.
+- Private beta can use the current `app_users` and access-code system.
+- Public Master Schedule should wait for real auth/Supabase Auth.
+- Google/Apple Calendar sync should not be built in v0.
+- Complex recurrence should not be built in v0.
+
+Remaining questions:
+
 - Should work shifts created in weekly requests be copied back into Master Schedule, or should copying be manual only at first?
 - Should the app require a title for every event, or auto-title events by category?
 - Should date-only assignment deadlines appear at the start of the day, end of day, or simply as all-day due dates?
@@ -468,6 +514,4 @@ Report files changed, runtime behavior, SQL added, lint/build result, and manual
 - What is the minimum event-entry UI that would feel fast enough on iPhone?
 - What beta user should test this first: Emily, another nurse, a student/clinical user, or founder-only?
 - What privacy copy should appear near appointment and notes fields?
-- Should Master Schedule be part of Phase 3 before auth, or should it wait until real accounts exist?
 - What success signal proves this is worth building beyond the MVP?
-

@@ -1594,8 +1594,9 @@ function AppDashboard({
 
   const homePrimaryAction = pendingRequest
     ? {
-        eyebrow: "Ready to generate",
-        title: "Generate your ShiftPlan",
+        kind: "generate",
+        eyebrow: "Next step",
+        title: "Your request is saved. Generate your plan next.",
         body: formatDateRange(
           pendingRequest.week_start_date,
           pendingRequest.week_end_date,
@@ -1610,17 +1611,19 @@ function AppDashboard({
       }
     : hasWeeklyDraftContent
       ? {
+          kind: "draft",
           eyebrow: "Draft saved",
           title: "Continue your draft",
-          body: "Pick up the weekly request saved on this device.",
+          body: "Your changes are saved on this device.",
           buttonLabel: "Continue draft",
           disabled: false,
           onClick: () => openAppView("create", "weekly-request"),
         }
       : latestSavedPlan
         ? {
+            kind: "plan",
             eyebrow: "Plan ready",
-            title: "Open Today / Checklist",
+            title: "Your plan is ready. Start with Today / Checklist.",
             body: formatDateRange(
               latestSavedPlan.week_start_date,
               latestSavedPlan.week_end_date,
@@ -1630,9 +1633,10 @@ function AppDashboard({
             onClick: () => openAppView("plans", "saved-plans"),
           }
         : {
+            kind: "start",
             eyebrow: "Start here",
-            title: "Tell ShiftPlan your week",
-            body: "Add your shifts and the few things that matter this week.",
+            title: "No plan yet. Tell ShiftPlan your week.",
+            body: "Add your shifts and what changed.",
             buttonLabel: "Start this week",
             disabled: false,
             onClick: () => openAppView("create", "weekly-request"),
@@ -1722,6 +1726,35 @@ function AppDashboard({
                   >
                     {homePrimaryAction.buttonLabel}
                   </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {latestSavedPlan && homePrimaryAction.kind !== "plan" ? (
+                      <button
+                        type="button"
+                        onClick={() => openAppView("plans", "saved-plans")}
+                        className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-teal-400"
+                      >
+                        Open plan
+                      </button>
+                    ) : null}
+                    {latestChecklistItemCount > 0 && homePrimaryAction.kind !== "plan" ? (
+                      <button
+                        type="button"
+                        onClick={() => openAppView("plans", "saved-plans")}
+                        className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-teal-400"
+                      >
+                        Checklist
+                      </button>
+                    ) : null}
+                    {requests.length > 0 && homePrimaryAction.kind !== "draft" ? (
+                      <button
+                        type="button"
+                        onClick={() => openAppView("create", "weekly-request")}
+                        className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-teal-400"
+                      >
+                        Edit week
+                      </button>
+                    ) : null}
+                  </div>
                   {pendingRequest && !canGenerateRequest(pendingRequest, usage) ? (
                     <p className="mt-3 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm leading-6 text-amber-50">
                       Your current generation limit is reached. You can still
@@ -1781,92 +1814,23 @@ function AppDashboard({
                 </article>
               </section>
 
-              <section className="grid gap-4 md:grid-cols-3">
-                <CommandStatusCard
-                  label="Current request"
-                  value={pendingRequest ? "Ready" : requests.length ? "Saved" : "None"}
-                  detail={
-                    pendingRequest
-                      ? "One request is ready to generate."
-                      : requests.length
-                        ? "Use a saved request as a starting point."
-                        : "Tell ShiftPlan your week to start."
-                  }
-                  tone="teal"
-                />
-                <CommandStatusCard
-                  label="Saved plans"
-                  value={String(savedPlans.length)}
-                  detail={
-                    latestSavedPlan
-                      ? formatDateRange(
-                          latestSavedPlan.week_start_date,
-                          latestSavedPlan.week_end_date,
-                        )
-                      : "No saved plans yet."
-                  }
-                  tone="blue"
-                />
-                <CommandStatusCard
-                  label="Checklist"
-                  value={latestChecklistItemCount ? String(latestChecklistItemCount) : "None"}
-                  detail={
-                    latestChecklistItemCount
-                      ? "Checklist items are ready in Plan."
-                      : "Generate a plan to create checklist items."
-                  }
-                  tone="blue"
-                />
-              </section>
-
-              {shouldShowFirstRunPath ? (
-                <article className="rounded-2xl border border-teal-200 bg-teal-50 p-4 shadow-sm sm:p-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold uppercase text-teal-800">
-                        First time here?
-                      </p>
-                      <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                        Start with one real week.
-                      </h2>
-                      <ol className="mt-3 grid gap-2 text-sm leading-6 text-teal-950 sm:grid-cols-3">
-                        {[
-                          "Tell ShiftPlan your week",
-                          "Generate the plan",
-                          "Follow Today / Checklist",
-                        ].map((step, index) => (
-                          <li
-                            key={step}
-                            className="rounded-xl border border-teal-200 bg-white p-3"
-                          >
-                            <span className="text-xs font-semibold uppercase text-teal-700">
-                              Step {index + 1}
-                            </span>
-                            <span className="mt-1 block font-semibold">
-                              {step}
-                            </span>
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openAppView("create", "weekly-request")}
-                      className="inline-flex w-full items-center justify-center rounded-xl bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                    >
-                      Start with this week
-                    </button>
-                  </div>
-                </article>
-              ) : null}
-
-              <article className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-sm">
-                <p className="font-semibold">Private beta</p>
-                <p className="mt-1">
-                  Plans are drafts. Review dates, times, and fit before using.
-                  Lifestyle/routine planning only.
+              <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-300 shadow-sm">
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  Current week
                 </p>
-              </article>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/[0.06] px-3 py-1">
+                    Request:{" "}
+                    {pendingRequest ? "ready to generate" : requests.length ? "saved" : "not started"}
+                  </span>
+                  <span className="rounded-full bg-white/[0.06] px-3 py-1">
+                    Plans: {savedPlans.length}
+                  </span>
+                  <span className="rounded-full bg-white/[0.06] px-3 py-1">
+                    Checklist: {latestChecklistItemCount || "none"}
+                  </span>
+                </div>
+              </section>
             </div>
           ) : null}
 
@@ -3013,32 +2977,6 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
       <p className="font-semibold text-slate-900">{title}</p>
       <p className="mt-2">{body}</p>
     </div>
-  );
-}
-
-function CommandStatusCard({
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  tone: "teal" | "blue" | "indigo";
-}) {
-  const toneClass = {
-    teal: "border-teal-200 bg-teal-50 text-teal-950",
-    blue: "border-blue-200 bg-blue-50 text-blue-950",
-    indigo: "border-indigo-200 bg-indigo-50 text-indigo-950",
-  }[tone];
-
-  return (
-    <article className={`rounded-2xl border p-4 shadow-sm ${toneClass}`}>
-      <p className="text-xs font-semibold uppercase opacity-75">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
-      <p className="mt-2 text-sm leading-6 opacity-80">{detail}</p>
-    </article>
   );
 }
 

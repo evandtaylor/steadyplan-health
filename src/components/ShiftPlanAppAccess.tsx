@@ -1867,31 +1867,10 @@ function AppDashboard({
         <div
           className={
             activeView === "plans"
-              ? "order-4 mt-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]"
+              ? "order-4 mt-6"
               : "hidden"
           }
         >
-          <article
-            id="saved-plans"
-            className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <h2 className="text-xl font-semibold text-slate-950">
-              Plans this month
-            </h2>
-            <p className="mt-4 text-4xl font-semibold text-teal-800">
-              {usage.month_used} / {usage.month_limit}
-            </p>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
-              Today: {usage.day_used} / {usage.day_limit} plans used
-            </p>
-            {usage.monthly_limit_reached || usage.daily_limit_reached ? (
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-                You&apos;ve used your included AI ShiftPlans for this period.
-                You can still view and copy saved plans.
-              </p>
-            ) : null}
-          </article>
-
           <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">
               Saved plans
@@ -1907,8 +1886,12 @@ function AppDashboard({
                   const planRequest = requests.find(
                     (request) => request.id === plan.plan_request_id,
                   );
-                  const hasInteractiveChecklist =
-                    parseChecklistGroups(plan.plan_body).length > 0;
+                  const checklistGroups = parseChecklistGroups(plan.plan_body);
+                  const checklistItemCount = checklistGroups.reduce(
+                    (count, group) => count + group.items.length,
+                    0,
+                  );
+                  const hasInteractiveChecklist = checklistItemCount > 0;
                   const planTitle = plan.plan_title || "Generated weekly plan";
                   const planDateRange = formatDateRange(
                     plan.week_start_date,
@@ -1921,102 +1904,47 @@ function AppDashboard({
                       className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
                     >
                       <div className="border-b border-slate-800 bg-slate-950 p-4 text-white sm:p-5">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
-                              Saved ShiftPlan
-                            </p>
-                            <h3 className="mt-2 text-xl font-semibold leading-7 text-white">
-                              {planTitle}
-                            </h3>
-                            <p className="mt-1 text-sm font-semibold text-slate-300">
-                              {planDateRange}
-                            </p>
-                            <p className="mt-3 max-w-2xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50">
-                              AI-generated draft. Check dates, shift times, and
-                              fit before using.
-                            </p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-                            <button
-                              type="button"
-                              onClick={() => void handleCopyWeekSummary(plan)}
-                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                            >
-                              {copiedSummaryPlanId === plan.id
-                                ? "Copied"
-                                : "Copy Summary"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleCopyPlan(plan)}
-                              className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300/70 bg-teal-300/15 px-3 py-2 text-sm font-semibold text-teal-50 transition hover:bg-teal-300/25 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                            >
-                              {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleCopyChecklist(plan)}
-                              disabled={!hasInteractiveChecklist}
-                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 disabled:cursor-not-allowed disabled:border-slate-700 disabled:bg-slate-900 disabled:text-slate-500 sm:w-fit"
-                            >
-                              {copiedChecklistPlanId === plan.id
-                                ? "Copied"
-                                : "Copy Checklist"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleDownloadCalendar(plan, planRequest)
-                              }
-                              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                            >
-                              {calendarDownloadFailedPlanId === plan.id
-                                ? "Download failed"
-                                : downloadedCalendarPlanId === plan.id
-                                  ? "Downloaded"
-                                  : "Download Calendar"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => scrollToPlanFeedback(plan.id)}
-                              className="col-span-2 inline-flex w-full items-center justify-center rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-50 transition hover:bg-amber-300/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                            >
-                              Was this plan useful?
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handlePlanNextWeekFromPlan(planRequest)
-                              }
-                              className="col-span-2 inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:border-teal-300 hover:bg-teal-300/15 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                            >
-                              Plan next week from this
-                            </button>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-xs leading-5 text-slate-400">
-                          Downloads an .ics file. Review before importing. No
-                          reminders are added.
+                        <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">
+                          Saved ShiftPlan
                         </p>
-                        <CalendarExportPreview plan={plan} />
-                        <GeneratedPlanReviewChecklist />
-                        <div className="mt-3 flex flex-col gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="text-xs font-semibold leading-5 text-amber-50">
-                            After you use this plan, leave feedback below.
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => scrollToPlanFeedback(plan.id)}
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-amber-300/50 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-50 transition hover:bg-amber-300/20 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-950 sm:w-fit"
-                          >
-                            Jump to feedback
-                          </button>
-                        </div>
+                        <h3 className="mt-2 text-xl font-semibold leading-7 text-white">
+                          {planTitle}
+                        </h3>
+                        <p className="mt-1 text-sm font-semibold text-slate-300">
+                          {planDateRange}
+                        </p>
+                        <p className="mt-3 max-w-2xl rounded-lg border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs leading-5 text-amber-50">
+                          AI-generated draft. Check dates, shift times, and fit
+                          before using.
+                        </p>
                       </div>
 
                     <div className="grid gap-4 p-4 sm:p-5">
                       <SavedPlanQuickView plan={plan} />
+
+                      <section className="rounded-xl border border-teal-100 bg-teal-50 p-4">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-teal-950">
+                              Checklist progress
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-teal-900">
+                              {hasInteractiveChecklist
+                                ? `${checklistItemCount} checklist items are ready below.`
+                                : "No checklist items found yet."}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => scrollToPlanFeedback(plan.id)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-500 sm:w-fit"
+                          >
+                            Leave feedback
+                          </button>
+                        </div>
+                      </section>
+
+                      <GeneratedPlanReviewChecklist />
 
                       <section aria-label="Plan content">
                         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -2048,6 +1976,70 @@ function AppDashboard({
                           planBody={plan.plan_body}
                         />
                       </section>
+
+                      <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <summary className="cursor-pointer text-sm font-semibold text-slate-900">
+                          Actions
+                        </summary>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyWeekSummary(plan)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            {copiedSummaryPlanId === plan.id
+                              ? "Copied"
+                              : "Copy Summary"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyPlan(plan)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-teal-300 bg-white px-3 py-2 text-sm font-semibold text-teal-900 transition hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            {copiedPlanId === plan.id ? "Copied" : "Copy Plan"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleCopyChecklist(plan)}
+                            disabled={!hasInteractiveChecklist}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                          >
+                            {copiedChecklistPlanId === plan.id
+                              ? "Copied"
+                              : "Copy Checklist"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadCalendar(plan, planRequest)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            {calendarDownloadFailedPlanId === plan.id
+                              ? "Download failed"
+                              : downloadedCalendarPlanId === plan.id
+                                ? "Downloaded"
+                                : "Download Calendar"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePlanNextWeekFromPlan(planRequest)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            Plan next week from this
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => scrollToPlanFeedback(plan.id)}
+                            className="inline-flex w-full items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          >
+                            Jump to feedback
+                          </button>
+                        </div>
+                        <p className="mt-4 text-xs leading-5 text-slate-500">
+                          Calendar downloads an .ics file. Review before
+                          importing. No reminders are added.
+                        </p>
+                        <CalendarExportPreview plan={plan} />
+                      </details>
 
                       <section
                         id={buildPlanFeedbackId(plan.id)}

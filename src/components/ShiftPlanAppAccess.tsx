@@ -773,8 +773,6 @@ function AppDashboard({
     [workoutPlanBuilderForm],
   );
   const hasWorkoutPlanBuilderContent = Boolean(workoutPlanBuilderSummary);
-  const shouldShowFirstRunPath =
-    !isLoadingRequests && requests.length === 0 && savedPlans.length === 0;
   const latestPlanQuickView = latestSavedPlan
     ? buildSavedPlanQuickView(latestSavedPlan)
     : null;
@@ -1838,32 +1836,6 @@ function AppDashboard({
           ) : null}
 
         <div className={activeView === "dashboard" ? "hidden" : "flex flex-col"}>
-          {activeView === "create" && shouldShowFirstRunPath ? (
-            <article className="order-0 mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 shadow-sm sm:p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase text-teal-800">
-                    First time here?
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-slate-950">
-                    Start with one real week.
-                  </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-teal-950">
-                    Create a weekly request first. Saved defaults can help
-                    later, but your exact shifts are the main thing ShiftPlan
-                    needs.
-                  </p>
-                </div>
-                <a
-                  href="#weekly-request"
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 sm:w-fit"
-                >
-                  Start with this week
-                </a>
-              </div>
-            </article>
-          ) : null}
-
         <div
           className={
             activeView === "plans"
@@ -1878,7 +1850,7 @@ function AppDashboard({
             {savedPlans.length === 0 ? (
               <GuidanceCard
                 title="No saved plans yet"
-                body="Create your first weekly request, then generate a ShiftPlan. Saved plans will appear here so you can review, copy, reuse, and leave feedback."
+                body="Tell ShiftPlan your week, then generate your first plan."
               />
             ) : (
               <div className="mt-4 grid gap-4">
@@ -2025,13 +1997,6 @@ function AppDashboard({
                             className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:border-teal-300 hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-500"
                           >
                             Plan next week from this
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => scrollToPlanFeedback(plan.id)}
-                            className="inline-flex w-full items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                          >
-                            Jump to feedback
                           </button>
                         </div>
                         <p className="mt-4 text-xs leading-5 text-slate-500">
@@ -2331,13 +2296,15 @@ function AppDashboard({
                 fit before using. ShiftPlan is lifestyle/routine planning only.
               </p>
             </article>
-            <article className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-700 shadow-sm">
-              <p className="font-semibold text-slate-950">Use it like an app</p>
-              <p className="mt-2">
+            <details className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-6 text-slate-700 shadow-sm">
+              <summary className="cursor-pointer font-semibold text-slate-950">
+                Use it like an app
+              </summary>
+              <p className="mt-3">
                 On iPhone, open ShiftPlan in Safari, tap Share, then tap Add to
                 Home Screen.
               </p>
-            </article>
+            </details>
           </section>
         ) : null}
 
@@ -2962,7 +2929,7 @@ function AppDashboard({
             ) : requests.length === 0 ? (
               <GuidanceCard
                 title="No weekly requests yet"
-                body="Create your first weekly request with exact shift days and anything different this week. Saved defaults can fill in the usual details later."
+                body="Saved requests will appear here."
               />
             ) : (
               <div className="mt-4 grid gap-3">

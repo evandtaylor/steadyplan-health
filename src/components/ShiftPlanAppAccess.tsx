@@ -127,6 +127,31 @@ type PreferencesResponse = {
   errors?: Record<string, string>;
 };
 
+type AppScheduleEvent = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  title: string;
+  category: string;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  all_day: boolean;
+  notes: string;
+  source: string;
+  is_archived: boolean;
+  archived_at: string | null;
+  archived_reason: string | null;
+};
+
+type ScheduleEventsResponse = {
+  message?: string;
+  event?: AppScheduleEvent;
+  events?: AppScheduleEvent[];
+  errors?: Record<string, string>;
+};
+
 type AppUsageSummary = {
   month_used: number;
   month_limit: number;
@@ -183,6 +208,17 @@ type PreferencesFormState = {
   thingsToAvoidAfterWork: string;
   defaultWeekStartDay: string;
   planningNotes: string;
+};
+
+type ScheduleEventFormState = {
+  id: string;
+  title: string;
+  category: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  notes: string;
 };
 
 type WorkoutPlanBuilderState = {
@@ -273,6 +309,17 @@ const initialPreferencesForm: PreferencesFormState = {
   planningNotes: "",
 };
 
+const initialScheduleEventForm: ScheduleEventFormState = {
+  id: "",
+  title: "",
+  category: "Work shift",
+  eventDate: "",
+  startTime: "",
+  endTime: "",
+  allDay: false,
+  notes: "",
+};
+
 const initialWorkoutPlanBuilderForm: WorkoutPlanBuilderState = {
   mainGoal: "",
   otherGoal: "",
@@ -330,6 +377,19 @@ const weekStartDayOptions = [
   "Friday",
   "Saturday",
   "Sunday",
+];
+
+const scheduleEventCategoryOptions = [
+  "Work shift",
+  "Clinical",
+  "Class/school",
+  "Assignment/deadline",
+  "Appointment",
+  "Errand",
+  "Workout/training",
+  "Family/personal",
+  "Travel",
+  "Other",
 ];
 
 const workoutGoalOptions = [
@@ -728,6 +788,20 @@ function AppDashboard({
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
+  const [scheduleEvents, setScheduleEvents] = useState<AppScheduleEvent[]>([]);
+  const [scheduleEventForm, setScheduleEventForm] =
+    useState<ScheduleEventFormState>(initialScheduleEventForm);
+  const [scheduleEventErrors, setScheduleEventErrors] = useState<
+    Record<string, string>
+  >({});
+  const [scheduleEventMessage, setScheduleEventMessage] = useState("");
+  const [isLoadingScheduleEvents, setIsLoadingScheduleEvents] = useState(false);
+  const [isSavingScheduleEvent, setIsSavingScheduleEvent] = useState(false);
+  const [scheduleWeekFilterStart, setScheduleWeekFilterStart] = useState(() =>
+    getLocalIsoDate(),
+  );
+  const [showArchivedScheduleEvents, setShowArchivedScheduleEvents] =
+    useState(false);
   const [activeView, setActiveView] = useState<AppCommandView>("dashboard");
   const [generatingRequestId, setGeneratingRequestId] = useState("");
   const [generationMessages, setGenerationMessages] = useState<
@@ -847,14 +921,42 @@ function AppDashboard({
     }
   }, []);
 
+  const loadScheduleEvents = useCallback(async () => {
+    setIsLoadingScheduleEvents(true);
+
+    try {
+      const response = await fetch(
+        "/api/app/schedule-events?include_archived=true",
+        {
+          method: "GET",
+        },
+      );
+      const result = (await response.json()) as ScheduleEventsResponse;
+
+      if (!response.ok) {
+        setScheduleEventMessage(
+          result.message || "Could not load schedule events right now.",
+        );
+        return;
+      }
+
+      setScheduleEvents(sortScheduleEvents(result.events || []));
+    } catch {
+      setScheduleEventMessage("Could not load schedule events right now.");
+    } finally {
+      setIsLoadingScheduleEvents(false);
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadRequests();
       void loadPreferences();
+      void loadScheduleEvents();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [loadPreferences, loadRequests]);
+  }, [loadPreferences, loadRequests, loadScheduleEvents]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1034,6 +1136,129 @@ function AppDashboard({
     setPreferencesForm((current) => ({ ...current, [field]: value }));
     setPreferencesErrors((current) => ({ ...current, [field]: "" }));
     setPreferencesMessage("");
+  }
+
+  function updateScheduleEventField(
+    field: keyof ScheduleEventFormState,
+    value: string | boolean,
+  ) {
+    setScheduleEventForm((current) => ({ ...current, [field]: value }));
+    setScheduleEventErrors((current) => ({ ...current, [field]: "" }));
+    setScheduleEventMessage("");
+  }
+
+  function resetScheduleEventForm() {
+    setScheduleEventForm(initialScheduleEventForm);
+    setScheduleEventErrors({});
+  }
+
+  function editScheduleEvent(event: AppScheduleEvent) {
+    setScheduleEventForm(createScheduleEventForm(event));
+    setScheduleEventErrors({});
+    setScheduleEventMessage("Editing this schedule event.");
+    window.setTimeout(() => {
+      document
+        .getElementById("master-schedule-form")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  async function handleScheduleEventSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsSavingScheduleEvent(true);
+    setScheduleEventMessage("");
+
+    try {
+      const isEditing = Boolean(scheduleEventForm.id);
+      const response = await fetch("/api/app/schedule-events", {
+        method: isEditing ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: scheduleEventForm.id,
+          title: scheduleEventForm.title,
+          category: scheduleEventForm.category,
+          event_date: scheduleEventForm.eventDate,
+          start_time: scheduleEventForm.startTime,
+          end_time: scheduleEventForm.endTime,
+          all_day: scheduleEventForm.allDay,
+          notes: scheduleEventForm.notes,
+          source: "manual",
+        }),
+      });
+      const result = (await response.json()) as ScheduleEventsResponse;
+
+      if (!response.ok || !result.event) {
+        setScheduleEventErrors(result.errors || {});
+        setScheduleEventMessage(
+          result.message || "Could not save schedule event right now.",
+        );
+        return;
+      }
+
+      setScheduleEvents((currentEvents) =>
+        sortScheduleEvents([
+          result.event as AppScheduleEvent,
+          ...currentEvents.filter((item) => item.id !== result.event?.id),
+        ]),
+      );
+      resetScheduleEventForm();
+      setScheduleEventMessage(
+        isEditing ? "Schedule event updated." : "Schedule event added.",
+      );
+    } catch {
+      setScheduleEventMessage("Could not save schedule event right now.");
+    } finally {
+      setIsSavingScheduleEvent(false);
+    }
+  }
+
+  async function handleScheduleEventArchive(
+    eventId: string,
+    action: "archive" | "restore",
+  ) {
+    setScheduleEventMessage("");
+
+    try {
+      const response = await fetch("/api/app/schedule-events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: eventId,
+          action,
+          archived_reason:
+            action === "archive" ? "Archived by app user" : undefined,
+        }),
+      });
+      const result = (await response.json()) as ScheduleEventsResponse;
+
+      if (!response.ok || !result.event) {
+        setScheduleEventMessage(
+          result.message || "Could not update schedule event right now.",
+        );
+        return;
+      }
+
+      setScheduleEvents((currentEvents) =>
+        sortScheduleEvents(
+          currentEvents.map((item) =>
+            item.id === result.event?.id
+              ? (result.event as AppScheduleEvent)
+              : item,
+          ),
+        ),
+      );
+      setScheduleEventMessage(
+        action === "archive"
+          ? "Schedule event archived."
+          : "Schedule event restored.",
+      );
+    } catch {
+      setScheduleEventMessage("Could not update schedule event right now.");
+    }
   }
 
   function updateWorkoutPlanBuilderField(
@@ -2024,6 +2249,31 @@ function AppDashboard({
             )}
           </article>
         </div>
+
+        {activeView === "defaults" ? (
+          <MasterSchedulePanel
+            events={scheduleEvents}
+            form={scheduleEventForm}
+            errors={scheduleEventErrors}
+            message={scheduleEventMessage}
+            isLoading={isLoadingScheduleEvents}
+            isSaving={isSavingScheduleEvent}
+            weekFilterStart={scheduleWeekFilterStart}
+            showArchived={showArchivedScheduleEvents}
+            onWeekFilterChange={setScheduleWeekFilterStart}
+            onShowArchivedChange={setShowArchivedScheduleEvents}
+            onFieldChange={updateScheduleEventField}
+            onSubmit={handleScheduleEventSubmit}
+            onCancelEdit={resetScheduleEventForm}
+            onEditEvent={editScheduleEvent}
+            onArchiveEvent={(eventId) =>
+              void handleScheduleEventArchive(eventId, "archive")
+            }
+            onRestoreEvent={(eventId) =>
+              void handleScheduleEventArchive(eventId, "restore")
+            }
+          />
+        ) : null}
 
         <section
           id="app-preferences"
@@ -3020,6 +3270,419 @@ function GuidanceCard({ title, body }: { title: string; body: string }) {
     <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-sm leading-6 text-slate-600">
       <p className="font-semibold text-slate-900">{title}</p>
       <p className="mt-2">{body}</p>
+    </div>
+  );
+}
+
+function MasterSchedulePanel({
+  events,
+  form,
+  errors,
+  message,
+  isLoading,
+  isSaving,
+  weekFilterStart,
+  showArchived,
+  onWeekFilterChange,
+  onShowArchivedChange,
+  onFieldChange,
+  onSubmit,
+  onCancelEdit,
+  onEditEvent,
+  onArchiveEvent,
+  onRestoreEvent,
+}: {
+  events: AppScheduleEvent[];
+  form: ScheduleEventFormState;
+  errors: Record<string, string>;
+  message: string;
+  isLoading: boolean;
+  isSaving: boolean;
+  weekFilterStart: string;
+  showArchived: boolean;
+  onWeekFilterChange: (value: string) => void;
+  onShowArchivedChange: (value: boolean) => void;
+  onFieldChange: (
+    field: keyof ScheduleEventFormState,
+    value: string | boolean,
+  ) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onCancelEdit: () => void;
+  onEditEvent: (event: AppScheduleEvent) => void;
+  onArchiveEvent: (eventId: string) => void;
+  onRestoreEvent: (eventId: string) => void;
+}) {
+  const activeEvents = useMemo(
+    () => sortScheduleEvents(events.filter((event) => !event.is_archived)),
+    [events],
+  );
+  const archivedEvents = useMemo(
+    () => sortScheduleEvents(events.filter((event) => event.is_archived)),
+    [events],
+  );
+  const today = getLocalIsoDate();
+  const weekEndDate = calculateEndDate(weekFilterStart);
+  const upcomingEvents = activeEvents
+    .filter((event) => event.event_date >= today)
+    .slice(0, 8);
+  const weekEvents =
+    weekFilterStart && weekEndDate
+      ? activeEvents.filter((event) =>
+          isScheduleEventInRange(event, weekFilterStart, weekEndDate),
+        )
+      : [];
+  const eventsToDisplay = showArchived
+    ? sortScheduleEvents([...activeEvents, ...archivedEvents])
+    : upcomingEvents;
+
+  return (
+    <section
+      id="master-schedule"
+      className="order-1 mt-6 scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase text-teal-700">
+            Known schedule
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+            Master Schedule
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            Add work, clinicals, class, appointments, deadlines, and other
+            known commitments.
+          </p>
+        </div>
+        <span className="w-fit rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold uppercase text-teal-800">
+          Private beta
+        </span>
+      </div>
+
+      {message ? (
+        <p
+          className="mt-5 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-950"
+          role="status"
+        >
+          {message}
+        </p>
+      ) : null}
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_1fr] xl:items-start">
+        <form
+          id="master-schedule-form"
+          className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+          onSubmit={onSubmit}
+          noValidate
+        >
+          <div>
+            <p className="text-sm font-semibold uppercase text-slate-600">
+              {form.id ? "Edit event" : "Add event"}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Use this for fixed commitments ShiftPlan should plan around.
+            </p>
+          </div>
+
+          <Field
+            id="scheduleEventTitle"
+            label="Title"
+            badge="Required"
+            error={errors.title}
+          >
+            <input
+              id="scheduleEventTitle"
+              value={form.title}
+              onChange={(event) => onFieldChange("title", event.target.value)}
+              className="field-control"
+              required
+            />
+          </Field>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field
+              id="scheduleEventCategory"
+              label="Category"
+              badge="Required"
+              error={errors.category}
+            >
+              <select
+                id="scheduleEventCategory"
+                value={form.category}
+                onChange={(event) =>
+                  onFieldChange("category", event.target.value)
+                }
+                className="field-control"
+              >
+                {scheduleEventCategoryOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field
+              id="scheduleEventDate"
+              label="Date"
+              badge="Required"
+              error={errors.event_date}
+            >
+              <input
+                id="scheduleEventDate"
+                type="date"
+                min="2024-01-01"
+                max="2100-12-31"
+                value={form.eventDate}
+                onChange={(event) =>
+                  onFieldChange("eventDate", event.target.value)
+                }
+                className="field-control"
+                required
+              />
+            </Field>
+          </div>
+
+          <label className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.allDay}
+              onChange={(event) =>
+                onFieldChange("allDay", event.target.checked)
+              }
+              className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+            />
+            All day
+          </label>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field id="scheduleEventStartTime" label="Start time">
+              <input
+                id="scheduleEventStartTime"
+                type="time"
+                value={form.startTime}
+                onChange={(event) =>
+                  onFieldChange("startTime", event.target.value)
+                }
+                className="field-control"
+                disabled={form.allDay}
+              />
+            </Field>
+            <Field id="scheduleEventEndTime" label="End time">
+              <input
+                id="scheduleEventEndTime"
+                type="time"
+                value={form.endTime}
+                onChange={(event) =>
+                  onFieldChange("endTime", event.target.value)
+                }
+                className="field-control"
+                disabled={form.allDay}
+              />
+            </Field>
+          </div>
+
+          <TextAreaField
+            id="scheduleEventNotes"
+            label="Notes"
+            badge="Optional"
+            helpText="Keep this practical. Do not add medical, emergency, or sensitive workplace details."
+            value={form.notes}
+            onChange={(value) => onFieldChange("notes", value)}
+          />
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-teal-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-fit"
+            >
+              {isSaving
+                ? "Saving..."
+                : form.id
+                  ? "Update event"
+                  : "Add event"}
+            </button>
+            {form.id ? (
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 sm:w-fit"
+              >
+                Cancel edit
+              </button>
+            ) : null}
+          </div>
+        </form>
+
+        <div className="grid gap-4">
+          <section className="rounded-xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-950">
+                  Upcoming events
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  The next fixed commitments ShiftPlan can use later.
+                </p>
+              </div>
+              <label className="flex w-fit items-center gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={(event) =>
+                    onShowArchivedChange(event.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+                />
+                Show archived
+              </label>
+            </div>
+            {isLoading ? (
+              <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+                Loading schedule events.
+              </p>
+            ) : (
+              <ScheduleEventList
+                events={eventsToDisplay}
+                emptyMessage="No upcoming schedule events yet."
+                onEditEvent={onEditEvent}
+                onArchiveEvent={onArchiveEvent}
+                onRestoreEvent={onRestoreEvent}
+              />
+            )}
+          </section>
+
+          <section className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <Field id="scheduleWeekFilter" label="Week filter">
+                <input
+                  id="scheduleWeekFilter"
+                  type="date"
+                  min="2024-01-01"
+                  max="2100-12-31"
+                  value={weekFilterStart}
+                  onChange={(event) => onWeekFilterChange(event.target.value)}
+                  className="field-control"
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <QuickSelectButton
+                  label="This week"
+                  onClick={() => onWeekFilterChange(getLocalIsoDate())}
+                />
+                <QuickSelectButton
+                  label="Next week"
+                  onClick={() =>
+                    onWeekFilterChange(addDaysToIsoDate(getLocalIsoDate(), 7))
+                  }
+                />
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-blue-950">
+              {weekFilterStart && weekEndDate
+                ? `${formatReadableDate(weekFilterStart)} - ${formatReadableDate(weekEndDate)}`
+                : "Choose a week to filter known commitments."}
+            </p>
+            <ScheduleEventList
+              events={weekEvents}
+              emptyMessage="No active events in this week filter."
+              onEditEvent={onEditEvent}
+              onArchiveEvent={onArchiveEvent}
+              onRestoreEvent={onRestoreEvent}
+            />
+          </section>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScheduleEventList({
+  events,
+  emptyMessage,
+  onEditEvent,
+  onArchiveEvent,
+  onRestoreEvent,
+}: {
+  events: AppScheduleEvent[];
+  emptyMessage: string;
+  onEditEvent: (event: AppScheduleEvent) => void;
+  onArchiveEvent: (eventId: string) => void;
+  onRestoreEvent: (eventId: string) => void;
+}) {
+  if (events.length === 0) {
+    return (
+      <p className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+        {emptyMessage}
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4 grid gap-3">
+      {events.map((event) => (
+        <article
+          key={event.id}
+          className={`rounded-lg border p-3 ${
+            event.is_archived
+              ? "border-slate-200 bg-slate-100 text-slate-600"
+              : "border-slate-200 bg-white"
+          }`}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-semibold text-slate-950">{event.title}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {formatReadableDate(event.event_date)} /{" "}
+                {formatScheduleEventTiming(event)}
+              </p>
+              {event.notes ? (
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {event.notes}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="w-fit rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
+                {event.category}
+              </span>
+              {event.is_archived ? (
+                <span className="w-fit rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">
+                  Archived
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            {!event.is_archived ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onEditEvent(event)}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 sm:w-fit"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onArchiveEvent(event.id)}
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-950 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 sm:w-fit"
+                >
+                  Archive
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onRestoreEvent(event.id)}
+                className="inline-flex w-full items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-950 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:w-fit"
+              >
+                Restore
+              </button>
+            )}
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
@@ -5572,4 +6235,51 @@ function createPreferencesForm(
     defaultWeekStartDay: preferences.default_week_start_day,
     planningNotes: preferences.planning_notes,
   };
+}
+
+function createScheduleEventForm(event: AppScheduleEvent): ScheduleEventFormState {
+  return {
+    id: event.id,
+    title: event.title,
+    category: event.category,
+    eventDate: event.event_date,
+    startTime: event.start_time || "",
+    endTime: event.end_time || "",
+    allDay: event.all_day,
+    notes: event.notes,
+  };
+}
+
+function sortScheduleEvents(events: AppScheduleEvent[]) {
+  return [...events].sort((firstEvent, secondEvent) => {
+    const dateComparison = firstEvent.event_date.localeCompare(
+      secondEvent.event_date,
+    );
+    if (dateComparison !== 0) return dateComparison;
+
+    const firstTime = firstEvent.start_time || "";
+    const secondTime = secondEvent.start_time || "";
+    const timeComparison = firstTime.localeCompare(secondTime);
+    if (timeComparison !== 0) return timeComparison;
+
+    return firstEvent.created_at.localeCompare(secondEvent.created_at);
+  });
+}
+
+function isScheduleEventInRange(
+  event: AppScheduleEvent,
+  startDate: string,
+  endDate: string,
+) {
+  return event.event_date >= startDate && event.event_date <= endDate;
+}
+
+function formatScheduleEventTiming(event: AppScheduleEvent) {
+  if (event.all_day) return "All day";
+  if (event.start_time && event.end_time) {
+    return `${event.start_time} - ${event.end_time}`;
+  }
+  if (event.start_time) return event.start_time;
+  if (event.end_time) return `Ends ${event.end_time}`;
+  return "Time not set";
 }

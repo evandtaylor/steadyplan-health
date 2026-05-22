@@ -263,6 +263,7 @@ type WorkoutPlanBuilderState = {
 
 type AppCommandView =
   | "dashboard"
+  | "schedule"
   | "create"
   | "plans"
   | "defaults";
@@ -2006,6 +2007,7 @@ function AppDashboard({
         >
           {[
             ["dashboard", "Home"],
+            ["schedule", "Schedule"],
             ["create", "Create"],
             ["plans", "Plan"],
             ["defaults", "Settings"],
@@ -2345,7 +2347,7 @@ function AppDashboard({
           </article>
         </div>
 
-        {activeView === "defaults" ? (
+        {activeView === "schedule" ? (
           <MasterSchedulePanel
             events={scheduleEvents}
             form={scheduleEventForm}
@@ -2375,6 +2377,32 @@ function AppDashboard({
               void handleScheduleEventArchive(eventId, "restore")
             }
           />
+        ) : null}
+
+        {activeView === "defaults" ? (
+          <section className="order-1 mt-6 rounded-2xl border border-teal-200 bg-teal-50 p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase text-teal-700">
+                  Known schedule
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                  Master Schedule moved to Schedule
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-teal-950">
+                  Add known shifts, clinicals, classes, appointments, deadlines,
+                  and other commitments from the Schedule tab.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openAppView("schedule", "master-schedule")}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-950 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:w-fit"
+              >
+                Open Schedule
+              </button>
+            </div>
+          </section>
         ) : null}
 
         <section

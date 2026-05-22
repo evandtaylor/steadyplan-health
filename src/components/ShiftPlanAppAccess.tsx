@@ -4367,6 +4367,7 @@ function MasterSchedulePanel({
                 ? `${formatReadableDate(weekFilterStart)} - ${formatReadableDate(weekEndDate)}`
                 : "Choose a week to filter known commitments."}
             </p>
+            <ScheduleEventHints events={weekEvents} />
             <ScheduleEventList
               events={weekEvents}
               emptyMessage="No active events in this week filter."
@@ -4378,6 +4379,30 @@ function MasterSchedulePanel({
         </div>
       </div>
     </section>
+  );
+}
+
+function ScheduleEventHints({ events }: { events: AppScheduleEvent[] }) {
+  const hints = buildScheduleEventHints(events);
+
+  if (hints.length === 0) return null;
+
+  return (
+    <div className="mt-4 grid gap-2">
+      {hints.map((hint) => (
+        <div
+          key={hint.date}
+          className="rounded-lg border border-amber-200 bg-white p-3 text-sm leading-6 text-amber-950"
+        >
+          <p className="font-semibold">{formatCompactReadableDate(hint.date)}</p>
+          <ul className="mt-1 grid gap-1">
+            {hint.messages.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -7083,6 +7108,47 @@ function buildScheduleEventsSummary(
         )} | ${event.category} | ${event.title}`,
     ),
   ].join("\n");
+}
+
+function buildScheduleEventHints(events: AppScheduleEvent[]) {
+  const groupedEvents = sortScheduleEvents(events).reduce<
+    Record<string, AppScheduleEvent[]>
+  >((groups, event) => {
+    groups[event.event_date] = [...(groups[event.event_date] || []), event];
+    return groups;
+  }, {});
+
+  return Object.entries(groupedEvents)
+    .map(([date, dayEvents]) => {
+      const messages: string[] = [];
+      const hasWorkOrClinical = dayEvents.some(
+        (event) =>
+          event.category === "Work shift" || event.category === "Clinical",
+      );
+      const hasMissingTime = dayEvents.some(
+        (event) =>
+          !event.all_day && !event.start_time && !event.end_time,
+      );
+
+      if (dayEvents.length >= 3) {
+        messages.push(
+          "Packed day: this day has several commitments. Review before generating.",
+        );
+      }
+
+      if (hasWorkOrClinical && dayEvents.length > 1) {
+        messages.push(
+          "Long day: work or clinical appears with another commitment.",
+        );
+      }
+
+      if (hasMissingTime) {
+        messages.push("No time set: add times if this event is fixed.");
+      }
+
+      return { date, messages };
+    })
+    .filter((hint) => hint.messages.length > 0);
 }
 
 function getScheduleBulkPatternDefaults(pattern: ScheduleBulkPattern) {

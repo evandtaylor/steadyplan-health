@@ -6,11 +6,12 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | low | no | Create `agent-mode-test` app access and run one fresh simplified `/app` QA pass | Test Home/Create/Plan/Settings, primary Generate flow, simplified Create flow, Advanced details, workout optional flow, saved plan timeline, checklist, calendar preview/export, feedback, and AI output without creating excessive junk data. |
+| high | manual | high | yes | Apply `supabase/shiftplan_app_schedule_events.sql` before deploying Master Schedule runtime code | Runtime `/api/app/schedule-events` and the `/app` Master Schedule UI expect `public.app_schedule_events` to exist. Do not deploy/push this batch to production until the SQL migration is run. |
+| high | manual | medium | yes | QA Master Schedule v0 locally/staging after SQL is applied | Test add/edit/archive/restore, upcoming events, week filter, quick adds, schedule notes, and weekly generation from schedule events. |
 
 ## Current Phase
 
-Phase 2 — Private beta polish, app experience, tester feedback.
+Phase 3 — Master Schedule v0 private beta implementation, gated by manual SQL and QA before production deploy.
 
 ## Current Live Product Status
 
@@ -50,11 +51,35 @@ Phase 2 — Private beta polish, app experience, tester feedback.
 - Simplified customer-side AI output format completed locally.
 - Simple mode labels completed locally.
 - Redundant app UI cleanup completed locally.
+- App Access Codes duplicate warning completed locally in `680affd`.
+- App Access Codes reset helper checklist completed locally in `93c9b7c`.
+- Master Schedule SQL migration completed locally in `d8d2ccc`.
+- Master Schedule app API completed locally in `2d55812`.
+- Master Schedule Settings UI completed locally in `1798cb7`.
+- Master Schedule generation integration completed locally in `dd668e5`.
+- Master Schedule quick adds completed locally in `f20664f`.
+- Master Schedule schedule-notes input completed locally in `a10cc9a`.
+- Homepage long-range planning copy completed locally in `5226b33`.
+
+## Phase 3 Master Schedule Status
+
+- Migration file created: `supabase/shiftplan_app_schedule_events.sql`.
+- Runtime API created: `GET`, `POST`, and `PATCH /api/app/schedule-events`; archive/restore uses `POST /api/app/schedule-events` with an action payload.
+- UI created inside `/app` Settings as a private beta Master Schedule section, not a top-level tab yet.
+- UI supports add event, edit event, archive/restore event, upcoming events list, show archived, week filter, quick adds, and schedule notes.
+- App generation now loads active schedule events for the weekly request date range and includes them as fixed commitments.
+- If the schedule table is missing, generation skips schedule events instead of breaking, but the UI/API require the migration for normal use.
+- No Google/Apple calendar sync, recurrence, public accounts, Supabase Auth, native iOS, Stripe change, or paid intake change was added.
 
 ## Immediate Manual QA Tasks
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
+| high | manual | high | yes | Apply Master Schedule SQL migration | Run `supabase/shiftplan_app_schedule_events.sql` in the production Supabase project before deploying runtime code. |
+| high | manual | medium | yes | Test Master Schedule event CRUD | Use a private beta account after SQL is applied; verify one user cannot see another user's events. |
+| high | manual | medium | yes | Test weekly generation from schedule events | Add work shifts, clinical/class/deadline, and workout events inside one week; generate one plan and verify event dates/times stay fixed. |
+| high | manual | medium | yes | Test archive/restore behavior | Confirm archived events disappear from active lists, can be restored, and are not used in generation. |
+| medium | manual | medium | yes | Test schedule quick adds and notes on iPhone | Confirm templates fill the form, notes append to weekly request context, and no parsing/sync is implied. |
 | high | manual | low | no | Test App Access Codes create/deactivate/reactivate | Verify admin workflow without changing schema or auth. |
 | high | manual | low | no | Create `agent-mode-test` access | Use a clearly labeled test access record for repeatable QA. |
 | high | manual | low | no | Test fresh generated timeline plan | Generate exactly one test plan when safe; verify timeline structure and safety boundaries. |

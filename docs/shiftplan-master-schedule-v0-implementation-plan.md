@@ -1,6 +1,32 @@
 # ShiftPlan Master Schedule v0 Implementation Plan
 
-Planning document only. Do not implement runtime code, SQL, auth, Stripe changes, calendar sync, or admin changes from this file until a separate implementation task is approved.
+Original planning document. Phase 3 implementation has started in a controlled private beta batch; use the status section below before assigning follow-up work.
+
+## Implementation Status - May 22, 2026
+
+Completed locally:
+
+- `supabase/shiftplan_app_schedule_events.sql` migration created for `public.app_schedule_events`.
+- `/api/app/schedule-events` added with session-scoped list, create, update, archive, and restore behavior.
+- `/app` Settings now includes a private beta Master Schedule section.
+- Master Schedule v0 UI supports add event, edit event, archive/restore, upcoming events, week filter, quick adds, and schedule notes.
+- `/api/app/generate-plan` now loads active schedule events for the request week and includes them as fixed commitments in the customer-side prompt.
+- Homepage copy now lightly supports the long-range planning direction.
+- Admin App Access Codes now warns on duplicate access-code emails and clarifies reset steps.
+
+Deployment gate:
+
+- The SQL migration must be applied before deploying/pushing the runtime Master Schedule API/UI to production.
+- Generation skips schedule events if the table is missing, but the new Schedule UI/API depend on the table for normal use.
+- No Stripe, paid intake, public auth, Supabase Auth, calendar sync, native iOS, push notification, or email automation change was made.
+
+Manual QA needed after SQL:
+
+- Add/edit/archive/restore schedule events.
+- Confirm upcoming events and week filter behavior.
+- Confirm quick adds only fill the form.
+- Confirm schedule notes append to the weekly request notes and do not parse automatically.
+- Generate one weekly plan from schedule events and verify dates, shifts, workouts, deadlines, and safety boundaries.
 
 ## 1. Product Goal
 
@@ -62,20 +88,20 @@ Rationale:
 
 ## 4. Event Categories
 
-Use friendly labels in the UI and stable enum-like values in data.
+Use friendly labels in the UI and database for v0. Earlier planning considered enum-like stored values, but the implemented migration uses the same human-readable category labels the private beta UI shows.
 
-| UI label | Stored value | Notes |
-| --- | --- | --- |
-| Work shift | `work_shift` | Exact work shifts, call blocks, on-site work, remote work blocks. |
-| Clinical | `clinical` | Clinical rotation, lab, field placement, preceptorship, practicum. |
-| Class/school | `class_school` | Class, school block, lecture, lab, study group. |
-| Assignment/deadline | `assignment_deadline` | Due date, exam, project, quiz, paperwork deadline. |
-| Appointment | `appointment` | Appointment, meeting, service appointment, scheduled obligation. |
-| Errand | `errand` | Grocery run, laundry, pickup, life admin task. |
-| Workout/training | `workout_training` | Workout, training session, practice, race, movement block. |
-| Family/personal | `family_personal` | Childcare, school pickup, family commitment, personal obligation. |
-| Travel | `travel` | Flight, drive, travel day, hotel check-in, trip block. |
-| Other | `other` | Anything that does not fit a category. |
+| UI label / stored value | Notes |
+| --- | --- |
+| Work shift | Exact work shifts, call blocks, on-site work, remote work blocks. |
+| Clinical | Clinical rotation, lab, field placement, preceptorship, practicum. |
+| Class/school | Class, school block, lecture, lab, study group. |
+| Assignment/deadline | Due date, exam, project, quiz, paperwork deadline. |
+| Appointment | Appointment, meeting, service appointment, scheduled obligation. |
+| Errand | Grocery run, laundry, pickup, life admin task. |
+| Workout/training | Workout, training session, practice, race, movement block. |
+| Family/personal | Childcare, school pickup, family commitment, personal obligation. |
+| Travel | Flight, drive, travel day, hotel check-in, trip block. |
+| Other | Anything that does not fit a category. |
 
 ## 5. Event Fields
 
@@ -87,12 +113,14 @@ Required fields:
 
 Optional fields:
 
-- `start_time`: local start time.
-- `end_time`: local end time.
+- `start_time`: local start time stored as text in v0.
+- `end_time`: local end time stored as text in v0.
 - `all_day`: boolean for date-only events or deadlines.
 - `notes`: optional context for weekly generation.
 - `source`: source of the event, such as `manual`, `weekly_request`, `workout_builder`, or future `calendar_import`.
+- `is_archived`: boolean soft archive state.
 - `archived_at`: timestamp for soft archive.
+- `archived_reason`: optional archive reason.
 - `created_at`: timestamp set on insert.
 - `updated_at`: timestamp set on update.
 
@@ -100,16 +128,16 @@ Validation rules:
 
 - Require `title`, `category`, and `date`.
 - If `all_day = true`, `start_time` and `end_time` can be empty.
-- If both times are present, `end_time` should be after `start_time`.
+- v0 stores times as text so overnight shifts are allowed without complex time ordering.
 - Do not require a note.
 - Notes helper copy should discourage sensitive medical, workplace, school, or family details.
 - Use local-date semantics in v0. Avoid complex timezone behavior until calendar import/sync is approved.
 
 ## 6. Database Plan
 
-Future table: `app_schedule_events`.
+Implemented migration file: `supabase/shiftplan_app_schedule_events.sql`.
 
-No SQL should be created in this documentation task. The likely schema:
+Implemented future table: `public.app_schedule_events`.
 
 ```text
 app_schedule_events
@@ -120,12 +148,14 @@ app_schedule_events
 - title text not null
 - category text not null
 - event_date date not null
-- start_time time null
-- end_time time null
+- start_time text null
+- end_time text null
 - all_day boolean not null default false
 - notes text not null default ''
 - source text not null default 'manual'
+- is_archived boolean not null default false
 - archived_at timestamptz null
+- archived_reason text null
 ```
 
 Parked for later:
@@ -139,15 +169,15 @@ Parked for later:
 Recommended constraints:
 
 - Category check for the ten supported values.
-- Source check for known source values.
+- Non-empty source check.
 - Non-empty `title`.
-- `end_time > start_time` when both are present and `all_day = false`.
 
 Recommended indexes:
 
 - `(app_user_id, event_date)` for week loading.
-- `(app_user_id, archived_at, event_date)` for active event lists.
-- `(app_user_id, category, event_date)` only if category filtering is added.
+- `(app_user_id, is_archived, event_date)` for active event lists.
+- `(category)` for category filtering.
+- `(created_at desc)` for recent-event support.
 
 RLS/security notes:
 
@@ -230,7 +260,7 @@ Behavior:
 - Update `updated_at`.
 - Do not allow client-controlled `app_user_id`.
 
-### `POST /api/app/schedule-events/archive`
+### `POST /api/app/schedule-events` archive/restore action
 
 Purpose:
 
@@ -239,13 +269,13 @@ Purpose:
 Payload:
 
 - `id`
-- `archive`: boolean
+- `action`: `archive` or `restore`
 
 Behavior:
 
 - Verify ownership by `app_user_id`.
-- If `archive = true`, set `archived_at = now()`.
-- If `archive = false`, set `archived_at = null`.
+- If `action = archive`, set `is_archived = true` and `archived_at = now()`.
+- If `action = restore`, set `is_archived = false` and clear archive fields.
 - Return the updated event.
 
 ### `POST /api/app/generate-plan` using schedule events
@@ -262,7 +292,7 @@ Options:
 Recommendation:
 
 - For v0, load events during generation by `app_user_id`, `week_start_date`, and `week_end_date`, then include them in the prompt as "Master Schedule events for this week."
-- Store a compact event snapshot in `app_saved_plans.plan_json` so future debugging can verify what the model saw without changing the visible plan body.
+- Store lightweight generation metadata in `app_saved_plans.plan_json`. The current implementation stores `schedule_events_used`; a fuller event snapshot can be added later if support/debugging requires it.
 
 ## 8. UI Plan
 
@@ -472,7 +502,7 @@ Phase A - Docs/spec:
 
 Phase B - DB migration:
 
-- Add `app_schedule_events` table.
+- Completed locally in `d8d2ccc`: add `app_schedule_events` table.
 - Add constraints and indexes.
 - Enable RLS.
 - Grant service role access.
@@ -480,25 +510,21 @@ Phase B - DB migration:
 
 Phase C - API:
 
-- Add schedule event list/create/update/archive/restore routes.
+- Completed locally in `2d55812`: add schedule event list/create/update/archive/restore route.
 - Verify session on every route.
 - Filter every query by `app_user_id`.
 - Add validation helpers.
 
 Phase D - Simple UI:
 
-- Add Schedule section/view.
-- Add quick add.
-- Add upcoming events.
-- Add week filter and This Week events.
-- Add edit and archive/restore.
+- Completed locally in `1798cb7`, `f20664f`, and `a10cc9a`: add Schedule section in Settings, quick add, upcoming events, week filter, schedule notes, edit, and archive/restore.
 
 Phase E - Generation integration:
 
-- Load schedule events for selected week.
-- Add "Master Schedule events for this week" prompt section.
+- Completed locally in `dd668e5`: load schedule events for selected week.
+- Completed locally in `dd668e5`: add "Known schedule events for this week" prompt section.
 - Preserve current weekly request review.
-- Save event snapshot in `plan_json` if feasible.
+- Save fuller event snapshot in `plan_json` later if support/debugging requires it.
 
 Phase F - Admin visibility:
 
@@ -515,7 +541,9 @@ Phase G - QA:
 - Verify no raw event notes leak into unsafe advice.
 - Verify no Stripe, paid intake, auth, or admin write behavior changed.
 
-## 16. Exact Future Codex Prompt For Phase B When Ready
+## 16. Historical Codex Prompt For Phase B
+
+Phase B was completed locally in `d8d2ccc`. Keep this prompt only as historical context; future SQL work should start from the committed migration file, not this prompt.
 
 ```text
 You are working in /Users/evantaylor/Code/shiftplan.
@@ -546,12 +574,12 @@ Constraints:
 
 Build:
 1. Create a migration for public.app_schedule_events.
-2. Include id, created_at, updated_at, app_user_id, title, category, event_date, start_time, end_time, all_day, notes, source, archived_at.
+2. Include id, created_at, updated_at, app_user_id, title, category, event_date, start_time, end_time, all_day, notes, source, is_archived, archived_at, archived_reason.
 3. Add category and source checks.
 4. Add non-empty title check.
-5. Add time ordering check when both times are present and all_day is false.
+5. Do not add complex time ordering yet; v0 stores time text to allow overnight shifts.
 6. Enable RLS.
-7. Add indexes for app_user_id/event_date and app_user_id/archived_at/event_date.
+7. Add indexes for app_user_id/event_date and app_user_id/is_archived/event_date.
 8. Grant service_role select/insert/update access.
 
 Run:
@@ -578,4 +606,3 @@ Report:
 - What is the minimum Schedule UI that would feel fast enough on iPhone?
 - Which tester should validate Master Schedule first: Emily, a nursing student/clinical user, or founder-only?
 - What success signal proves Master Schedule should become a top-level tab?
-

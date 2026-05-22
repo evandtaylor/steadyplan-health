@@ -878,6 +878,8 @@ function AppDashboard({
   );
   const [showArchivedScheduleEvents, setShowArchivedScheduleEvents] =
     useState(false);
+  const [scheduleNotesDraft, setScheduleNotesDraft] = useState("");
+  const [scheduleNotesMessage, setScheduleNotesMessage] = useState("");
   const [activeView, setActiveView] = useState<AppCommandView>("dashboard");
   const [generatingRequestId, setGeneratingRequestId] = useState("");
   const [generationMessages, setGenerationMessages] = useState<
@@ -1335,6 +1337,23 @@ function AppDashboard({
     } catch {
       setScheduleEventMessage("Could not update schedule event right now.");
     }
+  }
+
+  function handleUseScheduleNotes() {
+    const notes = scheduleNotesDraft.trim();
+
+    if (!notes) {
+      setScheduleNotesMessage("Paste schedule notes before adding them.");
+      return;
+    }
+
+    updateField(
+      "weekSummary",
+      appendUniqueText(form.weekSummary, `Known schedule notes:\n${notes}`),
+    );
+    setScheduleNotesMessage(
+      "Schedule notes added to this week's request notes.",
+    );
   }
 
   function updateWorkoutPlanBuilderField(
@@ -2336,8 +2355,15 @@ function AppDashboard({
             isSaving={isSavingScheduleEvent}
             weekFilterStart={scheduleWeekFilterStart}
             showArchived={showArchivedScheduleEvents}
+            notesDraft={scheduleNotesDraft}
+            notesMessage={scheduleNotesMessage}
             onWeekFilterChange={setScheduleWeekFilterStart}
             onShowArchivedChange={setShowArchivedScheduleEvents}
+            onNotesDraftChange={(value) => {
+              setScheduleNotesDraft(value);
+              setScheduleNotesMessage("");
+            }}
+            onUseScheduleNotes={handleUseScheduleNotes}
             onFieldChange={updateScheduleEventField}
             onSubmit={handleScheduleEventSubmit}
             onCancelEdit={resetScheduleEventForm}
@@ -3359,8 +3385,12 @@ function MasterSchedulePanel({
   isSaving,
   weekFilterStart,
   showArchived,
+  notesDraft,
+  notesMessage,
   onWeekFilterChange,
   onShowArchivedChange,
+  onNotesDraftChange,
+  onUseScheduleNotes,
   onFieldChange,
   onSubmit,
   onCancelEdit,
@@ -3376,8 +3406,12 @@ function MasterSchedulePanel({
   isSaving: boolean;
   weekFilterStart: string;
   showArchived: boolean;
+  notesDraft: string;
+  notesMessage: string;
   onWeekFilterChange: (value: string) => void;
   onShowArchivedChange: (value: boolean) => void;
+  onNotesDraftChange: (value: string) => void;
+  onUseScheduleNotes: () => void;
   onFieldChange: (
     field: keyof ScheduleEventFormState,
     value: string | boolean,
@@ -3489,6 +3523,41 @@ function MasterSchedulePanel({
               After saving, choose another date and add another event if the
               pattern repeats.
             </p>
+          </div>
+
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <label
+              htmlFor="scheduleNotesDraft"
+              className="text-sm font-semibold text-blue-950"
+            >
+              Paste what you know
+            </label>
+            <p className="mt-1 text-sm leading-6 text-blue-900">
+              Example: I work Mon/Tue/Wed 7a-7p for the next 3 weeks, clinical
+              every Friday, class Tuesdays.
+            </p>
+            <textarea
+              id="scheduleNotesDraft"
+              value={notesDraft}
+              onChange={(event) => onNotesDraftChange(event.target.value)}
+              className="field-control mt-3 min-h-24"
+            />
+            <p className="mt-2 text-xs leading-5 text-blue-900">
+              Detailed event parsing is coming later.
+            </p>
+            <button
+              type="button"
+              onClick={onUseScheduleNotes}
+              disabled={!notesDraft.trim()}
+              className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
+            >
+              Use this as notes
+            </button>
+            {notesMessage ? (
+              <p className="mt-3 rounded-lg border border-blue-200 bg-white p-3 text-sm leading-6 text-blue-950">
+                {notesMessage}
+              </p>
+            ) : null}
           </div>
 
           <Field

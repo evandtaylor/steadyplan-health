@@ -6,12 +6,13 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | medium | yes | Apply `supabase/shiftplan_app_schedule_events_hardening.sql` | Revokes direct anon/authenticated table grants and re-grants service-role access. This is preferred hardening, not a runtime blocker. |
-| high | manual | medium | no | QA expanded Master Schedule v0 after deploy | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
+| high | manual | medium | no | Run founder/manual QA after product polish deploy | Test public site clarity, `/app` Home/Schedule/Create/Plan/Settings, fresh generation, checklist, calendar export, feedback, and admin beta summaries. |
+| high | manual | medium | no | QA expanded Master Schedule v0 with real schedule events | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
+| high | manual | low | no | Generate one fresh authenticated test plan | Verify output is short, date-accurate, schedule-aware, checklist-friendly, and uses compact safety language. |
 
 ## Current Phase
 
-Phase 3 — Master Schedule v0 private beta expansion, gated by manual QA and recommended grant hardening.
+Phase 3 — Master Schedule v0 private beta expansion plus product-quality polish, gated by manual QA.
 
 ## Current Live Product Status
 
@@ -71,16 +72,22 @@ Phase 3 — Master Schedule v0 private beta expansion, gated by manual QA and re
 - Master Schedule context added to calendar export locally in `27d68e2`.
 - Master Schedule read-only admin summary completed locally in `eed015f`.
 - Long-range homepage copy refined locally in `a0296c6`.
+- Product-quality public site messaging polish completed locally in `2d9d429`.
+- Product-quality app login copy polish completed locally in `e5c3f43`.
+- Home schedule CTA clarity completed locally in `c562115`.
+- Plan feedback future-feature chips updated locally in `3d10d73`.
+- App AI output safety note tightened locally in `4a99ea4`.
+- Product audit report completed locally in this pass.
 
 ## Phase 3 Master Schedule Status
 
 - Migration file created: `supabase/shiftplan_app_schedule_events.sql`.
 - Production SQL for the base `app_schedule_events` table was reported applied.
-- Hardening migration created: `supabase/shiftplan_app_schedule_events_hardening.sql`.
+- Hardening migration created and reported applied: `supabase/shiftplan_app_schedule_events_hardening.sql`.
 - Runtime API created: `GET`, `POST`, and `PATCH /api/app/schedule-events`; archive/restore uses `POST /api/app/schedule-events` with an action payload.
 - UI now has a top-level `/app` Schedule view; Settings links to Schedule instead of rendering the full Schedule UI.
 - UI supports add event, edit event, archive/restore event, upcoming events list, show archived, week filter, single-event quick adds, limited bulk quick adds, schedule notes, and client-side busy-day hints.
-- Home includes a compact "This week from your schedule" preview with Open Schedule and Generate from this week actions.
+- Home includes a compact "This week from your schedule" preview with Open Schedule and Use this week in Create actions.
 - Create includes a compact "Known this week" panel that appends a schedule summary to the weekly request without overwriting user text.
 - App generation now loads active schedule events for the weekly request date range and includes them as fixed commitments.
 - Calendar export includes selected-week schedule context in the plan summary description when events are available.
@@ -92,10 +99,10 @@ Phase 3 — Master Schedule v0 private beta expansion, gated by manual QA and re
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | medium | yes | Apply Master Schedule hardening SQL | Run `supabase/shiftplan_app_schedule_events_hardening.sql` in production. Runtime should keep working because server APIs use service-role access. |
 | high | manual | medium | no | Test top-level Schedule view | Confirm Schedule appears in `/app` nav, Settings links to it, and Home/Create/Plan/Settings remain usable. |
 | high | manual | medium | no | Test Master Schedule event CRUD | Use a private beta account; verify add, edit, archive, restore, show archived, upcoming list, and week filter. |
 | high | manual | medium | no | Test Home/Create schedule connection | Confirm Home preview shows this-week events and Create can append the selected-week schedule summary without overwriting text. |
+| high | manual | low | no | Test product-quality polish | Confirm homepage private-beta/current-feature copy, `/app` login safety copy, Home schedule CTA, and feedback feature chips read correctly. |
 | high | manual | medium | no | Test weekly generation from schedule events | Add work shifts, clinical/class/deadline, and workout events inside one week; generate one plan and verify event dates/times stay fixed. |
 | high | manual | medium | no | Test schedule bulk quick adds and notes on iPhone | Confirm limited repeated work/clinical/class/deadline helpers preview before creating; notes append to weekly context and no parsing/sync is implied. |
 | medium | manual | low | no | Test schedule overload hints | Confirm packed/long-day/no-time hints are informational and do not provide medical or workplace safety guidance. |

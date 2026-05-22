@@ -2106,6 +2106,48 @@ function AppAccessCodeManager({
                           Enter a new raw code manually. ShiftPlan will hash it
                           and will not store or show the raw code later.
                         </p>
+                        <p className="mb-3 text-sm leading-6 text-amber-950">
+                          If a tester cannot log in, reset the code on the
+                          active unexpired row or deactivate duplicate rows.
+                        </p>
+                        <div className="mb-3 grid gap-2 rounded-lg border border-amber-200 bg-white/70 p-3 text-sm text-amber-950 sm:grid-cols-2 xl:grid-cols-4">
+                          <div>
+                            <p className="font-semibold">Active</p>
+                            <p
+                              className={`mt-1 text-xs font-semibold ${
+                                accessCode.is_active
+                                  ? "text-teal-800"
+                                  : "text-rose-800"
+                              }`}
+                            >
+                              {accessCode.is_active ? "Yes" : "No"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-semibold">Not expired</p>
+                            <p
+                              className={`mt-1 text-xs font-semibold ${
+                                isExpiredRow ? "text-rose-800" : "text-teal-800"
+                              }`}
+                            >
+                              {isExpiredRow ? "No" : "Yes"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-semibold">Correct email</p>
+                            <p className="mt-1 break-all text-xs font-semibold text-slate-700">
+                              {accessCode.email}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-semibold">
+                              New code saved by admin
+                            </p>
+                            <p className="mt-1 text-xs font-semibold text-slate-700">
+                              Copy after reset
+                            </p>
+                          </div>
+                        </div>
                         <input
                           id={`appAccessResetCode-${accessCode.id}`}
                           type="text"

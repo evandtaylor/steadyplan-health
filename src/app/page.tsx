@@ -136,6 +136,10 @@ export default function Home() {
                 responsibilities, and personal tasks around long or irregular
                 schedules.
               </p>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-teal-100">
+                Add what you know ahead of time, then generate weekly plans
+                around it.
+              </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <TrackedLink
                   href="/beta/shiftplan"

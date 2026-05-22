@@ -221,6 +221,16 @@ type ScheduleEventFormState = {
   notes: string;
 };
 
+type ScheduleQuickAddTemplate = {
+  label: string;
+  title: string;
+  category: string;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  notes: string;
+};
+
 type WorkoutPlanBuilderState = {
   mainGoal: string;
   otherGoal: string;
@@ -390,6 +400,72 @@ const scheduleEventCategoryOptions = [
   "Family/personal",
   "Travel",
   "Other",
+];
+
+const scheduleQuickAddTemplates: ScheduleQuickAddTemplate[] = [
+  {
+    label: "3x12 day shift",
+    title: "Work shift",
+    category: "Work shift",
+    startTime: "07:00",
+    endTime: "19:00",
+    allDay: false,
+    notes: "Use this for one shift date, then add another for each known shift.",
+  },
+  {
+    label: "3x12 night shift",
+    title: "Work shift",
+    category: "Work shift",
+    startTime: "19:00",
+    endTime: "07:00",
+    allDay: false,
+    notes: "Use this for one night shift date, then add another for each known shift.",
+  },
+  {
+    label: "Clinical day",
+    title: "Clinical",
+    category: "Clinical",
+    startTime: "07:00",
+    endTime: "15:00",
+    allDay: false,
+    notes: "Adjust exact clinical time and location notes if needed.",
+  },
+  {
+    label: "Class block",
+    title: "Class",
+    category: "Class/school",
+    startTime: "09:00",
+    endTime: "10:30",
+    allDay: false,
+    notes: "Adjust class name, time, and campus/online details if needed.",
+  },
+  {
+    label: "Deadline",
+    title: "Deadline",
+    category: "Assignment/deadline",
+    startTime: "",
+    endTime: "",
+    allDay: true,
+    notes: "Add the assignment or deadline details.",
+  },
+  {
+    label: "Appointment",
+    title: "Appointment",
+    category: "Appointment",
+    startTime: "10:00",
+    endTime: "11:00",
+    allDay: false,
+    notes: "Adjust exact time and practical prep notes.",
+  },
+  {
+    label: "Workout block",
+    title: "Workout",
+    category: "Workout/training",
+    startTime: "09:00",
+    endTime: "09:45",
+    allDay: false,
+    notes: "Add the training focus and keep it realistic around shifts.",
+  },
 ];
 
 const workoutGoalOptions = [
@@ -3335,6 +3411,16 @@ function MasterSchedulePanel({
     ? sortScheduleEvents([...activeEvents, ...archivedEvents])
     : upcomingEvents;
 
+  function applyQuickAddTemplate(template: ScheduleQuickAddTemplate) {
+    onFieldChange("title", template.title);
+    onFieldChange("category", template.category);
+    onFieldChange("eventDate", form.eventDate || weekFilterStart);
+    onFieldChange("startTime", template.startTime);
+    onFieldChange("endTime", template.endTime);
+    onFieldChange("allDay", template.allDay);
+    onFieldChange("notes", template.notes);
+  }
+
   return (
     <section
       id="master-schedule"
@@ -3380,6 +3466,28 @@ function MasterSchedulePanel({
             </p>
             <p className="mt-1 text-sm leading-6 text-slate-600">
               Use this for fixed commitments ShiftPlan should plan around.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-teal-200 bg-white p-3">
+            <p className="text-sm font-semibold text-slate-950">
+              Quick adds
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Fill the form, then confirm the exact date and save.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {scheduleQuickAddTemplates.map((template) => (
+                <QuickSelectButton
+                  key={template.label}
+                  label={template.label}
+                  onClick={() => applyQuickAddTemplate(template)}
+                />
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              After saving, choose another date and add another event if the
+              pattern repeats.
             </p>
           </div>
 

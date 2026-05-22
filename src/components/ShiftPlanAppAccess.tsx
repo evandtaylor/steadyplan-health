@@ -670,6 +670,9 @@ const workoutFeedbackOptions = [
 const safetyCopy =
   "ShiftPlan helps organize your weekly routine around your shift schedule. App-generated AI plans may not be manually reviewed before you see them, and they may contain errors, omissions, unrealistic suggestions, incorrect assumptions, or date and time mistakes. Review and adjust each plan before relying on it. ShiftPlan is for lifestyle and routine planning only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. No outcome is guaranteed.";
 
+const loginSafetyCopy =
+  "ShiftPlan is a planning tool, not medical advice, treatment, workplace safety guidance, or emergency support. Review dates, times, and assumptions before relying on a plan.";
+
 const safetyAcknowledgmentText =
   "I understand ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support. I will not submit protected health information, medication details, diagnoses, symptoms, emergency information, workplace safety complaints, or safety-sensitive details.";
 
@@ -805,7 +808,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
             </Link>
           </div>
           <p className="mt-5 rounded-lg border border-slate-700 bg-slate-900 p-4 text-sm leading-6 text-slate-300">
-            {safetyCopy}
+            {loginSafetyCopy}
           </p>
         </div>
 

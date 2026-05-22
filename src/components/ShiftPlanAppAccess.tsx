@@ -1429,6 +1429,13 @@ function AppDashboard({
     eventId: string,
     action: "archive" | "restore",
   ) {
+    if (
+      action === "archive" &&
+      !window.confirm("Archive this event? You can restore it later.")
+    ) {
+      return;
+    }
+
     setScheduleEventMessage("");
 
     try {

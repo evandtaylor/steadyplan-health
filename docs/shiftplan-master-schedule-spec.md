@@ -4,8 +4,8 @@ Phase 3 planning document for long-range schedule capture and weekly ShiftPlan g
 
 Founder decisions recorded on May 21, 2026:
 
-- Master Schedule should eventually become a top-level Schedule tab.
-- In the first private beta pass, introduce it as a simple Schedule section/view before it becomes the main input layer.
+- Master Schedule should become a top-level Schedule tab.
+- In the private beta pass, preserve the simple weekly flow while introducing Schedule as its own product surface.
 - Schedule events should use soft archive and restore, not hard delete.
 - Admin visibility should be read-only at first.
 - Private beta Master Schedule can use the current `app_users` and access-code system.
@@ -13,7 +13,19 @@ Founder decisions recorded on May 21, 2026:
 - Google Calendar sync and Apple Calendar sync are out of scope for v0.
 - Complex recurrence is out of scope for v0.
 - Master Schedule v0 should support add event, edit event, archive/restore event, upcoming events list, week filter, and generate weekly ShiftPlan from events.
-- No runtime code or SQL should be implemented from this spec until a separate implementation task is approved.
+- Runtime code and SQL should be implemented only through separate approved implementation tasks.
+
+Implementation update on May 22, 2026:
+
+- The base `app_schedule_events` SQL migration has been created and was reported applied in Supabase.
+- A follow-up hardening migration, `supabase/shiftplan_app_schedule_events_hardening.sql`, revokes direct anon/authenticated grants and keeps service-role access.
+- `/app` now has a top-level Schedule view.
+- Home shows a compact "This week from your schedule" preview.
+- Create can append selected-week schedule context into the weekly request.
+- Schedule supports event CRUD, soft archive/restore, single-event quick adds, limited bulk quick adds, schedule notes, and lightweight busy-day hints.
+- Weekly generation uses selected-week schedule events as fixed commitments.
+- Calendar export can include schedule context in the generated plan summary description.
+- Admin visibility is read-only and limited to aggregate schedule counts/latest date.
 
 ## 1. Product Concept
 
@@ -34,7 +46,7 @@ The Master Schedule should become the source of truth for dated obligations:
 
 The weekly ShiftPlan remains the main output. The Master Schedule does not replace the weekly plan. It gives the weekly plan better inputs.
 
-Founder direction: Master Schedule should eventually become a top-level Schedule tab and the primary long-range input layer for recurring ShiftPlan use. The initial private beta should introduce it more gently as a simple Schedule section/view so the product can validate event entry and weekly generation from events before reorganizing the whole app around it.
+Founder direction: Master Schedule should become a top-level Schedule tab and the primary long-range input layer for recurring ShiftPlan use. The initial private beta should still preserve the simplified weekly flow while validating event entry and weekly generation from events.
 
 ## 2. Why This Matters
 
@@ -148,12 +160,15 @@ Validation notes:
 
 MVP scope for first implementation:
 
-- Add a Master Schedule area inside the existing private beta `/app` as a simple Schedule section/view.
+- Add a Master Schedule area inside the existing private beta `/app` as a top-level Schedule view.
 - Let beta users add, edit, archive, and restore manual schedule events.
 - Support the ten event categories listed above.
 - Support date, optional start/end time, all-day, notes, and source.
 - Show a simple upcoming-events list.
 - Add a week filter so users can review events for the week they want to generate.
+- Add limited bulk quick add for work, clinical, class, and deadline patterns without storing recurrence rules.
+- Add lightweight informational hints for packed days, long days, and events missing times.
+- Add Home and Create touchpoints that make schedule events useful without auto-generating.
 - Let the weekly request/generation flow pull schedule events for the selected week.
 - Generate a weekly ShiftPlan from reviewed Master Schedule events.
 - Keep exact work shifts required before generation.
@@ -171,6 +186,12 @@ Explicit v0 capabilities:
 - Restore archived event.
 - Upcoming events list.
 - Week filter.
+- Limited bulk quick add.
+- Schedule notes append flow.
+- Home schedule preview.
+- Create selected-week schedule context.
+- Calendar export schedule context.
+- Read-only admin schedule summary.
 - Generate weekly ShiftPlan from events.
 
 ## 9. What Not To Build Yet
@@ -195,9 +216,9 @@ Do not build these in the Master Schedule MVP:
 - Workplace safety advice or staffing guidance.
 - Automatic rescheduling without explicit user review.
 
-## 10. Suggested Future Database Table: `app_schedule_events`
+## 10. Database Table: `app_schedule_events`
 
-No SQL should be added until implementation is approved. When approved, the likely table is:
+Implemented SQL exists in `supabase/shiftplan_app_schedule_events.sql`. The production table was reported applied. The implemented table is:
 
 ```text
 app_schedule_events
@@ -213,9 +234,9 @@ app_schedule_events
 - all_day boolean default false
 - notes text
 - source text default 'manual'
-- recurrence_rule text nullable
-- recurrence_parent_id uuid nullable references app_schedule_events(id)
+- is_archived boolean default false
 - archived_at timestamptz nullable
+- archived_reason text nullable
 ```
 
 Recommended checks and indexes:
@@ -225,8 +246,8 @@ Recommended checks and indexes:
 - Require a non-empty `title`.
 - Require `event_date`.
 - Add index on `(app_user_id, event_date)`.
-- Add index on `(app_user_id, archived_at, event_date)` if using soft archive.
-- Consider a check that `end_time > start_time` when both are present and `all_day = false`.
+- Add index on `(app_user_id, is_archived, event_date)` for active and archived lists.
+- Keep `start_time` and `end_time` as text in v0 so overnight shifts do not require complex time ordering.
 
 Founder decision: v0 should use soft archive and restore rather than hard delete. Soft archive is safer for beta because it reduces accidental data loss during product learning and gives support a recovery path if a tester archives the wrong event.
 
@@ -245,6 +266,7 @@ The current app uses private beta access-code sessions and server-side Supabase 
 - Admin routes should not expose detailed Master Schedule events unless a founder-facing support or QA need is explicitly defined.
 - RLS should be enabled on the future table even if MVP access is through service-role API routes.
 - Grants should stay narrow, matching existing app tables: service role can select/insert/update, while public anon access should not read events directly.
+- The hardening migration should revoke direct table privileges from `anon` and `authenticated`; current private beta access remains through server-side service-role routes.
 
 When Supabase Auth exists later, add owner-based policies such as:
 
@@ -291,7 +313,7 @@ The simplified Command Center should stay simple. Recommended navigation:
 - Plan: keep saved weekly plans, Today/Next Up, checklist, calendar export, and feedback.
 - Settings: keep saved preferences and workout defaults.
 
-Founder decision: Schedule should eventually become a top-level tab. In the first private beta implementation, it can be introduced as a simple Schedule section/view before it becomes the main input layer. Avoid making Schedule the first screen until repeat use proves it is more important than weekly generation. For Phase 3 MVP, Home should still answer "what do I do next?"
+Founder decision: Schedule should become a top-level tab. The first private beta implementation now uses Home, Schedule, Create, Plan, and Settings while preserving Home as the command center. Avoid making Schedule the first screen until repeat use proves it is more important than weekly generation. For Phase 3 MVP, Home should still answer "what do I do next?"
 
 ## 14. How This Affects Saved Preferences And Workout Builder
 
@@ -338,7 +360,8 @@ Calendar export:
 
 - Keep `.ics` download only.
 - Do not add calendar sync or reminders.
-- Master Schedule events can later improve export by letting ShiftPlan include fixed events and generated routine blocks more cleanly.
+- Master Schedule events can appear as reference context in generated plan `.ics` descriptions when available.
+- Do not export every raw schedule event as a separate calendar event in v0.
 - Export should still warn users to review dates and times before relying on the file.
 
 Important distinction:
@@ -393,7 +416,7 @@ Risk controls:
 Phase 3A - Spec and design:
 
 - Founder decisions recorded in this spec.
-- Treat Schedule as an eventual top-level tab, introduced first as a simple Schedule section/view.
+- Treat Schedule as a top-level tab while keeping Home as the command center.
 - Confirm event category labels.
 - Use soft archive and restore instead of hard delete.
 - Keep admin visibility read-only at first.
@@ -401,6 +424,7 @@ Phase 3A - Spec and design:
 Phase 3B - Data model:
 
 - Add `app_schedule_events` migration only after approval.
+- Add follow-up hardening migration to revoke direct anon/authenticated table grants.
 - Add server helpers or API routes for event list/create/update/archive.
 - Use the current `app_users` and access-code session model for private beta.
 - Wait for Supabase Auth before public Master Schedule.
@@ -408,9 +432,10 @@ Phase 3B - Data model:
 
 Phase 3C - Basic Master Schedule UI:
 
-- Add simple Schedule section/view inside `/app`.
+- Add simple top-level Schedule view inside `/app`.
 - Add event form, edit flow, archive/restore actions, and upcoming-events list.
 - Add selected-week filter and event preview.
+- Add limited bulk quick add, schedule notes append flow, and informational overload hints.
 - Keep the UI compact and mobile-first.
 
 Phase 3D - Weekly request integration:
@@ -418,10 +443,18 @@ Phase 3D - Weekly request integration:
 - Let selected-week events prefill or attach to a weekly request.
 - Keep the weekly request review step.
 - Add prompt section for "Master Schedule events for this week."
+- Include schedule context in calendar export descriptions without sync, reminders, or duplicate raw event exports.
 - Save generated plans through the current generation path.
 - Keep Google/Apple Calendar sync and complex recurrence out of v0.
 
-Phase 3E - QA and beta learning:
+Phase 3E - Admin and QA visibility:
+
+- Show read-only schedule event counts and latest date in App Beta admin.
+- Do not expose event notes by default.
+- Do not add admin write controls for schedule events.
+- Apply the hardening migration to revoke direct anon/authenticated table grants.
+
+Phase 3F - QA and beta learning:
 
 - Test with one beta user who has known shifts several weeks ahead.
 - Test with a student or clinical schedule.
@@ -429,7 +462,7 @@ Phase 3E - QA and beta learning:
 - Verify generation accuracy for dates, days, fixed times, and all-day deadlines.
 - Verify no changes to paid/manual/admin fulfillment.
 
-Phase 3F - Later enhancements:
+Phase 3G - Later enhancements:
 
 - Recurring events.
 - Better weekly calendar view.
@@ -494,8 +527,8 @@ Report files changed, runtime behavior, SQL added, lint/build result, and manual
 
 Answered founder decisions:
 
-- Master Schedule should eventually become a top-level Schedule tab.
-- Initial private beta can introduce Master Schedule as a simple Schedule section/view before it becomes the main input layer.
+- Master Schedule should become a top-level Schedule tab.
+- Initial private beta should preserve the current simplified weekly flow while introducing Schedule as a real product surface.
 - Users should be able to add, edit, archive, and restore events in v0.
 - Events should be soft-archived for beta recovery instead of hard-deleted.
 - Admin visibility should be read-only at first.

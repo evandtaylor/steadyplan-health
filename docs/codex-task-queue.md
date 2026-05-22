@@ -6,12 +6,12 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | high | yes | Apply `supabase/shiftplan_app_schedule_events.sql` before deploying Master Schedule runtime code | Runtime `/api/app/schedule-events` and the `/app` Master Schedule UI expect `public.app_schedule_events` to exist. Do not deploy/push this batch to production until the SQL migration is run. |
-| high | manual | medium | yes | QA Master Schedule v0 locally/staging after SQL is applied | Test add/edit/archive/restore, upcoming events, week filter, quick adds, schedule notes, and weekly generation from schedule events. |
+| high | manual | medium | yes | Apply `supabase/shiftplan_app_schedule_events_hardening.sql` | Revokes direct anon/authenticated table grants and re-grants service-role access. This is preferred hardening, not a runtime blocker. |
+| high | manual | medium | no | QA expanded Master Schedule v0 after deploy | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
 
 ## Current Phase
 
-Phase 3 — Master Schedule v0 private beta implementation, gated by manual SQL and QA before production deploy.
+Phase 3 — Master Schedule v0 private beta expansion, gated by manual QA and recommended grant hardening.
 
 ## Current Live Product Status
 
@@ -60,14 +60,31 @@ Phase 3 — Master Schedule v0 private beta implementation, gated by manual SQL 
 - Master Schedule quick adds completed locally in `f20664f`.
 - Master Schedule schedule-notes input completed locally in `a10cc9a`.
 - Homepage long-range planning copy completed locally in `5226b33`.
+- Master Schedule grant hardening migration completed locally in `b01aa88`.
+- Master Schedule top-level Schedule view completed locally in `c9e5972`.
+- Master Schedule Home preview completed locally in `e626618`.
+- Master Schedule Create flow context panel completed locally in `6068da9`.
+- Master Schedule bulk quick add completed locally in `bc61b3a`.
+- Master Schedule overload hints completed locally in `d1ae3d1`.
+- Master Schedule archive confirmation polish completed locally in `7647391`.
+- Master Schedule notes flow clarified locally in `e67eb6a`.
+- Master Schedule context added to calendar export locally in `27d68e2`.
+- Master Schedule read-only admin summary completed locally in `eed015f`.
+- Long-range homepage copy refined locally in `a0296c6`.
 
 ## Phase 3 Master Schedule Status
 
 - Migration file created: `supabase/shiftplan_app_schedule_events.sql`.
+- Production SQL for the base `app_schedule_events` table was reported applied.
+- Hardening migration created: `supabase/shiftplan_app_schedule_events_hardening.sql`.
 - Runtime API created: `GET`, `POST`, and `PATCH /api/app/schedule-events`; archive/restore uses `POST /api/app/schedule-events` with an action payload.
-- UI created inside `/app` Settings as a private beta Master Schedule section, not a top-level tab yet.
-- UI supports add event, edit event, archive/restore event, upcoming events list, show archived, week filter, quick adds, and schedule notes.
+- UI now has a top-level `/app` Schedule view; Settings links to Schedule instead of rendering the full Schedule UI.
+- UI supports add event, edit event, archive/restore event, upcoming events list, show archived, week filter, single-event quick adds, limited bulk quick adds, schedule notes, and client-side busy-day hints.
+- Home includes a compact "This week from your schedule" preview with Open Schedule and Generate from this week actions.
+- Create includes a compact "Known this week" panel that appends a schedule summary to the weekly request without overwriting user text.
 - App generation now loads active schedule events for the weekly request date range and includes them as fixed commitments.
+- Calendar export includes selected-week schedule context in the plan summary description when events are available.
+- App Beta admin includes read-only schedule event counts and latest event date; it does not expose event notes or write controls.
 - If the schedule table is missing, generation skips schedule events instead of breaking, but the UI/API require the migration for normal use.
 - No Google/Apple calendar sync, recurrence, public accounts, Supabase Auth, native iOS, Stripe change, or paid intake change was added.
 
@@ -75,11 +92,15 @@ Phase 3 — Master Schedule v0 private beta implementation, gated by manual SQL 
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | high | yes | Apply Master Schedule SQL migration | Run `supabase/shiftplan_app_schedule_events.sql` in the production Supabase project before deploying runtime code. |
-| high | manual | medium | yes | Test Master Schedule event CRUD | Use a private beta account after SQL is applied; verify one user cannot see another user's events. |
-| high | manual | medium | yes | Test weekly generation from schedule events | Add work shifts, clinical/class/deadline, and workout events inside one week; generate one plan and verify event dates/times stay fixed. |
-| high | manual | medium | yes | Test archive/restore behavior | Confirm archived events disappear from active lists, can be restored, and are not used in generation. |
-| medium | manual | medium | yes | Test schedule quick adds and notes on iPhone | Confirm templates fill the form, notes append to weekly request context, and no parsing/sync is implied. |
+| high | manual | medium | yes | Apply Master Schedule hardening SQL | Run `supabase/shiftplan_app_schedule_events_hardening.sql` in production. Runtime should keep working because server APIs use service-role access. |
+| high | manual | medium | no | Test top-level Schedule view | Confirm Schedule appears in `/app` nav, Settings links to it, and Home/Create/Plan/Settings remain usable. |
+| high | manual | medium | no | Test Master Schedule event CRUD | Use a private beta account; verify add, edit, archive, restore, show archived, upcoming list, and week filter. |
+| high | manual | medium | no | Test Home/Create schedule connection | Confirm Home preview shows this-week events and Create can append the selected-week schedule summary without overwriting text. |
+| high | manual | medium | no | Test weekly generation from schedule events | Add work shifts, clinical/class/deadline, and workout events inside one week; generate one plan and verify event dates/times stay fixed. |
+| high | manual | medium | no | Test schedule bulk quick adds and notes on iPhone | Confirm limited repeated work/clinical/class/deadline helpers preview before creating; notes append to weekly context and no parsing/sync is implied. |
+| medium | manual | low | no | Test schedule overload hints | Confirm packed/long-day/no-time hints are informational and do not provide medical or workplace safety guidance. |
+| medium | manual | low | no | Test calendar export schedule context | Confirm `.ics` plan summary can mention known schedule context without creating duplicate raw events, alarms, or sync. |
+| medium | manual | low | no | Test read-only admin schedule summary | Confirm App Beta admin shows schedule counts/latest date only and no event notes or write actions. |
 | high | manual | low | no | Test App Access Codes create/deactivate/reactivate | Verify admin workflow without changing schema or auth. |
 | high | manual | low | no | Create `agent-mode-test` access | Use a clearly labeled test access record for repeatable QA. |
 | high | manual | low | no | Test fresh generated timeline plan | Generate exactly one test plan when safe; verify timeline structure and safety boundaries. |

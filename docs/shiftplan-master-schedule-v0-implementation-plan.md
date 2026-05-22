@@ -7,25 +7,34 @@ Original planning document. Phase 3 implementation has started in a controlled p
 Completed locally:
 
 - `supabase/shiftplan_app_schedule_events.sql` migration created for `public.app_schedule_events`.
+- `supabase/shiftplan_app_schedule_events_hardening.sql` migration created to revoke direct anon/authenticated table grants and keep service-role access.
 - `/api/app/schedule-events` added with session-scoped list, create, update, archive, and restore behavior.
-- `/app` Settings now includes a private beta Master Schedule section.
-- Master Schedule v0 UI supports add event, edit event, archive/restore, upcoming events, week filter, quick adds, and schedule notes.
+- `/app` now includes a top-level Schedule tab; Settings links to Schedule instead of duplicating the full UI.
+- Home now shows a compact "This week from your schedule" preview.
+- Create now shows selected-week schedule context and can append it to the weekly request.
+- Master Schedule v0 UI supports add event, edit event, archive/restore, upcoming events, week filter, single-event quick adds, limited bulk quick adds, busy-day hints, and schedule notes.
 - `/api/app/generate-plan` now loads active schedule events for the request week and includes them as fixed commitments in the customer-side prompt.
+- Calendar export can include selected-week schedule context in the generated plan summary description.
+- App Beta admin now shows read-only schedule event counts and latest event date without exposing event notes.
 - Homepage copy now lightly supports the long-range planning direction.
 - Admin App Access Codes now warns on duplicate access-code emails and clarifies reset steps.
 
 Deployment gate:
 
-- The SQL migration must be applied before deploying/pushing the runtime Master Schedule API/UI to production.
-- Generation skips schedule events if the table is missing, but the new Schedule UI/API depend on the table for normal use.
+- The base SQL migration has been reported applied in production.
+- The hardening SQL should be applied manually in Supabase. It is preferred security hardening, not a runtime blocker.
+- Generation skips schedule events if the table is missing, but the Schedule UI/API depend on the base table for normal use.
 - No Stripe, paid intake, public auth, Supabase Auth, calendar sync, native iOS, push notification, or email automation change was made.
 
 Manual QA needed after SQL:
 
 - Add/edit/archive/restore schedule events.
 - Confirm upcoming events and week filter behavior.
-- Confirm quick adds only fill the form.
+- Confirm single-event quick adds fill the form and bulk quick adds preview before creating normal event rows.
+- Confirm Home preview and Create schedule-context append behavior.
 - Confirm schedule notes append to the weekly request notes and do not parse automatically.
+- Confirm calendar export includes schedule context only as reference text, without sync, alarms, or duplicate raw event exports.
+- Confirm admin summary remains read-only and does not expose schedule notes.
 - Generate one weekly plan from schedule events and verify dates, shifts, workouts, deadlines, and safety boundaries.
 
 ## 1. Product Goal
@@ -75,16 +84,16 @@ Options:
 
 Recommendation:
 
-- Implement v0 as a separate private beta Schedule section/view inside `/app`, then promote it to a top-level Schedule tab after the interaction proves useful.
-- Keep Home, Create, Plan, and Settings stable for the first implementation.
-- Add a lightweight Home preview only after the Schedule flow works: "Upcoming schedule" and "Generate from this week."
+- Implement v0 as a top-level Schedule tab because long-range planning is now a primary Phase 3 direction.
+- Keep Home, Create, Plan, and Settings stable around it.
+- Home should show a lightweight schedule preview and Create should show selected-week schedule context, but neither should auto-generate.
 - Avoid making Schedule the first screen in v0. Home should still answer "what do I do next?"
 
 Rationale:
 
 - The current simplified `/app` is still in Phase 2 QA.
-- Master Schedule adds real product weight; introducing it gently reduces the chance of confusing testers.
-- The long-term direction remains a top-level Schedule tab once repeat use proves the value.
+- Master Schedule adds real product weight; the top-level tab makes it discoverable while Home/Create keep the weekly flow intact.
+- The long-term direction is still Master Schedule -> Weekly ShiftPlan -> Daily Checklist, with Home remaining the simple command center.
 
 ## 4. Event Categories
 
@@ -329,6 +338,7 @@ Selected-week view:
 
 - Week start selector.
 - Events grouped by day.
+- Lightweight hints for packed days, long days, and events missing times.
 - Empty state: "No saved events for this week yet."
 - CTA to add an event.
 - CTA to generate a weekly ShiftPlan from this week.
@@ -362,6 +372,17 @@ Important:
 Default event lists should hide archived events.
 
 Provide a small "Show archived" control only inside Schedule, not globally. Restored events should return to active lists.
+
+### Bulk Quick Add
+
+Use a collapsed "Add repeated schedule quickly" area for simple, limited patterns:
+
+- Work shift days across 1-8 weeks.
+- Clinical day across 1-16 weeks.
+- Class/school day across 1-16 weeks.
+- Single assignment/deadline date.
+
+Every previewed item should be created as a normal event row. Do not store recurrence rules in v0 and keep each bulk action capped at a reasonable maximum.
 
 ## 9. AI Generation Integration
 
@@ -411,7 +432,8 @@ Master Schedule events are inputs. Generated calendar export remains an output f
 Recommended behavior:
 
 - Existing `.ics` export continues to represent the generated plan.
-- Schedule events can improve generated plan accuracy, but should not automatically export every raw event separately in v0.
+- Schedule events can improve generated plan accuracy and can appear as reference text in the plan summary description.
+- Do not automatically export every raw event separately in v0.
 - Calendar preview should continue to tell users to review dates and times.
 - Future versions can distinguish raw fixed events from generated routine blocks, but not in v0.
 
@@ -436,15 +458,17 @@ v0 admin impact should be minimal.
 Recommendation:
 
 - Add no admin write controls for schedule events in v0.
-- If admin visibility is included, make it read-only.
+- Admin visibility is read-only and high-level only.
 - Show high-level schedule-event signals only if needed for support:
+  - total event count;
   - count of upcoming events;
+  - count of archived events;
   - latest event date;
-  - categories present.
+- categories present later if useful.
 - Do not show detailed notes by default.
 - Do not allow admin to create, edit, archive, restore, or delete user schedule events.
 
-Admin visibility can wait until user-facing Schedule behavior is validated.
+Admin visibility should stay limited until user-facing Schedule behavior is validated.
 
 ## 13. Privacy And Safety
 
@@ -503,10 +527,11 @@ Phase A - Docs/spec:
 Phase B - DB migration:
 
 - Completed locally in `d8d2ccc`: add `app_schedule_events` table.
+- Completed locally in `b01aa88`: add grant hardening migration.
 - Add constraints and indexes.
 - Enable RLS.
 - Grant service role access.
-- Do not expose public client access.
+- Do not expose public client access; revoke direct anon/authenticated grants in the hardening migration.
 
 Phase C - API:
 
@@ -518,17 +543,19 @@ Phase C - API:
 Phase D - Simple UI:
 
 - Completed locally in `1798cb7`, `f20664f`, and `a10cc9a`: add Schedule section in Settings, quick add, upcoming events, week filter, schedule notes, edit, and archive/restore.
+- Completed locally in `c9e5972`, `e626618`, `6068da9`, `bc61b3a`, `d1ae3d1`, `7647391`, and `e67eb6a`: promote Schedule to a top-level tab, add Home preview, connect Create, add limited bulk quick add, add overload hints, clarify archive and notes flows.
 
 Phase E - Generation integration:
 
 - Completed locally in `dd668e5`: load schedule events for selected week.
 - Completed locally in `dd668e5`: add "Known schedule events for this week" prompt section.
+- Completed locally in `27d68e2`: include schedule context in calendar export descriptions.
 - Preserve current weekly request review.
 - Save fuller event snapshot in `plan_json` later if support/debugging requires it.
 
 Phase F - Admin visibility:
 
-- Add read-only high-level visibility only if needed.
+- Completed locally in `eed015f`: add read-only schedule event counts and latest event date.
 - Keep detailed notes hidden unless support need is explicit.
 
 Phase G - QA:

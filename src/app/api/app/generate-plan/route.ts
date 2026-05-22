@@ -85,6 +85,22 @@ type AppUserPreferences = {
   planning_notes: string;
 };
 
+type AppScheduleEvent = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  title: string;
+  category: string;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  all_day: boolean;
+  notes: string;
+  source: string;
+  is_archived: boolean;
+};
+
 type UsageSummary = {
   monthUsed: number;
   monthLimit: number;
@@ -145,6 +161,22 @@ const appUserPreferencesColumns = [
   "things_to_avoid_after_work",
   "default_week_start_day",
   "planning_notes",
+].join(",");
+
+const appScheduleEventColumns = [
+  "id",
+  "created_at",
+  "updated_at",
+  "app_user_id",
+  "title",
+  "category",
+  "event_date",
+  "start_time",
+  "end_time",
+  "all_day",
+  "notes",
+  "source",
+  "is_archived",
 ].join(",");
 
 export async function POST(request: Request) {
@@ -305,10 +337,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const scheduleEvents = await getScheduleEventsForWeek(
+      config.supabaseRestUrl,
+      config.headers,
+      session.appUserId,
+      planRequest.week_start_date,
+      planRequest.week_end_date,
+    );
+
     const draft = await generatePlan(
       openAiApiKey,
       process.env.OPENAI_MODEL || "gpt-5.2",
-      buildPlanPrompt(planRequest, preferences),
+      buildPlanPrompt(planRequest, preferences, scheduleEvents),
     );
 
     if (!draft) {
@@ -354,6 +394,7 @@ export async function POST(request: Request) {
           schedule_type: planRequest.schedule_type,
           preferred_plan_style: planRequest.preferred_plan_style,
           saved_preferences_used: Boolean(preferences),
+          schedule_events_used: scheduleEvents.length,
           generated_at: new Date().toISOString(),
         },
         generation_source: "openai",
@@ -387,6 +428,7 @@ export async function POST(request: Request) {
         month_limit: usage.monthLimit,
         day_used: usage.dayUsed + 1,
         day_limit: usage.dayLimit,
+        schedule_events_used: scheduleEvents.length,
       },
     });
 
@@ -610,6 +652,42 @@ async function getUserPreferences(
   return rows[0] || null;
 }
 
+async function getScheduleEventsForWeek(
+  supabaseRestUrl: string,
+  headers: Record<string, string>,
+  appUserId: string,
+  weekStartDate: string,
+  weekEndDate: string,
+) {
+  const query = new URLSearchParams({
+    select: appScheduleEventColumns,
+    app_user_id: `eq.${appUserId}`,
+    is_archived: "eq.false",
+    order: "event_date.asc,start_time.asc,created_at.asc",
+  });
+
+  query.append("event_date", `gte.${weekStartDate}`);
+  query.append("event_date", `lte.${weekEndDate}`);
+
+  try {
+    const response = await fetch(
+      `${supabaseRestUrl}/app_schedule_events?${query}`,
+      {
+        headers,
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) return [];
+
+    return ((await response.json()) as AppScheduleEvent[]).filter(
+      (event) => event.app_user_id === appUserId,
+    );
+  } catch {
+    return [];
+  }
+}
+
 async function getNextGenerationNumber(
   supabaseRestUrl: string,
   headers: Record<string, string>,
@@ -780,6 +858,7 @@ function buildPlanTitle(planRequest: AppPlanRequest) {
 function buildPlanPrompt(
   planRequest: AppPlanRequest,
   preferences: AppUserPreferences | null,
+  scheduleEvents: AppScheduleEvent[],
 ) {
   return [
     "SHIFTPLAN APP WEEKLY PLAN",
@@ -828,6 +907,17 @@ function buildPlanPrompt(
       ["Anything to avoid", planRequest.anything_to_avoid],
       ["Preferred plan style", planRequest.preferred_plan_style],
     ]),
+    "",
+    "Known schedule events for this week:",
+    formatScheduleEventsForPrompt(scheduleEvents),
+    "",
+    "Master Schedule event rules:",
+    "Use these schedule events as fixed commitments.",
+    "Do not invent schedule events, event dates, event times, appointments, deadlines, clinicals, classes, errands, travel, family responsibilities, or workouts.",
+    "Keep exact event dates and times from the known schedule events.",
+    "Build the weekly plan around these commitments.",
+    "Keep exact work shifts from the weekly request as primary when provided.",
+    "If known schedule events conflict with exact work shifts or weekly request details, flag the conflict in the plan instead of silently changing dates or times.",
     "",
     "Saved user preferences:",
     formatSavedPreferences(preferences),
@@ -941,6 +1031,34 @@ function formatSavedPreferences(preferences: AppUserPreferences | null) {
     ["Default week start day", preferences.default_week_start_day],
     ["Planning notes", preferences.planning_notes],
   ]);
+}
+
+function formatScheduleEventsForPrompt(events: AppScheduleEvent[]) {
+  if (events.length === 0) {
+    return "None saved for the selected week.";
+  }
+
+  return events
+    .map((event) =>
+      [
+        `- ${event.event_date} / ${event.category}: ${event.title}`,
+        `Timing: ${formatScheduleEventTiming(event)}`,
+        event.notes ? `Notes: ${event.notes.trim()}` : "",
+      ]
+        .filter(Boolean)
+        .join(" / "),
+    )
+    .join("\n");
+}
+
+function formatScheduleEventTiming(event: AppScheduleEvent) {
+  if (event.all_day) return "All day";
+  if (event.start_time && event.end_time) {
+    return `${event.start_time} to ${event.end_time}`;
+  }
+  if (event.start_time) return event.start_time;
+  if (event.end_time) return `Ends ${event.end_time}`;
+  return "Time not provided";
 }
 
 function hasSavedPreferences(preferences: AppUserPreferences) {

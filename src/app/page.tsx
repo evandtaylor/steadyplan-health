@@ -66,18 +66,18 @@ const appSignals = [
 
 const appBetaFeatures = [
   "AI weekly plan generation",
+  "Master Schedule beta",
   "Saved preferences",
-  "Plan history",
-  "Use last week as a starting point",
+  "Checklist by day",
+  "Calendar export",
   "Feedback under each plan",
 ];
 
 const comingNextFeatures = [
-  "More human plan output",
-  "Interactive checklist",
-  "Add-to-calendar export",
-  "Weekly reminders",
-  "Better mobile app layout",
+  "Faster schedule entry",
+  "More useful week-to-week reuse",
+  "Master Schedule polish",
+  "Better mobile QA",
   "Public accounts later",
   "iPhone app later",
 ];
@@ -425,7 +425,7 @@ export default function Home() {
                 </ul>
               </div>
               <div className="rounded-lg border border-white/10 bg-slate-950/65 p-5">
-                <h3 className="font-semibold text-white">Coming next</h3>
+                <h3 className="font-semibold text-white">Still improving</h3>
                 <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
                   {comingNextFeatures.map((feature) => (
                     <li key={feature} className="flex gap-3">

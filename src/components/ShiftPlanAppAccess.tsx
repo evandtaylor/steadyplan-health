@@ -938,6 +938,25 @@ function AppDashboard({
   const lastSavedRequest = lastSavedRequestId
     ? requests.find((request) => request.id === lastSavedRequestId) || null
     : null;
+  const activeScheduleEvents = useMemo(
+    () => sortScheduleEvents(scheduleEvents.filter((event) => !event.is_archived)),
+    [scheduleEvents],
+  );
+  const homeScheduleStartDate = getLocalIsoDate();
+  const homeScheduleEndDate = calculateEndDate(homeScheduleStartDate);
+  const homeScheduleEvents = useMemo(
+    () =>
+      homeScheduleEndDate
+        ? activeScheduleEvents.filter((event) =>
+            isScheduleEventInRange(
+              event,
+              homeScheduleStartDate,
+              homeScheduleEndDate,
+            ),
+          )
+        : [],
+    [activeScheduleEvents, homeScheduleEndDate, homeScheduleStartDate],
+  );
   function openAppView(view: AppCommandView, targetId?: string) {
     setActiveView(view);
     window.setTimeout(() => {
@@ -946,6 +965,25 @@ function AppDashboard({
         : document.getElementById("app-command-views");
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 0);
+  }
+
+  function handleUseHomeScheduleWeek() {
+    if (homeScheduleEvents.length > 0) {
+      updateField(
+        "weekSummary",
+        appendUniqueText(
+          form.weekSummary,
+          buildScheduleEventsSummary(
+            homeScheduleEvents,
+            "Known schedule events for this week:",
+          ),
+        ),
+      );
+    }
+
+    updateField("weekStartDate", homeScheduleStartDate);
+    setScheduleWeekFilterStart(homeScheduleStartDate);
+    openAppView("create", "weekly-request");
   }
 
   const loadRequests = useCallback(async () => {
@@ -2153,6 +2191,59 @@ function AppDashboard({
                     Checklist: {latestChecklistItemCount || "none"}
                   </span>
                 </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm leading-6 text-slate-300 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-teal-300">
+                      This week from your schedule
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      {homeScheduleEvents.length > 0
+                        ? `${homeScheduleEvents.length} known commitment${
+                            homeScheduleEvents.length === 1 ? "" : "s"
+                          } saved for the next 7 days.`
+                        : "Add known shifts, clinicals, classes, and appointments in Schedule."}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:min-w-44">
+                    <button
+                      type="button"
+                      onClick={() => openAppView("schedule", "master-schedule")}
+                      className="inline-flex w-full items-center justify-center rounded-xl border border-teal-300/30 bg-teal-300/10 px-4 py-2 text-sm font-semibold text-teal-50 transition hover:bg-teal-300/20 focus:outline-none focus:ring-2 focus:ring-teal-300"
+                    >
+                      Open Schedule
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUseHomeScheduleWeek}
+                      disabled={homeScheduleEvents.length === 0}
+                      className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-teal-300 disabled:cursor-not-allowed disabled:text-slate-500"
+                    >
+                      Generate from this week
+                    </button>
+                  </div>
+                </div>
+                {homeScheduleEvents.length > 0 ? (
+                  <ul className="mt-4 grid gap-2">
+                    {homeScheduleEvents.slice(0, 5).map((event) => (
+                      <li
+                        key={event.id}
+                        className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2"
+                      >
+                        <span className="font-semibold text-white">
+                          {formatCompactReadableDate(event.event_date)}
+                        </span>{" "}
+                        <span>{event.title}</span>
+                        <span className="text-slate-400">
+                          {" "}
+                          / {formatScheduleEventTiming(event)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </section>
             </div>
           ) : null}
@@ -6487,4 +6578,21 @@ function formatScheduleEventTiming(event: AppScheduleEvent) {
   if (event.start_time) return event.start_time;
   if (event.end_time) return `Ends ${event.end_time}`;
   return "Time not set";
+}
+
+function buildScheduleEventsSummary(
+  events: AppScheduleEvent[],
+  heading = "Known schedule events:",
+) {
+  if (events.length === 0) return "";
+
+  return [
+    heading,
+    ...sortScheduleEvents(events).map(
+      (event) =>
+        `- ${formatCompactReadableDate(event.event_date)} | ${formatScheduleEventTiming(
+          event,
+        )} | ${event.category} | ${event.title}`,
+    ),
+  ].join("\n");
 }

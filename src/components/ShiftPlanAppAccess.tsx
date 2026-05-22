@@ -648,13 +648,12 @@ const workoutNoScheduleOptions = [
 ];
 
 const futureFeatureOptions = [
-  "Interactive checklist",
-  "Add to calendar",
-  "Weekly reminders",
+  "Faster schedule entry",
+  "Better plan editing",
+  "Smarter week-to-week reuse",
+  "More Schedule templates",
+  "Calendar export polish",
   "Better mobile layout",
-  "Editable plans",
-  "Plan history",
-  "Today view",
   "iPhone app",
   "Voice input",
 ];

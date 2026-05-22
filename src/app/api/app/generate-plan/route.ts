@@ -1002,7 +1002,7 @@ function buildPlanPrompt(
     "Do not repeat every timeline detail in the checklist.",
     "",
     "Important disclaimer text to include:",
-    "ShiftPlan is for lifestyle and routine organization only. It does not provide medical advice, diagnosis, treatment, fatigue treatment, burnout treatment, sleep disorder guidance, medication guidance, supplement guidance, healthcare guidance, mental health guidance, workplace safety guidance, or emergency support.",
+    "ShiftPlan is for lifestyle and routine organization only. It is not medical advice, treatment, healthcare guidance, workplace safety guidance, or emergency support. Review dates, times, and assumptions before relying on this plan.",
   ].join("\n");
 }
 

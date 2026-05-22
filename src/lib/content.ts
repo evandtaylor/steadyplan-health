@@ -2,7 +2,7 @@ export const siteDisclaimer =
   "ShiftPlan is a lifestyle organization and routine planning tool. It does not provide medical advice, diagnosis, or treatment. It does not treat fatigue, burnout, sleep disorders, anxiety, or any medical condition.";
 
 export const navLinks = [
-  { href: "/#how-it-works", label: "How It Works" },
+  { href: "/how-it-works", label: "How it works" },
   { href: "/beta/shiftplan", label: "Free Reset Plan" },
   { href: "/#pricing", label: "Pricing" },
   { href: "/#faq", label: "FAQ" },

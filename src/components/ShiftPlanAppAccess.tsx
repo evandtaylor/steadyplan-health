@@ -805,6 +805,12 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
             >
               Don&apos;t have access? Join the waitlist
             </Link>
+            <Link
+              href="/how-it-works"
+              className="inline-flex w-full items-center justify-center rounded-lg border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-teal-300 sm:w-fit"
+            >
+              New here? See how ShiftPlan works
+            </Link>
           </div>
           <p className="mt-5 rounded-lg border border-slate-700 bg-slate-900 p-4 text-sm leading-6 text-slate-300">
             {loginSafetyCopy}
@@ -2941,7 +2947,7 @@ function AppDashboard({
         ) : null}
 
         {activeView === "defaults" ? (
-          <section className="order-3 mt-6 grid gap-4 md:grid-cols-2">
+          <section className="order-3 mt-6 grid gap-4 lg:grid-cols-3">
             <article className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950 shadow-sm">
               <p className="font-semibold">Private beta</p>
               <p className="mt-2">
@@ -2958,6 +2964,19 @@ function AppDashboard({
                 Home Screen.
               </p>
             </details>
+            <article className="rounded-2xl border border-teal-200 bg-teal-50 p-5 text-sm leading-6 text-teal-950 shadow-sm">
+              <p className="font-semibold">Need the walkthrough?</p>
+              <p className="mt-2">
+                See the simple ShiftPlan flow without changing anything in your
+                account.
+              </p>
+              <Link
+                href="/how-it-works"
+                className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-950 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400 sm:w-fit"
+              >
+                How ShiftPlan works
+              </Link>
+            </article>
           </section>
         ) : null}
 

@@ -52,9 +52,18 @@ That email and access code did not work.
 
 Because the test account could not authenticate, authenticated `/app` QA was stopped per instructions. No weekly request was created and no AI plan was generated.
 
+Rerun after reported reset:
+
+- Date/time: 2026-05-21 23:54 EDT
+- Result: still blocked
+- HTTP status: `401`
+- Message: `That email and access code did not work.`
+
 Recommended action:
 
-- Reset or reactivate the `agent-mode-test@shiftplan.ai` app access code in `/admin`.
+- Confirm the `agent-mode-test@shiftplan.ai` access record exists in the live production database.
+- Confirm the record is active, unexpired, and tied to the intended raw code.
+- If needed, reset the app access code again in `/admin` and copy the newly generated raw code exactly once.
 - After reset, rerun the authenticated QA pass from Task 2 onward.
 
 ## Create Flow Result
@@ -133,4 +142,3 @@ No runtime changes were made because the only confirmed blocker was account acce
 
 - Ready for Emily retest: no, not from this QA pass. The repeatable test account must be fixed first.
 - Ready for 2-3 more beta testers: no, not from this QA pass. Fresh authenticated generation, checklist, calendar export, and feedback still need to pass.
-

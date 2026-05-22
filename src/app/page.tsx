@@ -137,8 +137,9 @@ export default function Home() {
                 schedules.
               </p>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-teal-100">
-                Add what you know ahead of time, then generate weekly plans
-                around it.
+                Private beta app: add known shifts, school, clinicals,
+                appointments, and deadlines ahead of time, then generate weekly
+                plans around what is already on your calendar.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <TrackedLink

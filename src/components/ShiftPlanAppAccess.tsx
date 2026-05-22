@@ -4145,10 +4145,14 @@ function MasterSchedulePanel({
               className="text-sm font-semibold text-blue-950"
             >
               Paste what you know
+              <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs uppercase text-blue-800">
+                Optional
+              </span>
             </label>
             <p className="mt-1 text-sm leading-6 text-blue-900">
-              Example: I work Mon/Tue/Wed 7a-7p for the next 3 weeks, clinical
-              every Friday, class Tuesdays.
+              Use this when you know a lot but do not want to add every event
+              yet. Example: I work Mon/Tue/Wed 7a-7p for the next 3 weeks,
+              clinical every Friday, class Tuesdays.
             </p>
             <textarea
               id="scheduleNotesDraft"
@@ -4157,7 +4161,8 @@ function MasterSchedulePanel({
               className="field-control mt-3 min-h-24"
             />
             <p className="mt-2 text-xs leading-5 text-blue-900">
-              Detailed event parsing is coming later.
+              Detailed event parsing is coming later. For exact dates and
+              times, add events above.
             </p>
             <button
               type="button"
@@ -4165,7 +4170,7 @@ function MasterSchedulePanel({
               disabled={!notesDraft.trim()}
               className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
             >
-              Use this as notes
+              Use notes in this week&apos;s plan
             </button>
             {notesMessage ? (
               <p className="mt-3 rounded-lg border border-blue-200 bg-white p-3 text-sm leading-6 text-blue-950">

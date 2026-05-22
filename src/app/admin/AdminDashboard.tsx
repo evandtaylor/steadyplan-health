@@ -303,6 +303,14 @@ type AppAccessCodeEditForm = {
   isActive: boolean;
 };
 
+type AppAccessCodeDuplicateInfo = {
+  email: string;
+  totalCount: number;
+  activeCount: number;
+  expiredCount: number;
+  activeUnexpiredCount: number;
+};
+
 const groups: { id: AdminGroup; label: string }[] = [
   { id: "free", label: "Free Reset / Beta" },
   { id: "custom", label: "Custom Plan" },
@@ -1275,6 +1283,15 @@ function AppAccessCodeManager({
   const [inviteCopyState, setInviteCopyState] = useState<
     "" | "copied" | "failed"
   >("");
+  const duplicateAccessCodeInfo = useMemo(
+    () => getDuplicateAccessCodeInfo(accessCodes),
+    [accessCodes],
+  );
+  const duplicateAccessCodeGroups = Array.from(
+    duplicateAccessCodeInfo.values(),
+  ).sort((firstGroup, secondGroup) =>
+    firstGroup.email.localeCompare(secondGroup.email),
+  );
 
   function getEditForm(accessCode: AppAccessCodeAdmin) {
     return editForms[accessCode.id] || createAppAccessCodeEditForm(accessCode);
@@ -1768,6 +1785,32 @@ function AppAccessCodeManager({
           </p>
         </div>
 
+        {duplicateAccessCodeGroups.length > 0 ? (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <p className="font-semibold">
+              Duplicate access codes found for this email. Keep only one active,
+              unexpired code to avoid login confusion.
+            </p>
+            <div className="mt-3 grid gap-2">
+              {duplicateAccessCodeGroups.map((group) => (
+                <div
+                  key={group.email}
+                  className="rounded-lg border border-amber-200 bg-white/70 p-3"
+                >
+                  <p className="break-all font-semibold text-amber-950">
+                    {group.email}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-900">
+                    {group.totalCount} rows / {group.activeCount} active /{" "}
+                    {group.expiredCount} expired /{" "}
+                    {group.activeUnexpiredCount} active unexpired
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {accessCodes.length === 0 ? (
           <EmptyState message="No app access codes yet." />
         ) : (
@@ -1775,11 +1818,24 @@ function AppAccessCodeManager({
             {accessCodes.map((accessCode) => {
               const editForm = getEditForm(accessCode);
               const resetCode = resetCodes[accessCode.id] || "";
+              const normalizedEmail = normalizeAppAccessCodeEmail(
+                accessCode.email,
+              );
+              const duplicateInfo =
+                duplicateAccessCodeInfo.get(normalizedEmail) || null;
+              const isDuplicateRow = Boolean(duplicateInfo);
+              const isExpiredRow = isAppAccessCodeExpired(accessCode);
+              const isActiveDuplicate =
+                isDuplicateRow && accessCode.is_active;
 
               return (
                 <article
                   key={accessCode.id}
-                  className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                  className={`rounded-lg border p-4 ${
+                    isDuplicateRow
+                      ? "border-amber-300 bg-amber-50"
+                      : "border-slate-200 bg-slate-50"
+                  }`}
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                     <div>
@@ -1795,6 +1851,26 @@ function AppAccessCodeManager({
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {isDuplicateRow ? (
+                        <span className="w-fit rounded-lg bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-900">
+                          Duplicate email
+                        </span>
+                      ) : null}
+                      {isActiveDuplicate ? (
+                        <span className="w-fit rounded-lg bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-900">
+                          Active duplicate
+                        </span>
+                      ) : null}
+                      {isExpiredRow ? (
+                        <span className="w-fit rounded-lg bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-900">
+                          Expired
+                        </span>
+                      ) : null}
+                      {duplicateInfo ? (
+                        <span className="w-fit rounded-lg bg-white px-3 py-1 text-sm font-semibold text-amber-900">
+                          {duplicateInfo.activeUnexpiredCount} active unexpired
+                        </span>
+                      ) : null}
                       <span
                         className={`w-fit rounded-lg px-3 py-1 text-sm font-semibold ${
                           accessCode.is_active
@@ -3493,6 +3569,58 @@ function createAppAccessCodeEditForm(
     notes: accessCode.notes || "",
     isActive: accessCode.is_active,
   };
+}
+
+function normalizeAppAccessCodeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isAppAccessCodeExpired(accessCode: AppAccessCodeAdmin) {
+  if (!accessCode.expires_at) return false;
+
+  const expiresAt = new Date(accessCode.expires_at).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
+function getDuplicateAccessCodeInfo(accessCodes: AppAccessCodeAdmin[]) {
+  const accessCodesByEmail = new Map<string, AppAccessCodeAdmin[]>();
+
+  for (const accessCode of accessCodes) {
+    const email = normalizeAppAccessCodeEmail(accessCode.email);
+    if (!email) continue;
+
+    const currentAccessCodes = accessCodesByEmail.get(email) || [];
+    currentAccessCodes.push(accessCode);
+    accessCodesByEmail.set(email, currentAccessCodes);
+  }
+
+  const duplicateInfo = new Map<string, AppAccessCodeDuplicateInfo>();
+
+  for (const [email, groupedAccessCodes] of accessCodesByEmail.entries()) {
+    if (groupedAccessCodes.length < 2) continue;
+
+    let activeCount = 0;
+    let expiredCount = 0;
+    let activeUnexpiredCount = 0;
+
+    for (const accessCode of groupedAccessCodes) {
+      const isExpired = isAppAccessCodeExpired(accessCode);
+
+      if (accessCode.is_active) activeCount += 1;
+      if (isExpired) expiredCount += 1;
+      if (accessCode.is_active && !isExpired) activeUnexpiredCount += 1;
+    }
+
+    duplicateInfo.set(email, {
+      email,
+      totalCount: groupedAccessCodes.length,
+      activeCount,
+      expiredCount,
+      activeUnexpiredCount,
+    });
+  }
+
+  return duplicateInfo;
 }
 
 function formatDateTimeLocalInput(value: string | null) {

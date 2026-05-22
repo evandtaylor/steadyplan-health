@@ -957,6 +957,23 @@ function AppDashboard({
         : [],
     [activeScheduleEvents, homeScheduleEndDate, homeScheduleStartDate],
   );
+  const createScheduleStartDate = isValidIsoDate(form.weekStartDate)
+    ? form.weekStartDate
+    : homeScheduleStartDate;
+  const createScheduleEndDate = calculateEndDate(createScheduleStartDate);
+  const createWeekScheduleEvents = useMemo(
+    () =>
+      createScheduleEndDate
+        ? activeScheduleEvents.filter((event) =>
+            isScheduleEventInRange(
+              event,
+              createScheduleStartDate,
+              createScheduleEndDate,
+            ),
+          )
+        : [],
+    [activeScheduleEvents, createScheduleEndDate, createScheduleStartDate],
+  );
   function openAppView(view: AppCommandView, targetId?: string) {
     setActiveView(view);
     window.setTimeout(() => {
@@ -984,6 +1001,22 @@ function AppDashboard({
     updateField("weekStartDate", homeScheduleStartDate);
     setScheduleWeekFilterStart(homeScheduleStartDate);
     openAppView("create", "weekly-request");
+  }
+
+  function handleUseCreateScheduleEvents() {
+    if (createWeekScheduleEvents.length === 0) return;
+
+    updateField(
+      "weekSummary",
+      appendUniqueText(
+        form.weekSummary,
+        buildScheduleEventsSummary(
+          createWeekScheduleEvents,
+          "Known schedule events for this ShiftPlan:",
+        ),
+      ),
+    );
+    setRequestMessage("Known schedule events added to this weekly request.");
   }
 
   const loadRequests = useCallback(async () => {
@@ -2948,6 +2981,55 @@ function AppDashboard({
                 </Field>
 
               </div>
+
+              <section className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-950">
+                      Known this week
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-blue-900">
+                      {createWeekScheduleEvents.length > 0
+                        ? `${createWeekScheduleEvents.length} saved schedule event${
+                            createWeekScheduleEvents.length === 1 ? "" : "s"
+                          } can be included in this request.`
+                        : "No saved schedule events found for this week."}
+                    </p>
+                  </div>
+                  {createWeekScheduleEvents.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleUseCreateScheduleEvents}
+                      className="inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-fit"
+                    >
+                      Use schedule events in this ShiftPlan
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openAppView("schedule", "master-schedule")}
+                      className="inline-flex w-full items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-950 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400 sm:w-fit"
+                    >
+                      Add known schedule events first
+                    </button>
+                  )}
+                </div>
+                {createWeekScheduleEvents.length > 0 ? (
+                  <ul className="mt-3 grid gap-2 text-sm leading-6 text-blue-950">
+                    {createWeekScheduleEvents.slice(0, 5).map((event) => (
+                      <li
+                        key={event.id}
+                        className="rounded-lg border border-blue-100 bg-white px-3 py-2"
+                      >
+                        <span className="font-semibold">
+                          {formatCompactReadableDate(event.event_date)}
+                        </span>{" "}
+                        {event.title} / {formatScheduleEventTiming(event)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
 
               <Field
                 id="workSchedule"

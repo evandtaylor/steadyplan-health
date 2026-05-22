@@ -2403,7 +2403,7 @@ function AppDashboard({
                       disabled={homeScheduleEvents.length === 0}
                       className="inline-flex w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.12] focus:outline-none focus:ring-2 focus:ring-teal-300 disabled:cursor-not-allowed disabled:text-slate-500"
                     >
-                      Generate from this week
+                      Use this week in Create
                     </button>
                   </div>
                 </div>

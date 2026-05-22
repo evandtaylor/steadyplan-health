@@ -231,6 +231,35 @@ type ScheduleQuickAddTemplate = {
   notes: string;
 };
 
+type ScheduleBulkPattern = "work" | "clinical" | "class" | "deadline";
+
+type ScheduleBulkEventInput = {
+  title: string;
+  category: string;
+  eventDate: string;
+  startTime: string;
+  endTime: string;
+  allDay: boolean;
+  notes: string;
+};
+
+type ScheduleBulkCreateResult = {
+  ok: boolean;
+  message: string;
+};
+
+type ScheduleBulkQuickAddState = {
+  pattern: ScheduleBulkPattern;
+  title: string;
+  daysOfWeek: number[];
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  weeks: string;
+  deadlineDate: string;
+  notes: string;
+};
+
 type WorkoutPlanBuilderState = {
   mainGoal: string;
   otherGoal: string;
@@ -467,6 +496,38 @@ const scheduleQuickAddTemplates: ScheduleQuickAddTemplate[] = [
     allDay: false,
     notes: "Add the training focus and keep it realistic around shifts.",
   },
+];
+
+const initialScheduleBulkQuickAddState: ScheduleBulkQuickAddState = {
+  pattern: "work",
+  title: "Work shift",
+  daysOfWeek: [],
+  dayOfWeek: "5",
+  startTime: "07:00",
+  endTime: "19:00",
+  weeks: "1",
+  deadlineDate: "",
+  notes: "",
+};
+
+const scheduleBulkPatternOptions: Array<{
+  value: ScheduleBulkPattern;
+  label: string;
+}> = [
+  { value: "work", label: "Work pattern" },
+  { value: "clinical", label: "Clinical pattern" },
+  { value: "class", label: "Class pattern" },
+  { value: "deadline", label: "Deadline" },
+];
+
+const weekdayOptions = [
+  { value: 0, label: "Sun" },
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
 ];
 
 const workoutGoalOptions = [
@@ -1408,6 +1469,77 @@ function AppDashboard({
       );
     } catch {
       setScheduleEventMessage("Could not update schedule event right now.");
+    }
+  }
+
+  async function handleScheduleBulkCreate(
+    eventsToCreate: ScheduleBulkEventInput[],
+  ): Promise<ScheduleBulkCreateResult> {
+    if (eventsToCreate.length === 0) {
+      return { ok: false, message: "Preview at least one event first." };
+    }
+
+    if (eventsToCreate.length > 60) {
+      return {
+        ok: false,
+        message: "Create 60 or fewer schedule events at a time.",
+      };
+    }
+
+    const createdEvents: AppScheduleEvent[] = [];
+    setIsSavingScheduleEvent(true);
+    setScheduleEventMessage("");
+
+    try {
+      for (const eventToCreate of eventsToCreate) {
+        const response = await fetch("/api/app/schedule-events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: eventToCreate.title,
+            category: eventToCreate.category,
+            event_date: eventToCreate.eventDate,
+            start_time: eventToCreate.startTime,
+            end_time: eventToCreate.endTime,
+            all_day: eventToCreate.allDay,
+            notes: eventToCreate.notes,
+            source: "manual",
+          }),
+        });
+        const result = (await response.json()) as ScheduleEventsResponse;
+
+        if (!response.ok || !result.event) {
+          throw new Error(result.message || "Could not save every event.");
+        }
+
+        createdEvents.push(result.event);
+      }
+
+      setScheduleEvents((currentEvents) =>
+        sortScheduleEvents([
+          ...createdEvents,
+          ...currentEvents.filter(
+            (event) => !createdEvents.some((created) => created.id === event.id),
+          ),
+        ]),
+      );
+
+      const message = `Added ${createdEvents.length} schedule event${
+        createdEvents.length === 1 ? "" : "s"
+      }.`;
+      setScheduleEventMessage(message);
+      return { ok: true, message };
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not add those schedule events right now.";
+      setScheduleEventMessage(message);
+      return { ok: false, message };
+    } finally {
+      setIsSavingScheduleEvent(false);
     }
   }
 
@@ -2492,6 +2624,7 @@ function AppDashboard({
             onUseScheduleNotes={handleUseScheduleNotes}
             onFieldChange={updateScheduleEventField}
             onSubmit={handleScheduleEventSubmit}
+            onBulkCreate={handleScheduleBulkCreate}
             onCancelEdit={resetScheduleEventForm}
             onEditEvent={editScheduleEvent}
             onArchiveEvent={(eventId) =>
@@ -3594,6 +3727,7 @@ function MasterSchedulePanel({
   onUseScheduleNotes,
   onFieldChange,
   onSubmit,
+  onBulkCreate,
   onCancelEdit,
   onEditEvent,
   onArchiveEvent,
@@ -3618,6 +3752,9 @@ function MasterSchedulePanel({
     value: string | boolean,
   ) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onBulkCreate: (
+    eventsToCreate: ScheduleBulkEventInput[],
+  ) => Promise<ScheduleBulkCreateResult>;
   onCancelEdit: () => void;
   onEditEvent: (event: AppScheduleEvent) => void;
   onArchiveEvent: (eventId: string) => void;
@@ -3645,6 +3782,14 @@ function MasterSchedulePanel({
   const eventsToDisplay = showArchived
     ? sortScheduleEvents([...activeEvents, ...archivedEvents])
     : upcomingEvents;
+  const [bulkQuickAddForm, setBulkQuickAddForm] =
+    useState<ScheduleBulkQuickAddState>(initialScheduleBulkQuickAddState);
+  const [bulkQuickAddMessage, setBulkQuickAddMessage] = useState("");
+  const [isBulkQuickAddSaving, setIsBulkQuickAddSaving] = useState(false);
+  const bulkPreviewEvents = useMemo(
+    () => buildScheduleBulkPreview(bulkQuickAddForm, weekFilterStart),
+    [bulkQuickAddForm, weekFilterStart],
+  );
 
   function applyQuickAddTemplate(template: ScheduleQuickAddTemplate) {
     onFieldChange("title", template.title);
@@ -3654,6 +3799,54 @@ function MasterSchedulePanel({
     onFieldChange("endTime", template.endTime);
     onFieldChange("allDay", template.allDay);
     onFieldChange("notes", template.notes);
+  }
+
+  function updateBulkQuickAddField(
+    field: keyof ScheduleBulkQuickAddState,
+    value: string,
+  ) {
+    setBulkQuickAddForm((current) => {
+      const next = { ...current, [field]: value };
+
+      if (field === "pattern") {
+        return {
+          ...next,
+          ...getScheduleBulkPatternDefaults(value as ScheduleBulkPattern),
+        };
+      }
+
+      return next;
+    });
+    setBulkQuickAddMessage("");
+  }
+
+  function toggleBulkQuickAddDay(day: number) {
+    setBulkQuickAddForm((current) => ({
+      ...current,
+      daysOfWeek: current.daysOfWeek.includes(day)
+        ? current.daysOfWeek.filter((item) => item !== day)
+        : [...current.daysOfWeek, day].sort((firstDay, secondDay) => firstDay - secondDay),
+    }));
+    setBulkQuickAddMessage("");
+  }
+
+  async function handleBulkQuickAddSubmit() {
+    if (bulkPreviewEvents.length === 0) {
+      setBulkQuickAddMessage("Choose dates to preview before adding events.");
+      return;
+    }
+
+    setIsBulkQuickAddSaving(true);
+    const result = await onBulkCreate(bulkPreviewEvents);
+    setBulkQuickAddMessage(result.message);
+    if (result.ok) {
+      setBulkQuickAddForm((current) => ({
+        ...current,
+        deadlineDate: "",
+        notes: "",
+      }));
+    }
+    setIsBulkQuickAddSaving(false);
   }
 
   return (
@@ -3725,6 +3918,219 @@ function MasterSchedulePanel({
               pattern repeats.
             </p>
           </div>
+
+          <details className="rounded-lg border border-slate-200 bg-white p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-slate-950">
+              Add repeated schedule quickly
+            </summary>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Preview concrete dates, then add them as normal schedule events.
+              No recurrence rule is stored.
+            </p>
+
+            <div className="mt-4 grid gap-4">
+              <Field id="scheduleBulkPattern" label="Pattern">
+                <select
+                  id="scheduleBulkPattern"
+                  value={bulkQuickAddForm.pattern}
+                  onChange={(event) =>
+                    updateBulkQuickAddField("pattern", event.target.value)
+                  }
+                  className="field-control"
+                >
+                  {scheduleBulkPatternOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field id="scheduleBulkTitle" label="Title">
+                <input
+                  id="scheduleBulkTitle"
+                  value={bulkQuickAddForm.title}
+                  onChange={(event) =>
+                    updateBulkQuickAddField("title", event.target.value)
+                  }
+                  className="field-control"
+                />
+              </Field>
+
+              {bulkQuickAddForm.pattern === "work" ? (
+                <fieldset>
+                  <legend className="mb-2 text-sm font-semibold text-slate-800">
+                    Days of week
+                  </legend>
+                  <div className="flex flex-wrap gap-2">
+                    {weekdayOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={bulkQuickAddForm.daysOfWeek.includes(
+                          option.value,
+                        )}
+                        onClick={() => toggleBulkQuickAddDay(option.value)}
+                        className={`rounded-full px-3 py-2 text-sm font-semibold ring-1 transition focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                          bulkQuickAddForm.daysOfWeek.includes(option.value)
+                            ? "bg-teal-800 text-white ring-teal-800"
+                            : "bg-slate-50 text-slate-800 ring-slate-200 hover:bg-teal-50"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              ) : null}
+
+              {bulkQuickAddForm.pattern === "clinical" ||
+              bulkQuickAddForm.pattern === "class" ? (
+                <Field id="scheduleBulkDay" label="Day of week">
+                  <select
+                    id="scheduleBulkDay"
+                    value={bulkQuickAddForm.dayOfWeek}
+                    onChange={(event) =>
+                      updateBulkQuickAddField("dayOfWeek", event.target.value)
+                    }
+                    className="field-control"
+                  >
+                    {weekdayOptions.map((option) => (
+                      <option key={option.value} value={String(option.value)}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : null}
+
+              {bulkQuickAddForm.pattern === "deadline" ? (
+                <Field id="scheduleBulkDeadlineDate" label="Deadline date">
+                  <input
+                    id="scheduleBulkDeadlineDate"
+                    type="date"
+                    min="2024-01-01"
+                    max="2100-12-31"
+                    value={bulkQuickAddForm.deadlineDate}
+                    onChange={(event) =>
+                      updateBulkQuickAddField(
+                        "deadlineDate",
+                        event.target.value,
+                      )
+                    }
+                    className="field-control"
+                  />
+                </Field>
+              ) : (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field id="scheduleBulkStartTime" label="Start time">
+                      <input
+                        id="scheduleBulkStartTime"
+                        type="time"
+                        value={bulkQuickAddForm.startTime}
+                        onChange={(event) =>
+                          updateBulkQuickAddField(
+                            "startTime",
+                            event.target.value,
+                          )
+                        }
+                        className="field-control"
+                      />
+                    </Field>
+                    <Field id="scheduleBulkEndTime" label="End time">
+                      <input
+                        id="scheduleBulkEndTime"
+                        type="time"
+                        value={bulkQuickAddForm.endTime}
+                        onChange={(event) =>
+                          updateBulkQuickAddField(
+                            "endTime",
+                            event.target.value,
+                          )
+                        }
+                        className="field-control"
+                      />
+                    </Field>
+                  </div>
+
+                  <Field id="scheduleBulkWeeks" label="Number of weeks">
+                    <input
+                      id="scheduleBulkWeeks"
+                      type="number"
+                      min="1"
+                      max={
+                        bulkQuickAddForm.pattern === "work" ? "8" : "16"
+                      }
+                      value={bulkQuickAddForm.weeks}
+                      onChange={(event) =>
+                        updateBulkQuickAddField("weeks", event.target.value)
+                      }
+                      className="field-control"
+                    />
+                  </Field>
+                </>
+              )}
+
+              <TextAreaField
+                id="scheduleBulkNotes"
+                label="Notes"
+                badge="Optional"
+                helpText="Keep notes practical. Do not add sensitive medical, emergency, or confidential details."
+                value={bulkQuickAddForm.notes}
+                onChange={(value) => updateBulkQuickAddField("notes", value)}
+              />
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-sm font-semibold text-slate-950">
+                  Preview
+                </p>
+                {bulkPreviewEvents.length > 0 ? (
+                  <ul className="mt-3 grid max-h-64 gap-2 overflow-y-auto text-sm leading-6 text-slate-700">
+                    {bulkPreviewEvents.slice(0, 60).map((event) => (
+                      <li
+                        key={`${event.eventDate}-${event.category}-${event.title}-${event.startTime}`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2"
+                      >
+                        <span className="font-semibold">
+                          {formatCompactReadableDate(event.eventDate)}
+                        </span>{" "}
+                        {event.title} /{" "}
+                        {event.allDay
+                          ? "All day"
+                          : `${event.startTime || "Time not set"}${
+                              event.endTime ? ` - ${event.endTime}` : ""
+                            }`}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Choose a pattern and dates to preview events.
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void handleBulkQuickAddSubmit()}
+                disabled={
+                  isBulkQuickAddSaving ||
+                  isSaving ||
+                  bulkPreviewEvents.length === 0
+                }
+                className="inline-flex w-full items-center justify-center rounded-lg border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-950 transition hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 sm:w-fit"
+              >
+                {isBulkQuickAddSaving ? "Adding..." : "Add these events"}
+              </button>
+
+              {bulkQuickAddMessage ? (
+                <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+                  {bulkQuickAddMessage}
+                </p>
+              ) : null}
+            </div>
+          </details>
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
             <label
@@ -6677,4 +7083,129 @@ function buildScheduleEventsSummary(
         )} | ${event.category} | ${event.title}`,
     ),
   ].join("\n");
+}
+
+function getScheduleBulkPatternDefaults(pattern: ScheduleBulkPattern) {
+  if (pattern === "clinical") {
+    return {
+      title: "Clinical",
+      daysOfWeek: [],
+      dayOfWeek: "5",
+      startTime: "07:00",
+      endTime: "15:00",
+      weeks: "1",
+      deadlineDate: "",
+      notes: "",
+    };
+  }
+
+  if (pattern === "class") {
+    return {
+      title: "Class",
+      daysOfWeek: [],
+      dayOfWeek: "2",
+      startTime: "09:00",
+      endTime: "10:30",
+      weeks: "1",
+      deadlineDate: "",
+      notes: "",
+    };
+  }
+
+  if (pattern === "deadline") {
+    return {
+      title: "Deadline",
+      daysOfWeek: [],
+      dayOfWeek: "5",
+      startTime: "",
+      endTime: "",
+      weeks: "1",
+      deadlineDate: "",
+      notes: "",
+    };
+  }
+
+  return {
+    title: "Work shift",
+    daysOfWeek: [],
+    dayOfWeek: "5",
+    startTime: "07:00",
+    endTime: "19:00",
+    weeks: "1",
+    deadlineDate: "",
+    notes: "",
+  };
+}
+
+function buildScheduleBulkPreview(
+  form: ScheduleBulkQuickAddState,
+  weekFilterStart: string,
+): ScheduleBulkEventInput[] {
+  const title = form.title.trim();
+  if (!title) return [];
+
+  if (form.pattern === "deadline") {
+    if (!isValidIsoDate(form.deadlineDate)) return [];
+
+    return [
+      {
+        title,
+        category: "Assignment/deadline",
+        eventDate: form.deadlineDate,
+        startTime: "",
+        endTime: "",
+        allDay: true,
+        notes: form.notes.trim(),
+      },
+    ];
+  }
+
+  const startDate = isValidIsoDate(weekFilterStart)
+    ? weekFilterStart
+    : getLocalIsoDate();
+  const requestedWeeks = Number.parseInt(form.weeks, 10);
+  const maxWeeks = form.pattern === "work" ? 8 : 16;
+  const weekCount = Number.isFinite(requestedWeeks)
+    ? Math.min(Math.max(requestedWeeks, 1), maxWeeks)
+    : 1;
+  const category =
+    form.pattern === "work"
+      ? "Work shift"
+      : form.pattern === "clinical"
+        ? "Clinical"
+        : "Class/school";
+  const days =
+    form.pattern === "work"
+      ? form.daysOfWeek
+      : [Number.parseInt(form.dayOfWeek, 10)].filter(Number.isFinite);
+
+  return days
+    .flatMap((dayOfWeek) =>
+      Array.from({ length: weekCount }, (_, weekIndex) => ({
+        title,
+        category,
+        eventDate: addDaysToIsoDate(
+          getDateForWeekdayOnOrAfter(startDate, dayOfWeek),
+          weekIndex * 7,
+        ),
+        startTime: form.startTime,
+        endTime: form.endTime,
+        allDay: false,
+        notes: form.notes.trim(),
+      })),
+    )
+    .slice(0, 60);
+}
+
+function getDateForWeekdayOnOrAfter(startDate: string, targetDay: number) {
+  const startDay = getIsoDateWeekday(startDate);
+  if (startDay === null) return startDate;
+
+  const daysUntilTarget = (targetDay - startDay + 7) % 7;
+  return addDaysToIsoDate(startDate, daysUntilTarget);
+}
+
+function getIsoDateWeekday(value: string) {
+  if (!isValidIsoDate(value)) return null;
+  return new Date(`${value}T00:00:00Z`).getUTCDay();
 }

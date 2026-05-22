@@ -238,6 +238,13 @@ type AppBetaUsageEvent = {
   metadata: Record<string, unknown>;
 };
 
+type AppBetaScheduleEventSummary = {
+  total_count: number;
+  upcoming_count: number;
+  archived_count: number;
+  latest_event_date: string | null;
+};
+
 type AppBetaUser = {
   id: string;
   email: string;
@@ -255,6 +262,7 @@ type AppBetaUser = {
   weekly_request_count: number;
   saved_plan_count: number;
   feedback_count: number;
+  schedule_event_summary: AppBetaScheduleEventSummary;
   latest_request: AppBetaLatestRequest | null;
   latest_saved_plan: AppBetaLatestSavedPlan | null;
   latest_feedback: AppBetaLatestFeedback | null;
@@ -951,7 +959,7 @@ function AppBetaGroup({
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 <AppBetaSignal
                   label="Generated plans"
                   value={String(user.saved_plan_count)}
@@ -1004,6 +1012,16 @@ function AppBetaGroup({
                   }
                   tone={user.latest_feedback ? "amber" : "slate"}
                 />
+                <AppBetaSignal
+                  label="Schedule events"
+                  value={String(user.schedule_event_summary.total_count)}
+                  detail={`${user.schedule_event_summary.upcoming_count} upcoming, ${user.schedule_event_summary.archived_count} archived`}
+                  tone={
+                    user.schedule_event_summary.total_count > 0
+                      ? "teal"
+                      : "slate"
+                  }
+                />
               </div>
 
               <dl className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1051,6 +1069,28 @@ function AppBetaGroup({
                 <AdminField
                   label="Feedback records"
                   value={String(user.feedback_count)}
+                />
+                <AdminField
+                  label="Schedule events"
+                  value={String(user.schedule_event_summary.total_count)}
+                />
+                <AdminField
+                  label="Upcoming schedule events"
+                  value={String(user.schedule_event_summary.upcoming_count)}
+                />
+                <AdminField
+                  label="Archived schedule events"
+                  value={String(user.schedule_event_summary.archived_count)}
+                />
+                <AdminField
+                  label="Latest schedule event date"
+                  value={
+                    user.schedule_event_summary.latest_event_date
+                      ? formatPlainDate(
+                          user.schedule_event_summary.latest_event_date,
+                        )
+                      : "-"
+                  }
                 />
               </dl>
 

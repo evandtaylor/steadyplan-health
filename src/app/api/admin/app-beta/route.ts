@@ -90,6 +90,15 @@ type AppUsageEvent = {
   metadata: Record<string, unknown>;
 };
 
+type AppScheduleEventSummary = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  app_user_id: string;
+  event_date: string;
+  is_archived: boolean;
+};
+
 const appUserColumns = [
   "id",
   "created_at",
@@ -175,6 +184,15 @@ const appUsageEventColumns = [
   "metadata",
 ].join(",");
 
+const appScheduleEventSummaryColumns = [
+  "id",
+  "created_at",
+  "updated_at",
+  "app_user_id",
+  "event_date",
+  "is_archived",
+].join(",");
+
 export async function POST(request: Request) {
   let payload: AdminRequest;
 
@@ -254,6 +272,11 @@ export async function POST(request: Request) {
       order: "created_at.desc",
       limit: "300",
     }),
+    scheduleEvents: new URLSearchParams({
+      select: appScheduleEventSummaryColumns,
+      order: "event_date.desc",
+      limit: "1000",
+    }),
   };
 
   try {
@@ -265,6 +288,7 @@ export async function POST(request: Request) {
       savedPlansResponse,
       feedbackResponse,
       usageEventsResponse,
+      scheduleEventsResponse,
     ] = await Promise.all([
       fetch(`${supabaseRestUrl}/app_users?${queries.users}`, {
         headers,
@@ -294,6 +318,10 @@ export async function POST(request: Request) {
         headers,
         cache: "no-store",
       }),
+      fetch(`${supabaseRestUrl}/app_schedule_events?${queries.scheduleEvents}`, {
+        headers,
+        cache: "no-store",
+      }),
     ]);
 
     if (
@@ -303,7 +331,8 @@ export async function POST(request: Request) {
       !requestsResponse.ok ||
       !savedPlansResponse.ok ||
       !feedbackResponse.ok ||
-      !usageEventsResponse.ok
+      !usageEventsResponse.ok ||
+      !scheduleEventsResponse.ok
     ) {
       return NextResponse.json(
         {
@@ -322,6 +351,7 @@ export async function POST(request: Request) {
       savedPlans,
       feedback,
       usageEvents,
+      scheduleEvents,
     ] = (await Promise.all([
       usersResponse.json(),
       accessCodesResponse.json(),
@@ -330,6 +360,7 @@ export async function POST(request: Request) {
       savedPlansResponse.json(),
       feedbackResponse.json(),
       usageEventsResponse.json(),
+      scheduleEventsResponse.json(),
     ])) as [
       AppUser[],
       AppAccessCode[],
@@ -338,6 +369,7 @@ export async function POST(request: Request) {
       AppSavedPlan[],
       AppPlanFeedback[],
       AppUsageEvent[],
+      AppScheduleEventSummary[],
     ];
 
     const appBetaUsers = buildAppBetaUsers({
@@ -348,6 +380,7 @@ export async function POST(request: Request) {
       savedPlans,
       feedback,
       usageEvents,
+      scheduleEvents,
     });
 
     return NextResponse.json(
@@ -370,6 +403,7 @@ function buildAppBetaUsers({
   savedPlans,
   feedback,
   usageEvents,
+  scheduleEvents,
 }: {
   users: AppUser[];
   accessCodes: AppAccessCode[];
@@ -378,8 +412,10 @@ function buildAppBetaUsers({
   savedPlans: AppSavedPlan[];
   feedback: AppPlanFeedback[];
   usageEvents: AppUsageEvent[];
+  scheduleEvents: AppScheduleEventSummary[];
 }) {
   const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
   const usageMonth = now.getUTCMonth() + 1;
   const usageYear = now.getUTCFullYear();
   const dayStart = new Date(
@@ -396,6 +432,7 @@ function buildAppBetaUsers({
   const usageEventsByUserId = groupByUserId(
     usageEvents.filter((event) => event.app_user_id),
   ) as Record<string, AppUsageEvent[]>;
+  const scheduleEventsByUserId = groupByUserId(scheduleEvents);
 
   return users.map((user) => {
     const userAccessCode = user.access_code_id
@@ -405,6 +442,7 @@ function buildAppBetaUsers({
     const userSavedPlans = savedPlansByUserId[user.id] || [];
     const userFeedback = feedbackByUserId[user.id] || [];
     const userUsageEvents = usageEventsByUserId[user.id] || [];
+    const userScheduleEvents = scheduleEventsByUserId[user.id] || [];
     const plansUsedThisMonth = userSavedPlans.filter(
       (plan) => plan.usage_month === usageMonth && plan.usage_year === usageYear,
     ).length;
@@ -431,6 +469,10 @@ function buildAppBetaUsers({
       weekly_request_count: userRequests.length,
       saved_plan_count: userSavedPlans.length,
       feedback_count: userFeedback.length,
+      schedule_event_summary: buildScheduleEventSummary(
+        userScheduleEvents,
+        todayIso,
+      ),
       latest_request: userRequests[0] || null,
       latest_saved_plan: userSavedPlans[0] || null,
       latest_feedback: userFeedback[0] || null,
@@ -447,4 +489,32 @@ function groupByUserId<T extends { app_user_id?: string | null }>(rows: T[]) {
     groups[row.app_user_id].push(row);
     return groups;
   }, {});
+}
+
+function buildScheduleEventSummary(
+  scheduleEvents: AppScheduleEventSummary[],
+  todayIso: string,
+) {
+  const activeEvents = scheduleEvents.filter((event) => !event.is_archived);
+  const archivedEvents = scheduleEvents.filter((event) => event.is_archived);
+  const upcomingEvents = activeEvents.filter(
+    (event) => event.event_date >= todayIso,
+  );
+  const latestEvent = scheduleEvents.reduce<AppScheduleEventSummary | null>(
+    (latest, event) => {
+      if (!latest || event.event_date > latest.event_date) {
+        return event;
+      }
+
+      return latest;
+    },
+    null,
+  );
+
+  return {
+    total_count: scheduleEvents.length,
+    upcoming_count: upcomingEvents.length,
+    archived_count: archivedEvents.length,
+    latest_event_date: latestEvent?.event_date || null,
+  };
 }

@@ -2,6 +2,19 @@
 
 Date tested: 2026-05-21 11:55 EDT
 
+## Current Status Addendum
+
+This report is retained as historical evidence for a failed `agent-mode-test` QA pass on May 21, 2026. It is superseded for launch readiness by the later founder-authenticated production QA recorded in `docs/shiftplan-private-beta-launch-readiness-report.md`.
+
+Current readiness as of the latest report:
+
+- Founder authenticated QA passed.
+- The previous Schedule access blocker is resolved.
+- The lightweight Schedule Week view is deployed and founder-session smoke-tested.
+- Emily retest is ready.
+- 2-3 trusted testers should still wait until Emily retest passes.
+- Do not use `agent-mode-test` unless the founder confirms the duplicate/expired access-code issue has been cleaned or replaced.
+
 ## Test Account Used
 
 - Email: `agent-mode-test@shiftplan.ai`

@@ -4,7 +4,7 @@ Date: 2026-05-25
 
 ## Status
 
-Founder authenticated QA passed after the latest production deploy. Public, paid, admin-login, and app-login surfaces compile and pass smoke checks. The previous `/app` Schedule access blocker is resolved: a fresh founder login loaded `/app` signed in, Schedule opened without the app access blocker, and the Schedule event flow worked.
+Founder authenticated QA passed after the latest production deploy. Public, paid, admin-login, and app-login surfaces compile and pass smoke checks. The previous `/app` Schedule access blocker is resolved: a fresh founder login loaded `/app` signed in, Schedule opened without the app access blocker, and the Schedule event flow worked. A lightweight Schedule Week view is now deployed in production and smoke-tested with the founder session.
 
 ## What Was Audited
 
@@ -33,6 +33,7 @@ Founder authenticated QA passed after the latest production deploy. Public, paid
   - Settings
 - Source-level guardrails for Stripe links, paid intake routes, admin password gates, app access-code session helpers, and safety language
 - Founder authenticated production `/app` QA result after the latest deploy
+- Production Schedule `List` / `Week` toggle and read-only Week view after commit `e8ff954`
 
 ## What Changed
 
@@ -46,6 +47,11 @@ Founder authenticated QA passed after the latest production deploy. Public, paid
   - Preserved the existing cookie name, access-code hash algorithm, and server-side session verification.
 - `docs/shiftplan-private-beta-launch-readiness-report.md`
   - This update records the successful founder authenticated QA result and revised readiness decision.
+- `src/components/ShiftPlanAppAccess.tsx`
+  - Added a lightweight Schedule `List` / `Week` view toggle.
+  - Kept List as the familiar management view.
+  - Added a read-only Week view that groups active schedule events Monday-Sunday for the selected week.
+  - Preserved existing add, edit, archive, restore, quick add, bulk add, schedule notes, and week-filter behavior.
 
 ## What Did Not Change
 
@@ -61,6 +67,7 @@ Founder authenticated QA passed after the latest production deploy. Public, paid
 - Environment variable names
 - Supabase SQL/schema/RLS behavior
 - Safety/legal positioning
+- Schedule API contracts and persistence behavior
 
 ## Source Guardrail Evidence
 
@@ -87,6 +94,16 @@ Founder authenticated QA passed after the latest production deploy. Public, paid
 
 - `npm run lint`: passed
 - `npm run build`: passed
+- Week view commit `e8ff954`: pushed to `origin/main`.
+- Vercel production deployment for `e8ff954` reached `READY`.
+- Production route smoke checks returned `200` for `/`, `/how-it-works`, `/beta/shiftplan`, `/intake/custom-plan`, `/intake/founding-pro`, `/intake/founding-pro-weekly`, `/app`, `/admin`, `/privacy`, and `/terms`.
+- Production authenticated Schedule smoke check passed:
+  - `/app` loaded signed in.
+  - Schedule opened.
+  - List and Week toggles appeared.
+  - Week view rendered for Monday, May 25, 2026 through Sunday, May 31, 2026.
+  - Existing schedule events appeared in Week view.
+  - No test data was created during this smoke check.
 - Local route smoke checks returned `200` for all required routes.
 - Mobile visual audit at `390px` found no horizontal overflow on all required routes.
 - Desktop visual audit at `1440px` found no overflow offenders on all required routes.
@@ -110,8 +127,9 @@ Manual founder QA confirmed:
 - Schedule opened without `Open ShiftPlan app access before loading schedule events.`
 - Schedule event flow worked.
 - No schedule access blocker remains for founder QA.
+- Production Schedule Week view opened from the founder-authenticated session and displayed existing schedule events in the selected week.
 
-The previous blocker is now resolved. The product is ready for Emily retest. Invite 2-3 trusted testers only after Emily's retest confirms the flow is understandable and stable enough for non-founder use.
+The previous blocker is now resolved. The product is ready for Emily retest, including the new Schedule Week view. Invite 2-3 trusted testers only after Emily's retest confirms the flow is understandable and stable enough for non-founder use.
 
 ## Completion Criteria Audit
 
@@ -123,6 +141,7 @@ The previous blocker is now resolved. The product is ready for Emily retest. Inv
 | `/app` compiles | `/app` appears as a dynamic route in the passing build. | Proven |
 | `/app` reviewed at mobile and desktop widths | Login and synthetic signed-cookie app shell were reviewed at `390px` and `1440px`; founder authenticated production login passed. | Proven for founder QA scope |
 | `/app` login, Home, Schedule, Create, Plan, Settings checked for clarity | Login and synthetic app-shell screens were captured and reviewed; founder authenticated Schedule access and event flow passed. | Proven for founder QA scope |
+| Schedule Week view deployed and smoke-tested | Commit `e8ff954` deployed to Vercel production; founder-authenticated `/app` showed List/Week toggle, Week view, and existing schedule events. | Proven for smoke scope |
 | One obvious path from Home to request, generation, checklist, and feedback | Home/Create/Plan/Settings shell was reviewed; founder authenticated QA cleared the Schedule blocker. Emily should now retest the end-to-end weekly flow. | Ready for Emily retest |
 | UI feels cleaner, simpler, more premium, and less cluttered | Mobile header overflow/clutter was fixed and screenshots show cleaner mobile nav. | Partially proven |
 | Mobile layout feels intentional | Required route screenshots and synthetic app screenshots show no horizontal overflow at `390px`. | Proven for smoke scope |
@@ -149,13 +168,15 @@ The previous blocker is now resolved. The product is ready for Emily retest. Inv
    - `b32212a chore: add ShiftPlan goal docs and polish mobile header`
    - `5809d4e fix: restore authenticated schedule access`
    - `bca45d0 fix: align schedule access state with app session`
+   - `9db7df4 docs: record successful founder app QA`
+   - `e8ff954 feat: add lightweight schedule week view`
 5. Lint/build:
    - `npm run lint`: passed.
    - `npm run build`: passed.
 6. Routes checked:
    - `/`, `/how-it-works`, `/beta/shiftplan`, `/intake/custom-plan`, `/intake/founding-pro`, `/intake/founding-pro-weekly`, `/app`, `/admin`, `/privacy`, `/terms`.
 7. Browser/mobile QA notes:
-   - Mobile and desktop route smoke passed. Founder authenticated `/app` QA passed after production deploy, including fresh login, signed-in app load, Schedule access, and Schedule event flow.
+   - Mobile and desktop route smoke passed. Founder authenticated `/app` QA passed after production deploy, including fresh login, signed-in app load, Schedule access, Schedule event flow, and production Week view smoke.
 8. Screenshots:
    - Saved in `/private/tmp/shiftplan-qa/`.
 9. Impact:
@@ -168,14 +189,16 @@ The previous blocker is now resolved. The product is ready for Emily retest. Inv
    - Safety/legal changed: no.
 10. What improved:
    - Mobile header is cleaner, no longer horizontally scrolls, and gives beta login a clear compact placement.
+   - Schedule now has a lightweight visual Week view for scanning known commitments without replacing the existing List management flow.
 11. What was preserved:
    - Stripe links, paid routes, admin/manual fulfillment, app access-code auth, database behavior, environment names, and safety boundaries.
 12. Remaining risks:
    - Emily retest is still needed before inviting 2-3 trusted testers.
+   - Week view has only had founder-session smoke testing; Emily should verify List/Week clarity and iPhone readability with real use.
 13. Blockers:
    - None for founder authenticated Schedule QA; the previous Schedule access blocker is resolved.
 14. Recommended next task:
-   - Run Emily retest on the deployed app before inviting 2-3 trusted testers.
+   - Run Emily retest on the deployed app before inviting 2-3 trusted testers, with special attention to Schedule List vs Week, Create with schedule context, checklist, feedback, and calendar export.
 15. Ready for founder QA:
    - Passed.
 16. Ready for Emily retest:
@@ -238,19 +261,22 @@ Founder preflight:
 4. Log in with the known-good beta email/access code.
 5. Check Home first: confirm there is one obvious next action.
 6. Open Schedule: add one clearly labeled test shift or fixed commitment, then confirm it appears in the right week.
-7. Open Create: enter a realistic short week using exact shift times, one or two responsibilities, and the safety acknowledgement.
-8. Generate exactly one safe test ShiftPlan.
-9. Open Plan: confirm dates, shift times, timeline readability, Today/Next Up, checklist grouping, copy buttons, feedback shortcut, and calendar export helper copy.
-10. Submit or update one piece of plan feedback.
-11. Open Settings: confirm saved defaults are understandable and not required for a first weekly request.
-12. Open `/admin`: verify wrong password rejection, valid admin access, App Beta summary signals, App Access Codes list, and latest feedback visibility.
-13. Record results in `docs/manual-qa-results-template.md` format, including screenshots for any bug.
+7. Toggle Week view: confirm Monday-Sunday appears, events land on the correct day cards, empty days say "Nothing planned yet.", and mobile does not horizontally scroll.
+8. Toggle back to List: confirm edit/archive/restore controls are still easy to find.
+9. Open Create: enter a realistic short week using exact shift times, one or two responsibilities, and the safety acknowledgement.
+10. Generate exactly one safe test ShiftPlan.
+11. Open Plan: confirm dates, shift times, timeline readability, Today/Next Up, checklist grouping, copy buttons, feedback shortcut, and calendar export helper copy.
+12. Submit or update one piece of plan feedback.
+13. Open Settings: confirm saved defaults are understandable and not required for a first weekly request.
+14. Open `/admin`: verify wrong password rejection, valid admin access, App Beta summary signals, App Access Codes list, and latest feedback visibility.
+15. Record results in `docs/manual-qa-results-template.md` format, including screenshots for any bug.
 
 Evidence to collect:
 
 - Device, browser, and viewport or orientation.
 - Test account label and access-code label, not raw secrets.
 - Whether login, generation, checklist, calendar export, copy buttons, feedback, saved defaults, and admin summary each passed.
+- Whether Schedule List and Week views both make sense, and whether Week view is readable on iPhone.
 - Whether the plan felt realistic, what it assumed wrong, whether the tester would use ShiftPlan weekly, and whether $9/month feels fair if quality holds.
 - Screenshots for confusing mobile moments or visual bugs.
 

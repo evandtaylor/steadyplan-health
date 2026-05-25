@@ -34,6 +34,16 @@ Use this after a manual `/app` QA pass. Keep results specific enough that Codex 
 - Shift schedule entered:
 - Notes:
 
+## Schedule List / Week View
+
+- Pass / Fail:
+- List default familiar:
+- Week view Monday-Sunday:
+- Events on correct days:
+- Empty days clear:
+- iPhone overflow:
+- Notes:
+
 ## Quick Buttons / Chips
 
 - Pass / Fail:

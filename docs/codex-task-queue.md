@@ -7,6 +7,7 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
 | high | manual | medium | no | Run founder/manual QA after product polish deploy | Test public site clarity, `/app` Home/Schedule/Create/Plan/Settings, fresh generation, checklist, calendar export, feedback, and admin beta summaries. |
+| high | manual | low | no | Run Emily retest on deployed Schedule Week view | Confirm List remains familiar, Week shows Monday-Sunday, real schedule events appear on the right days, and mobile has no horizontal overflow. |
 | high | manual | medium | no | QA expanded Master Schedule v0 with real schedule events | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
 | high | manual | low | no | Generate one fresh authenticated test plan | Verify output is short, date-accurate, schedule-aware, checklist-friendly, and uses compact safety language. |
 
@@ -28,6 +29,7 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 - Usage limits live.
 - App Beta admin view live.
 - App Access Codes admin management live.
+- Lightweight Schedule Week view live in `e8ff954`.
 - Beta onboarding card live.
 - iPhone Add to Home Screen guide live.
 - Homepage app preview section live.
@@ -87,6 +89,7 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 - Runtime API created: `GET`, `POST`, and `PATCH /api/app/schedule-events`; archive/restore uses `POST /api/app/schedule-events` with an action payload.
 - UI now has a top-level `/app` Schedule view; Settings links to Schedule instead of rendering the full Schedule UI.
 - UI supports add event, edit event, archive/restore event, upcoming events list, show archived, week filter, single-event quick adds, limited bulk quick adds, schedule notes, and client-side busy-day hints.
+- UI supports a lightweight Schedule `List` / `Week` toggle; Week view groups active events Monday-Sunday for the selected week and stays read-only.
 - Home includes a compact "This week from your schedule" preview with Open Schedule and Use this week in Create actions.
 - Create includes a compact "Known this week" panel that appends a schedule summary to the weekly request without overwriting user text.
 - App generation now loads active schedule events for the weekly request date range and includes them as fixed commitments.
@@ -101,6 +104,7 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 | --- | --- | --- | --- | --- | --- |
 | high | manual | medium | no | Test top-level Schedule view | Confirm Schedule appears in `/app` nav, Settings links to it, and Home/Create/Plan/Settings remain usable. |
 | high | manual | medium | no | Test Master Schedule event CRUD | Use a private beta account; verify add, edit, archive, restore, show archived, upcoming list, and week filter. |
+| high | manual | low | no | Test Schedule Week view | Confirm List is default, Week renders Monday-Sunday, active events land on the correct date cards, empty days say "Nothing planned yet.", and iPhone layout has no horizontal overflow. |
 | high | manual | medium | no | Test Home/Create schedule connection | Confirm Home preview shows this-week events and Create can append the selected-week schedule summary without overwriting text. |
 | high | manual | low | no | Test product-quality polish | Confirm homepage private-beta/current-feature copy, `/app` login safety copy, Home schedule CTA, and feedback feature chips read correctly. |
 | high | manual | medium | no | Test weekly generation from schedule events | Add work shifts, clinical/class/deadline, and workout events inside one week; generate one plan and verify event dates/times stay fixed. |
@@ -231,6 +235,9 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `e8ff954` | Add lightweight Schedule Week view | Adds List/Week toggle and read-only Monday-Sunday visual calendar for selected week. |
+| `9db7df4` | Record successful founder app QA | Documents founder-authenticated QA pass and readiness for Emily retest. |
+| `bca45d0` | Align schedule access state with app session | Fixes production Schedule blocker by matching client state to verified app session. |
 | `0c97c3f` | Clean up ShiftPlan app redundant UI | Removes duplicate helper cards/prompts and collapses low-priority guidance. |
 | `0cf0f85` | Add ShiftPlan simple mode labels | Adds Required, Optional, Advanced, and Saved default labels where helpful. |
 | `1d62441` | Simplify ShiftPlan app AI output format | Shorter app-ready customer-side prompt structure. |

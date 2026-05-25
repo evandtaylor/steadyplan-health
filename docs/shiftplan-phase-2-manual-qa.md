@@ -32,7 +32,18 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Usage limits update after generation.
 - Notes:
 
-## 4. Timeline Output QA
+## 4. Schedule Week View QA
+
+- [ ] Pass / [ ] Fail: Schedule List is the default familiar management view.
+- [ ] Pass / [ ] Fail: Week toggle opens a Monday-Sunday visual layout.
+- [ ] Pass / [ ] Fail: Active events appear on the correct day cards.
+- [ ] Pass / [ ] Fail: Event time, title, and category are readable.
+- [ ] Pass / [ ] Fail: Empty days show "Nothing planned yet."
+- [ ] Pass / [ ] Fail: iPhone layout stacks cleanly without horizontal overflow.
+- [ ] Pass / [ ] Fail: Switching back to List keeps add, edit, archive, restore, quick add, bulk add, notes, and week filter usable.
+- Notes:
+
+## 5. Timeline Output QA
 
 - [ ] Pass / [ ] Fail: Plan starts naturally and does not include robotic labels.
 - [ ] Pass / [ ] Fail: Day-by-day timeline is easy to scan.
@@ -42,7 +53,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: No medical, treatment, or workplace safety claims appear.
 - Notes:
 
-## 5. Checklist By Day QA
+## 6. Checklist By Day QA
 
 - [ ] Pass / [ ] Fail: Interactive checklist appears when checklist items exist.
 - [ ] Pass / [ ] Fail: Items are grouped by day.
@@ -52,7 +63,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Checked state persists after refresh.
 - Notes:
 
-## 6. Calendar Export iPhone QA
+## 7. Calendar Export iPhone QA
 
 - [ ] Pass / [ ] Fail: Download Calendar button is visible.
 - [ ] Pass / [ ] Fail: Helper copy says it downloads an `.ics` file.
@@ -63,7 +74,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Export does not invent exact times from vague items.
 - Notes:
 
-## 7. Copy Plan / Copy Summary / Copy Checklist QA
+## 8. Copy Plan / Copy Summary / Copy Checklist QA
 
 - [ ] Pass / [ ] Fail: Copy Summary works.
 - [ ] Pass / [ ] Fail: Copy Plan works and includes the original full plan.
@@ -72,7 +83,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Copy states show a clear success/failure label.
 - Notes:
 
-## 8. Feedback QA
+## 9. Feedback QA
 
 - [ ] Pass / [ ] Fail: "Was this plan useful?" shortcut appears.
 - [ ] Pass / [ ] Fail: Shortcut scrolls to the correct feedback form.
@@ -82,7 +93,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Admin App Beta view shows latest feedback.
 - Notes:
 
-## 9. Saved Preferences QA
+## 10. Saved Preferences QA
 
 - [ ] Pass / [ ] Fail: Saved defaults card is easy to find.
 - [ ] Pass / [ ] Fail: Preference helper examples are clear.
@@ -91,7 +102,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Weekly request explains defaults vs this week's changes.
 - Notes:
 
-## 10. Request Reuse QA
+## 11. Request Reuse QA
 
 - [ ] Pass / [ ] Fail: Recent requests load.
 - [ ] Pass / [ ] Fail: Use as starting point copies the prior request.
@@ -99,7 +110,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Reused request can be edited before saving.
 - Notes:
 
-## 11. Homepage QA
+## 12. Homepage QA
 
 - [ ] Pass / [ ] Fail: Homepage loads.
 - [ ] Pass / [ ] Fail: App preview section appears.
@@ -109,7 +120,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Mobile layout is readable.
 - Notes:
 
-## 12. Stripe Link QA
+## 13. Stripe Link QA
 
 - [ ] Pass / [ ] Fail: Founding Pro link is unchanged.
 - [ ] Pass / [ ] Fail: Custom 7-Day link is unchanged.
@@ -117,7 +128,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Stripe CTA text still matches the offer.
 - Notes:
 
-## 13. Admin App Beta QA
+## 14. Admin App Beta QA
 
 - [ ] Pass / [ ] Fail: App Beta tab loads after admin access.
 - [ ] Pass / [ ] Fail: Generated plans signal is easy to scan.
@@ -128,7 +139,7 @@ Use this checklist before inviting more private beta testers. Run it on both des
 - [ ] Pass / [ ] Fail: Existing detailed panels still appear.
 - Notes:
 
-## 14. Bugs / Issues Notes
+## 15. Bugs / Issues Notes
 
 | Date | Area | Device | Issue | Severity | Owner | Status |
 | --- | --- | --- | --- | --- | --- | --- |

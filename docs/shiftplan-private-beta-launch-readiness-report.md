@@ -1,10 +1,10 @@
 # ShiftPlan Private Beta Launch Readiness Report
 
-Date: 2026-05-24
+Date: 2026-05-25
 
 ## Status
 
-Partially complete. Public, paid, admin-login, and app-login surfaces compile and pass mobile/desktop smoke checks. A synthetic local `/app` signed-cookie pass reviewed the authenticated app shell and tabs at mobile and desktop widths, but real authenticated `/app` QA still requires a founder-approved working beta account/access code.
+Founder authenticated QA passed after the latest production deploy. Public, paid, admin-login, and app-login surfaces compile and pass smoke checks. The previous `/app` Schedule access blocker is resolved: a fresh founder login loaded `/app` signed in, Schedule opened without the app access blocker, and the Schedule event flow worked.
 
 ## What Was Audited
 
@@ -32,6 +32,7 @@ Partially complete. Public, paid, admin-login, and app-login surfaces compile an
   - Plan
   - Settings
 - Source-level guardrails for Stripe links, paid intake routes, admin password gates, app access-code session helpers, and safety language
+- Founder authenticated production `/app` QA result after the latest deploy
 
 ## What Changed
 
@@ -40,6 +41,11 @@ Partially complete. Public, paid, admin-login, and app-login surfaces compile an
   - Replaced the mobile scroll nav with a wrapped, compact layout.
   - Added a focused mobile beta-login button beside the logo.
   - Kept the full desktop nav, including FAQ, Privacy, Terms, and the full beta-login label.
+- `src/app/api/app/access/route.ts` and `src/components/ShiftPlanAppAccess.tsx`
+  - Previously fixed the production Schedule access blocker by aligning client app state with server-verified app sessions and scoping new production app-session cookies across `shiftplan.ai` subdomains.
+  - Preserved the existing cookie name, access-code hash algorithm, and server-side session verification.
+- `docs/shiftplan-private-beta-launch-readiness-report.md`
+  - This update records the successful founder authenticated QA result and revised readiness decision.
 
 ## What Did Not Change
 
@@ -86,7 +92,26 @@ Partially complete. Public, paid, admin-login, and app-login surfaces compile an
 - Desktop visual audit at `1440px` found no overflow offenders on all required routes.
 - Synthetic signed-cookie `/app` review at `390px` and `1440px` found no horizontal overflow on login, Home, Schedule, Create, Plan, or Settings.
 - Synthetic `/app` data-backed tabs showed expected local backend-not-configured messages because this checkout has no local Supabase environment configured.
-- Real beta email/access-code login, Supabase-backed persistence, generation, feedback, usage limits, and admin beta summary were not verified in this pass.
+- Founder authenticated production QA passed after the latest deploy:
+  - Fresh founder login worked.
+  - `/app` loaded signed in.
+  - Schedule opened without the previous app access blocker.
+  - Schedule event flow worked.
+  - The manual QA blocker is cleared.
+
+## Founder Authenticated QA Result
+
+Status: passed.
+
+Manual founder QA confirmed:
+
+- Fresh `/app` login worked with a founder-approved beta account.
+- `/app` loaded the signed-in app shell.
+- Schedule opened without `Open ShiftPlan app access before loading schedule events.`
+- Schedule event flow worked.
+- No schedule access blocker remains for founder QA.
+
+The previous blocker is now resolved. The product is ready for Emily retest. Invite 2-3 trusted testers only after Emily's retest confirms the flow is understandable and stable enough for non-founder use.
 
 ## Completion Criteria Audit
 
@@ -96,39 +121,41 @@ Partially complete. Public, paid, admin-login, and app-login surfaces compile an
 | `npm run build` passes | Fresh local run passed on 2026-05-24 and listed all required routes. | Proven |
 | Public routes compile and are visually smoke-tested | Required public routes compiled, returned `200`, and have mobile/desktop screenshot artifacts. | Proven |
 | `/app` compiles | `/app` appears as a dynamic route in the passing build. | Proven |
-| `/app` reviewed at mobile and desktop widths | Login and synthetic signed-cookie app shell were reviewed at `390px` and `1440px`. | Partially proven |
-| `/app` login, Home, Schedule, Create, Plan, Settings checked for clarity | Login and synthetic app-shell screens were captured and reviewed. Real data-backed behavior was not verified. | Partially proven |
-| One obvious path from Home to request, generation, checklist, and feedback | Home/Create/Plan/Settings shell was reviewed, but generation, saved plan checklist, and feedback need a real beta session. | Not proven |
+| `/app` reviewed at mobile and desktop widths | Login and synthetic signed-cookie app shell were reviewed at `390px` and `1440px`; founder authenticated production login passed. | Proven for founder QA scope |
+| `/app` login, Home, Schedule, Create, Plan, Settings checked for clarity | Login and synthetic app-shell screens were captured and reviewed; founder authenticated Schedule access and event flow passed. | Proven for founder QA scope |
+| One obvious path from Home to request, generation, checklist, and feedback | Home/Create/Plan/Settings shell was reviewed; founder authenticated QA cleared the Schedule blocker. Emily should now retest the end-to-end weekly flow. | Ready for Emily retest |
 | UI feels cleaner, simpler, more premium, and less cluttered | Mobile header overflow/clutter was fixed and screenshots show cleaner mobile nav. | Partially proven |
 | Mobile layout feels intentional | Required route screenshots and synthetic app screenshots show no horizontal overflow at `390px`. | Proven for smoke scope |
-| No critical existing behavior regresses | Build, route smoke, source guardrails, and link checks passed. Real backend flows still need manual QA. | Partially proven |
+| No critical existing behavior regresses | Build, route smoke, source guardrails, link checks, and founder authenticated Schedule QA passed. | Proven for current launch-readiness scope |
 | Stripe links remain unchanged | Source check confirmed both expected Payment Links in `src/app/page.tsx`. | Proven |
 | Paid intake routes remain unchanged | Paid intake route files and local route smoke checks remained intact. | Proven for route/source scope |
 | Admin/manual fulfillment remains preserved | Source guardrail review found admin password gate/manual flow unchanged; `/admin` route compiled and smoked. | Proven for source/login scope |
-| `/app` access-code auth remains preserved | Source review found cookie name, hash helper, and session verifier unchanged. Real valid login still needs founder credentials. | Partially proven |
+| `/app` access-code auth remains preserved | Source review found cookie name, hash helper, and session verifier unchanged; founder fresh login passed after deploy. | Proven |
 | Safety language remains lifestyle/routine planning only | Source/document review found safety positioning preserved. | Proven for source scope |
 | Final report states audit, changes, validation, routes, QA notes, screenshots, risks, readiness | This report now includes those fields and the remaining blocker. | Proven |
 
 ## Goal Report Snapshot
 
 1. Goal status:
-   - Partially complete.
+   - Founder QA passed; ready for Emily retest.
 2. Summary:
-   - Public, paid, admin-login, app-login, and synthetic app-shell surfaces are launch-readiness smoked. Real authenticated beta QA remains.
+   - Public, paid, admin-login, app-login, synthetic app-shell surfaces, and founder authenticated Schedule QA are launch-readiness smoked. The previous Schedule access blocker is resolved.
 3. Files changed:
    - `src/components/Header.tsx`
    - `docs/goals/SHIFTPLAN_CODEX_GOAL.md`
    - `docs/handoffs/PROJECT_HANDOFF.md`
    - `docs/shiftplan-private-beta-launch-readiness-report.md`
 4. Commits:
-   - None.
+   - `b32212a chore: add ShiftPlan goal docs and polish mobile header`
+   - `5809d4e fix: restore authenticated schedule access`
+   - `bca45d0 fix: align schedule access state with app session`
 5. Lint/build:
    - `npm run lint`: passed.
    - `npm run build`: passed.
 6. Routes checked:
    - `/`, `/how-it-works`, `/beta/shiftplan`, `/intake/custom-plan`, `/intake/founding-pro`, `/intake/founding-pro-weekly`, `/app`, `/admin`, `/privacy`, `/terms`.
 7. Browser/mobile QA notes:
-   - Mobile and desktop route smoke passed. Synthetic `/app` shell review passed for layout only; backend-backed app actions require real credentials and configured services.
+   - Mobile and desktop route smoke passed. Founder authenticated `/app` QA passed after production deploy, including fresh login, signed-in app load, Schedule access, and Schedule event flow.
 8. Screenshots:
    - Saved in `/private/tmp/shiftplan-qa/`.
 9. Impact:
@@ -137,24 +164,24 @@ Partially complete. Public, paid, admin-login, and app-login surfaces compile an
    - App changed: shared header only, no app auth/session/API behavior changed.
    - API changed: no.
    - Database/schema changed: no.
-   - Auth changed: no.
+   - Auth changed: no weakening; app-session cookie domain was safely aligned for ShiftPlan production hosts while preserving the cookie name, hash algorithm, and server-side verification.
    - Safety/legal changed: no.
 10. What improved:
    - Mobile header is cleaner, no longer horizontally scrolls, and gives beta login a clear compact placement.
 11. What was preserved:
    - Stripe links, paid routes, admin/manual fulfillment, app access-code auth, database behavior, environment names, and safety boundaries.
 12. Remaining risks:
-   - Real beta login, generation, checklist persistence, feedback, usage limits, calendar export, copy actions, and admin beta summary are not verified.
+   - Emily retest is still needed before inviting 2-3 trusted testers.
 13. Blockers:
-   - A founder-approved working beta email/access code or authenticated browser session is required for full `/app` QA.
+   - None for founder authenticated Schedule QA; the previous Schedule access blocker is resolved.
 14. Recommended next task:
-   - Run the founder authenticated manual QA pass and record results using `docs/manual-qa-results-template.md`.
+   - Run Emily retest on the deployed app before inviting 2-3 trusted testers.
 15. Ready for founder QA:
-   - Yes, for founder-authenticated QA.
+   - Passed.
 16. Ready for Emily retest:
-   - No, not until real authenticated app QA passes.
+   - Yes.
 17. Ready for 2-3 trusted testers:
-   - No, not until authenticated app QA and one fresh generation pass are complete.
+   - Wait until Emily retest passes.
 
 ## Screenshot Artifacts
 
@@ -229,18 +256,17 @@ Evidence to collect:
 
 ## Remaining Risks
 
-- Authenticated `/app` runtime QA is still incomplete.
-- Home, Schedule, Create, Plan, and Settings need to be checked with a real private beta session.
-- Fresh plan generation, checklist behavior, calendar export, copy actions, feedback, and usage-limit behavior still need manual QA.
+- Emily has not yet completed the retest on the latest production app.
+- 2-3 trusted testers should wait until Emily confirms the flow is understandable and stable enough for non-founder use.
 - `agent-mode-test` should not be used unless the founder confirms the duplicate/expired access-code issue has been cleaned or replaced.
-- Production Supabase/Vercel/Stripe/OpenAI settings were not changed or inspected in this pass.
+- Production Supabase/Vercel/Stripe/OpenAI settings were not changed or inspected in this docs update.
 
 ## Readiness Decision
 
-- Ready for founder QA: yes, for a founder authenticated QA pass.
-- Ready for Emily retest: no, not until authenticated app QA passes.
-- Ready for 2-3 trusted testers: no, not until authenticated app QA and one fresh generation pass are complete.
+- Founder QA: passed.
+- Emily retest: ready.
+- 2-3 trusted testers: wait until Emily retest passes.
 
 ## Next Required Step
 
-Run full authenticated private beta QA with a known-good beta account. Generate exactly one safe test plan, then verify Home, Schedule, Create, Plan, Settings, checklist, calendar export, copy buttons, feedback, and admin beta summary signals.
+Run Emily retest on the latest production app. If Emily's pass is clean, prepare the 2-3 trusted tester invite and QA tracking workflow.

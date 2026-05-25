@@ -97,8 +97,8 @@ Founder authenticated QA passed after the latest production deploy. Public, paid
 - Week view commit `e8ff954`: pushed to `origin/main`.
 - Vercel production deployment for `e8ff954` reached `READY`.
 - Production route smoke checks returned `200` for `/`, `/how-it-works`, `/beta/shiftplan`, `/intake/custom-plan`, `/intake/founding-pro`, `/intake/founding-pro-weekly`, `/app`, `/admin`, `/privacy`, and `/terms`.
-- Latest production smoke check on 2026-05-25 after docs commit `468103f`:
-  - Vercel production deployment for `468103f37486d46b87133b9007f8a0531028b4cb` was `READY`.
+- Latest production smoke check on 2026-05-25 after docs commit `6b13aa8`:
+  - Vercel production deployment for `6b13aa8aa1d5d2ce65b4ace4f4769f80383aafa6` was `READY`.
   - `https://www.shiftplan.ai/`, `/how-it-works`, `/beta/shiftplan`, `/intake/custom-plan`, `/intake/founding-pro`, `/intake/founding-pro-weekly`, `/app`, `/admin`, `/privacy`, and `/terms` all returned `200`.
   - Stripe Payment Link constants in `src/app/page.tsx` remained unchanged.
 - Production authenticated Schedule smoke check passed:

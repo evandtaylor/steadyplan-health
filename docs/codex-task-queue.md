@@ -234,6 +234,9 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `6b13aa8` | Record latest production route smoke | Documents latest production `200` checks for required public and protected entry routes. |
+| `468103f` | Tighten private beta tracker guidance | Changes tester tracking to access-code labels instead of raw codes. |
+| `76a16cf` | Align private beta manual QA handoff | Makes Emily retest the clear next manual gate and updates ops guidance. |
 | `fbb6c36` | Add Emily retest runbook | Creates the standalone manual retest path and links it from launch-readiness docs. |
 | `06b76c3` | Clarify current ShiftPlan QA status | Marks the failed `agent-mode-test` pass as historical and records current founder-QA status. |
 | `351d31c` | Update ShiftPlan Week view QA readiness | Documents production Week view status and manual QA expectations. |

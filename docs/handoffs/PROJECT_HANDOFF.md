@@ -7,7 +7,7 @@ Generated from local repo inspection on 2026-05-22.
 Updated on 2026-05-25 after the ShiftPlan private-beta readiness work:
 
 - Current branch: `main`.
-- Recent readiness docs commit: `76a16cf docs: align private beta manual QA handoff`.
+- Current production/readiness evidence is recorded in `docs/shiftplan-private-beta-launch-readiness-report.md`.
 - Working tree was clean after the latest inspected push.
 - Founder authenticated QA passed on production.
 - The previous `/app` Schedule access blocker is resolved.

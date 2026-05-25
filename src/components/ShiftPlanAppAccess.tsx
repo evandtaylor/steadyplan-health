@@ -4545,13 +4545,13 @@ function ScheduleWeekCalendar({
           Loading schedule events.
         </p>
       ) : (
-        <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-7">
+        <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-2">
           {days.map((day) => (
             <article
               key={day.date}
-              className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              className="min-w-0 rounded-xl border border-white/10 bg-white/[0.06] p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
             >
-              <div className="flex items-start justify-between gap-3 2xl:block">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-white">
                     {day.weekday}
@@ -4560,7 +4560,7 @@ function ScheduleWeekCalendar({
                     {day.dateLabel}
                   </p>
                 </div>
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-300 2xl:mt-3 2xl:inline-block">
+                <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-300">
                   {day.events.length}
                 </span>
               </div>
@@ -4579,11 +4579,11 @@ function ScheduleWeekCalendar({
                         className="min-w-0 rounded-lg border border-white/10 bg-slate-900/80 p-3"
                       >
                         {timing ? (
-                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-teal-200">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-teal-200">
                             {timing}
                           </p>
                         ) : null}
-                        <p className="mt-1 break-words text-sm font-semibold leading-5 text-white">
+                        <p className="mt-1 text-sm font-semibold leading-5 text-white">
                           {event.title}
                         </p>
                         {event.category ? (

@@ -6,10 +6,9 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
-| high | manual | medium | no | Run founder/manual QA after product polish deploy | Test public site clarity, `/app` Home/Schedule/Create/Plan/Settings, fresh generation, checklist, calendar export, feedback, and admin beta summaries. |
 | high | manual | low | no | Run Emily retest on deployed Schedule Week view | Use `docs/shiftplan-emily-retest-runbook.md`; confirm List remains familiar, Week shows Monday-Sunday, real schedule events appear on the right days, and mobile has no horizontal overflow. |
-| high | manual | medium | no | QA expanded Master Schedule v0 with real schedule events | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
-| high | manual | low | no | Generate one fresh authenticated test plan | Verify output is short, date-accurate, schedule-aware, checklist-friendly, and uses compact safety language. |
+| high | manual | medium | no | Record Emily retest results | Use `docs/manual-qa-results-template.md`; do not include raw access codes, hashes, secrets, or private tester details. |
+| medium | manual | low | no | Prepare 2-3 trusted tester invites after Emily passes | Use `docs/private-beta-ops-checklist.md`, `docs/tester-app-walkthrough.md`, and `docs/private-beta-tester-tracker-template.md`; wait if Emily finds a critical blocker. |
 
 ## Current Phase
 
@@ -113,7 +112,7 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 | medium | manual | low | no | Test calendar export schedule context | Confirm `.ics` plan summary can mention known schedule context without creating duplicate raw events, alarms, or sync. |
 | medium | manual | low | no | Test read-only admin schedule summary | Confirm App Beta admin shows schedule counts/latest date only and no event notes or write actions. |
 | high | manual | low | no | Test App Access Codes create/deactivate/reactivate | Verify admin workflow without changing schema or auth. |
-| high | manual | low | no | Create `agent-mode-test` access | Use a clearly labeled test access record for repeatable QA. |
+| high | manual | low | no | Prepare repeatable QA access if needed | Use a clearly labeled test access record, but do not use `agent-mode-test` unless the founder confirms the duplicate/expired record has been cleaned or replaced. |
 | high | manual | low | no | Test fresh generated timeline plan | Generate exactly one test plan when safe; verify timeline structure and safety boundaries. |
 | high | manual | low | no | Test saved plan Today/Next up view | Confirm the quick view shows the right day when the plan includes today, and falls back cleanly for old plans. |
 | high | manual | low | no | Test calendar export on iPhone | Confirm `.ics` download/import behavior in real Safari. |
@@ -235,6 +234,9 @@ Phase 3 — Master Schedule v0 private beta expansion plus product-quality polis
 
 | Commit | Summary | Notes |
 | --- | --- | --- |
+| `fbb6c36` | Add Emily retest runbook | Creates the standalone manual retest path and links it from launch-readiness docs. |
+| `06b76c3` | Clarify current ShiftPlan QA status | Marks the failed `agent-mode-test` pass as historical and records current founder-QA status. |
+| `351d31c` | Update ShiftPlan Week view QA readiness | Documents production Week view status and manual QA expectations. |
 | `e8ff954` | Add lightweight Schedule Week view | Adds List/Week toggle and read-only Monday-Sunday visual calendar for selected week. |
 | `9db7df4` | Record successful founder app QA | Documents founder-authenticated QA pass and readiness for Emily retest. |
 | `bca45d0` | Align schedule access state with app session | Fixes production Schedule blocker by matching client state to verified app session. |

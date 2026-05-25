@@ -7,12 +7,12 @@ Generated from local repo inspection on 2026-05-22.
 Updated on 2026-05-25 after the ShiftPlan private-beta readiness work:
 
 - Current branch: `main`.
-- Latest pushed commit: `351d31c docs: update ShiftPlan Week view QA readiness`.
+- Latest pushed commit: `fbb6c36 docs: add Emily retest runbook`.
 - Working tree was clean after that push.
 - Founder authenticated QA passed on production.
 - The previous `/app` Schedule access blocker is resolved.
 - Lightweight Schedule Week view is live in `e8ff954` and was smoke-tested with the founder session.
-- Launch-readiness docs and QA templates now point to Emily retest as the next manual gate.
+- Launch-readiness docs and QA templates now point to `docs/shiftplan-emily-retest-runbook.md` as the next manual gate.
 - Ready for Emily retest: yes.
 - Ready for 2-3 trusted testers: wait until Emily retest passes.
 - Do not use `agent-mode-test` unless the founder confirms the duplicate/expired access-code issue has been cleaned or replaced.

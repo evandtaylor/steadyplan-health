@@ -54,7 +54,7 @@ Use these fields in a spreadsheet, notes doc, or CRM-lite tracker:
 
 - name
 - email
-- code
+- access code label
 - shift type
 - generated plan?
 - feedback?
@@ -67,6 +67,7 @@ Use these fields in a spreadsheet, notes doc, or CRM-lite tracker:
 
 - Use fake/test accounts only for QA.
 - Use real tester emails only with permission.
+- Track access-code labels, not raw access codes.
 - Do not send automated emails yet.
 - Do not promise native iOS, reminders, calendar sync, or public accounts as live features.
 - Keep feedback focused on weekly planning usefulness, output quality, mobile usability, and repeat use.

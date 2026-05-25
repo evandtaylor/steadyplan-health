@@ -140,15 +140,26 @@ export async function POST(request: Request) {
     },
   });
 
+  const cookieDomain = getAppAccessCookieDomain(request.url);
   response.cookies.set(APP_ACCESS_SESSION_COOKIE_NAME, session, {
     httpOnly: true,
     maxAge: APP_ACCESS_SESSION_TTL_SECONDS,
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
   });
 
   return response;
+}
+
+function getAppAccessCookieDomain(requestUrl: string) {
+  const hostname = new URL(requestUrl).hostname;
+  if (hostname === "shiftplan.ai" || hostname === "www.shiftplan.ai") {
+    return ".shiftplan.ai";
+  }
+
+  return "";
 }
 
 async function findAccessCode(

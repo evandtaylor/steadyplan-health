@@ -729,7 +729,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [accessCode, setAccessCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [access] = useState<AccessResponse["user"] | null>(
+  const [access, setAccess] = useState<AccessResponse["user"] | null>(
     initialAccess
       ? {
           email: initialAccess.email,
@@ -780,8 +780,22 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
     }
   }
 
+  const handleAccessExpired = useCallback(() => {
+    setAccess(null);
+    setAccessCode("");
+    setErrorMessage(
+      "Open ShiftPlan app access again so your secure session can be refreshed.",
+    );
+  }, []);
+
   if (access) {
-    return <AppDashboard email={access.email} firstName={access.first_name} />;
+    return (
+      <AppDashboard
+        email={access.email}
+        firstName={access.first_name}
+        onAccessExpired={handleAccessExpired}
+      />
+    );
   }
 
   return (
@@ -895,9 +909,11 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
 function AppDashboard({
   email,
   firstName,
+  onAccessExpired,
 }: {
   email: string;
   firstName: string | null;
+  onAccessExpired: () => void;
 }) {
   const [form, setForm] = useState<WeeklyRequestFormState>(
     initialWeeklyRequestForm,
@@ -1098,6 +1114,11 @@ function AppDashboard({
       const result = (await response.json()) as WeeklyRequestResponse;
 
       if (!response.ok) {
+        if (isAppAccessUnauthorized(response, result)) {
+          onAccessExpired();
+          return;
+        }
+
         setRequestMessage(
           result.message || "Could not load weekly requests right now.",
         );
@@ -1113,7 +1134,7 @@ function AppDashboard({
     } finally {
       setIsLoadingRequests(false);
     }
-  }, []);
+  }, [onAccessExpired]);
 
   const loadPreferences = useCallback(async () => {
     setIsLoadingPreferences(true);
@@ -1125,6 +1146,11 @@ function AppDashboard({
       const result = (await response.json()) as PreferencesResponse;
 
       if (!response.ok) {
+        if (isAppAccessUnauthorized(response, result)) {
+          onAccessExpired();
+          return;
+        }
+
         setPreferencesMessage(
           result.message || "Could not load preferences right now.",
         );
@@ -1138,7 +1164,7 @@ function AppDashboard({
     } finally {
       setIsLoadingPreferences(false);
     }
-  }, []);
+  }, [onAccessExpired]);
 
   const loadScheduleEvents = useCallback(async () => {
     setIsLoadingScheduleEvents(true);
@@ -1154,6 +1180,11 @@ function AppDashboard({
       const result = (await response.json()) as ScheduleEventsResponse;
 
       if (!response.ok) {
+        if (isAppAccessUnauthorized(response, result)) {
+          onAccessExpired();
+          return;
+        }
+
         setScheduleEventMessage(
           result.message || "Could not load schedule events right now.",
         );
@@ -1166,7 +1197,7 @@ function AppDashboard({
     } finally {
       setIsLoadingScheduleEvents(false);
     }
-  }, []);
+  }, [onAccessExpired]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -5615,6 +5646,17 @@ function appendUniqueText(currentValue: string, nextValue: string) {
 
 function normalizeStorageKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") || "local";
+}
+
+function isAppAccessUnauthorized(
+  response: Response,
+  result: { message?: string },
+) {
+  return (
+    response.status === 401 &&
+    typeof result.message === "string" &&
+    result.message.startsWith("Open ShiftPlan app access")
+  );
 }
 
 function createWeeklyRequestDraft(

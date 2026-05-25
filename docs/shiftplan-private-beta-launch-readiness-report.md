@@ -131,6 +131,12 @@ Manual founder QA confirmed:
 
 The previous blocker is now resolved. The product is ready for Emily retest, including the new Schedule Week view. Invite 2-3 trusted testers only after Emily's retest confirms the flow is understandable and stable enough for non-founder use.
 
+## Emily Retest Gate
+
+Status: ready, manual pass pending.
+
+Use `docs/shiftplan-emily-retest-runbook.md` for the next production retest. Emily should verify fresh login, Home, Schedule List, Schedule Week, one safe Create/generation flow, plan accuracy, checklist, copy buttons, `.ics` export, feedback, and Settings basics. Do not invite 2-3 trusted testers until this retest passes without a critical blocker.
+
 ## Completion Criteria Audit
 
 | Goal requirement | Current evidence | Status |

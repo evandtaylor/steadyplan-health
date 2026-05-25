@@ -7,7 +7,7 @@ This is the living product and task queue for ShiftPlan. ChatGPT can update this
 | Priority | Type | Risk | SQL Needed | Task | Notes |
 | --- | --- | --- | --- | --- | --- |
 | high | manual | medium | no | Run founder/manual QA after product polish deploy | Test public site clarity, `/app` Home/Schedule/Create/Plan/Settings, fresh generation, checklist, calendar export, feedback, and admin beta summaries. |
-| high | manual | low | no | Run Emily retest on deployed Schedule Week view | Confirm List remains familiar, Week shows Monday-Sunday, real schedule events appear on the right days, and mobile has no horizontal overflow. |
+| high | manual | low | no | Run Emily retest on deployed Schedule Week view | Use `docs/shiftplan-emily-retest-runbook.md`; confirm List remains familiar, Week shows Monday-Sunday, real schedule events appear on the right days, and mobile has no horizontal overflow. |
 | high | manual | medium | no | QA expanded Master Schedule v0 with real schedule events | Test Schedule tab, Home preview, Create context, bulk quick add, overload hints, schedule notes, calendar export context, and admin read-only summary. |
 | high | manual | low | no | Generate one fresh authenticated test plan | Verify output is short, date-accurate, schedule-aware, checklist-friendly, and uses compact safety language. |
 

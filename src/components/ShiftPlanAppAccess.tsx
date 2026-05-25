@@ -729,7 +729,7 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
   const [accessCode, setAccessCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [access, setAccess] = useState<AccessResponse["user"] | null>(
+  const [access] = useState<AccessResponse["user"] | null>(
     initialAccess
       ? {
           email: initialAccess.email,
@@ -768,9 +768,9 @@ export function ShiftPlanAppAccess({ initialAccess }: ShiftPlanAppAccessProps) {
         return;
       }
 
-      setAccess(result.user);
       setEmail(result.user.email);
       setAccessCode("");
+      window.location.assign("/app");
     } catch {
       setErrorMessage(
         "We could not check ShiftPlan app access right now. Please try again.",
@@ -1147,6 +1147,7 @@ function AppDashboard({
       const response = await fetch(
         "/api/app/schedule-events?include_archived=true",
         {
+          credentials: "same-origin",
           method: "GET",
         },
       );
@@ -1390,6 +1391,7 @@ function AppDashboard({
     try {
       const isEditing = Boolean(scheduleEventForm.id);
       const response = await fetch("/api/app/schedule-events", {
+        credentials: "same-origin",
         method: isEditing ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1448,6 +1450,7 @@ function AppDashboard({
 
     try {
       const response = await fetch("/api/app/schedule-events", {
+        credentials: "same-origin",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1508,6 +1511,7 @@ function AppDashboard({
     try {
       for (const eventToCreate of eventsToCreate) {
         const response = await fetch("/api/app/schedule-events", {
+          credentials: "same-origin",
           method: "POST",
           headers: {
             "Content-Type": "application/json",

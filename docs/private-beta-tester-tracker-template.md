@@ -13,7 +13,7 @@ Use this template to track the first 3-20 private beta testers without adding pr
 
 ## Tracker Table
 
-| Tester name | Email | Access code | Shift type | Invite sent date | Logged in? | Saved preferences? | Created request? | Generated plan? | Used checklist? | Downloaded calendar? | Left feedback? | Would use weekly? | Would pay? | Biggest issue | Best feature idea | Follow-up sent? | Status |
+| Tester name | Email | Access code label | Shift type | Invite sent date | Logged in? | Saved preferences? | Created request? | Generated plan? | Used checklist? | Downloaded calendar? | Left feedback? | Would use weekly? | Would pay? | Biggest issue | Best feature idea | Follow-up sent? | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 |  |  |  |  |  | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Unknown / No / Maybe / Yes | Unknown / No / Maybe / Yes |  |  | Not yet / Yes | Invited / Active / Needs follow-up / Paused / Complete |
 |  |  |  |  |  | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Not yet / Yes | Unknown / No / Maybe / Yes | Unknown / No / Maybe / Yes |  |  | Not yet / Yes | Invited / Active / Needs follow-up / Paused / Complete |
@@ -21,7 +21,7 @@ Use this template to track the first 3-20 private beta testers without adding pr
 
 ## Tester Status Definitions
 
-- Invited: access code created and message sent, but no confirmed login yet.
+- Invited: access code created and message sent, but no confirmed login yet. Track the label, not the raw code.
 - Active: tester has logged in and is moving through the flow.
 - Needs follow-up: tester got stuck, has not generated a plan, or has not responded after first use.
 - Paused: tester is not available right now or is not a fit for the current beta.

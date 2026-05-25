@@ -7,8 +7,8 @@ Generated from local repo inspection on 2026-05-22.
 Updated on 2026-05-25 after the ShiftPlan private-beta readiness work:
 
 - Current branch: `main`.
-- Latest pushed commit: `fbb6c36 docs: add Emily retest runbook`.
-- Working tree was clean after that push.
+- Recent readiness docs commit: `76a16cf docs: align private beta manual QA handoff`.
+- Working tree was clean after the latest inspected push.
 - Founder authenticated QA passed on production.
 - The previous `/app` Schedule access blocker is resolved.
 - Lightweight Schedule Week view is live in `e8ff954` and was smoke-tested with the founder session.
